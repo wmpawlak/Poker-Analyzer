@@ -2,79 +2,71 @@
 import React, { useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { toggleSource, removeSource, setApiKey, verifyApiKey } from '../store/pokerSlice.js';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { Filter, LayoutDashboard, Trophy, FileCode2, Trash2, Key, CheckCircle, AlertTriangle } from 'lucide-react';
+
 // --- WIDOK PORTFELA ---
 export const WalletView = () => {
   const { sessions } = useSelector((state) => state.poker);
   const [walletDateFrom, setWalletDateFrom] = useState('');
   const [walletDateTo, setWalletDateTo] = useState('');
+  const [onlyFlop, setOnlyFlop] = useState(false);
 
   const walletData = useMemo(() => {
     let handsToProcess = [...sessions].sort((a, b) => a.startTime - b.startTime).flatMap(s => s.hands);
     if (walletDateFrom) handsToProcess = handsToProcess.filter(h => h.timestamp >= new Date(walletDateFrom).getTime());
     if (walletDateTo) handsToProcess = handsToProcess.filter(h => h.timestamp <= new Date(walletDateTo).getTime() + 86400000);
+    
+    if (onlyFlop) {
+        handsToProcess = handsToProcess.filter(h => h.streets && h.streets.some(s => s.name === 'FLOP'));
+    }
 
-    let runningTotal = 0; let timeline = []; let posWinsMap = {}; let posLossesMap = {}; 
+    let runningTotal = 0; let timeline = []; let posWinsMap = {}; 
     handsToProcess.forEach((hand, idx) => {
       runningTotal += hand.netProfit;
       timeline.push({ handIndex: idx + 1, profit: parseFloat(runningTotal.toFixed(2)), date: hand.dateStr });
       
       const pos = hand.position || 'UNKNOWN';
       if (pos !== 'UNKNOWN') {
-        if (posWinsMap[pos] === undefined) posWinsMap[pos] = 0;
-        if (posLossesMap[pos] === undefined) posLossesMap[pos] = 0;
-        if (hand.outcome === 'WON') posWinsMap[pos] += 1; else posLossesMap[pos] += 1;
+        if (!posWinsMap[pos]) posWinsMap[pos] = { wins: 0, total: 0 };
+        posWinsMap[pos].total += 1;
+        if (hand.outcome === 'WON') posWinsMap[pos].wins += 1;
       }
     });
 
-    // Ustalona kolejność wyświetlania na liście
-    const displayOrder = ['BTN', 'SB', 'BB', 'UTG', 'UTG+1', 'HJ', 'CO'];
-    
-    let positionFrequencyData = [];
-    Object.keys(posWinsMap).forEach(pos => {
-       const w = posWinsMap[pos];
-       const l = posLossesMap[pos];
-       positionFrequencyData.push({ position: pos, wins: w, losses: l, total: w + l });
-    });
+    const displayOrder = ['BTN', 'SB', 'BB', 'UTG', 'HJ', 'CO'];
+    let positionFrequencyData = Object.keys(posWinsMap).map(pos => ({
+       position: pos, 
+       wins: posWinsMap[pos].wins, 
+       total: posWinsMap[pos].total 
+    })).sort((a, b) => (displayOrder.indexOf(a.position) > -1 ? displayOrder.indexOf(a.position) : 99) - (displayOrder.indexOf(b.position) > -1 ? displayOrder.indexOf(b.position) : 99));
 
-    positionFrequencyData.sort((a, b) => {
-       let idxA = displayOrder.indexOf(a.position);
-       let idxB = displayOrder.indexOf(b.position);
-       if (idxA === -1) idxA = 99;
-       if (idxB === -1) idxB = 99;
-       return idxA - idxB;
-    });
-
-    // Najwyższa wartość do wyliczenia relatywnej szerokości całej linii
     const maxPosHands = Math.max(...positionFrequencyData.map(d => d.total), 1);
-
     return { timeline, positionFrequencyData, maxPosHands, totalHands: handsToProcess.length, totalProfit: runningTotal };
-  }, [sessions, walletDateFrom, walletDateTo]);
+  }, [sessions, walletDateFrom, walletDateTo, onlyFlop]);
+
+  const getWinRateColor = (winRate) => {
+    if (winRate >= 60) return 'bg-emerald-500 border-emerald-600';
+    if (winRate >= 50) return 'bg-yellow-400 border-yellow-500 text-black';
+    return 'bg-red-500 border-red-600';
+  };
 
   if (sessions.length === 0) return <div className="text-center p-12 text-gray-500">Brak aktywnych danych z gier Cash do analizy.</div>;
 
   return (
     <div className="max-w-6xl mx-auto flex flex-col gap-6 animate-in fade-in duration-300">
-      <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+      <div className="flex flex-wrap items-center gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
         <Filter className="text-gray-400" size={20}/>
-        <span className="font-bold text-gray-700">Filtruj daty:</span>
-        <input type="date" value={walletDateFrom} onChange={e => setWalletDateFrom(e.target.value)} className="border p-2 rounded text-sm outline-none focus:ring-2 focus:ring-indigo-500"/>
-        <span className="text-gray-400">-</span>
-        <input type="date" value={walletDateTo} onChange={e => setWalletDateTo(e.target.value)} className="border p-2 rounded text-sm outline-none focus:ring-2 focus:ring-indigo-500"/>
-        {(walletDateFrom || walletDateTo) && (<button onClick={()=>{setWalletDateFrom('');setWalletDateTo('');}} className="text-sm text-indigo-600 font-bold hover:underline">Resetuj</button>)}
+        <span className="font-bold text-gray-700">Filtry:</span>
+        <input type="date" value={walletDateFrom} onChange={e => setWalletDateFrom(e.target.value)} className="border p-2 rounded text-sm"/>
+        <input type="date" value={walletDateTo} onChange={e => setWalletDateTo(e.target.value)} className="border p-2 rounded text-sm"/>
+        <button onClick={() => setOnlyFlop(!onlyFlop)} className={`px-4 py-2 rounded-lg text-sm font-bold border transition-all ${onlyFlop ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-white text-gray-600 border-gray-300'}`}>
+            {onlyFlop ? '✓ Tylko ręce z flopem' : 'Pokaż wszystkie ręce'}
+        </button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-          <div className="text-sm font-semibold text-gray-500 mb-1">Wynik (Tylko Cash)</div>
-          <div className={`text-3xl font-black ${walletData.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{walletData.totalProfit >= 0 ? '+' : ''}₮{walletData.totalProfit.toFixed(2)}</div>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-          <div className="text-sm font-semibold text-gray-500 mb-1">Rozegranych Rozdań Cash</div>
-          <div className="text-3xl font-black text-gray-800">{walletData.totalHands}</div>
-        </div>
-      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Wykres zysków */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col h-96">
           <h3 className="text-lg font-bold text-gray-800 mb-4 shrink-0">Wykres zysków w czasie (Cash)</h3>
           <div className="flex-1 w-full relative">
@@ -84,38 +76,29 @@ export const WalletView = () => {
                 <XAxis dataKey="handIndex" stroke="#9ca3af" fontSize={11} minTickGap={30} />
                 <YAxis stroke="#9ca3af" fontSize={11} domain={['auto', 'auto']} />
                 <Tooltip />
-                <ReferenceLine y={0} stroke="#111827" strokeWidth={2} opacity={0.3} />
-                <Line type="monotone" dataKey="profit" stroke="#4f46e5" strokeWidth={3} dot={false} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="profit" stroke="#4f46e5" strokeWidth={3} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
-        
-        {/* NOWY, NIESTANDARDOWY WIDOK POZYCJI */}
+
+        {/* Skuteczność wg pozycji */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col h-96">
-          <h3 className="text-lg font-bold text-gray-800 mb-6 shrink-0">Skuteczność wg. Pozycji (Cash)</h3>
+          <h3 className="text-lg font-bold text-gray-800 mb-6 shrink-0">Skuteczność wg. Pozycji {onlyFlop ? '(Tylko Flopy)' : '(Cash)'}</h3>
           <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar flex flex-col gap-3">
             {walletData.positionFrequencyData.map(item => {
-               // Relatywna długość całego paska względem najczęstszej pozycji (częstotliwość występowania)
                const widthPercent = (item.total / walletData.maxPosHands) * 100;
-               // Stosunek wygranych wewnątrz konkretnego paska
                const winPercent = item.total > 0 ? (item.wins / item.total) * 100 : 0;
-               
                return (
                  <div key={item.position} className="flex items-center gap-4">
-                    <div className="w-12 text-right font-black text-gray-700 text-sm shrink-0">{item.position}</div>
-                    
+                    <div className={`w-16 h-10 flex items-center justify-center font-black rounded-lg border shadow-sm text-xs text-white ${getWinRateColor(winPercent)}`}>
+                      {item.position}
+                    </div>
                     <div className="flex-1 flex items-center bg-slate-50 rounded-lg">
-                        <div 
-                          className="h-8 rounded-lg flex overflow-hidden shadow-inner border border-gray-200 relative" 
-                          style={{ width: `${widthPercent}%`, minWidth: '130px' }} // min-width zapobiega ucinaniu tekstu przy małej próbce
-                        >
-                           <div className="bg-emerald-500 h-full transition-all" style={{ width: `${winPercent}%` }} />
-                           <div className="bg-rose-500 h-full transition-all" style={{ width: `${100 - winPercent}%` }} />
-                           
-                           <div className="absolute inset-0 flex items-center px-3 text-[11px] font-black text-white drop-shadow-md z-10 whitespace-nowrap">
-                              {item.wins} W / {item.total} ({winPercent.toFixed(1)}%)
-                           </div>
+                        <div className="h-8 rounded-lg flex overflow-hidden shadow-inner border border-gray-200 relative" style={{ width: `${widthPercent}%`, minWidth: '140px' }}>
+                           <div className="bg-emerald-500 h-full" style={{ width: `${winPercent}%` }} />
+                           <div className="bg-rose-500 h-full" style={{ width: `${100 - winPercent}%` }} />
+                           <div className="absolute inset-0 flex items-center px-3 text-[11px] font-black text-white z-10">{item.wins} W / {item.total} ({winPercent.toFixed(1)}%)</div>
                         </div>
                     </div>
                  </div>

@@ -97,52 +97,59 @@ const renderGrid = (type) => {
     const ranks = ["A", "K", "Q", "J", "T", "9", "8", "7", "6", "5", "4", "3", "2"];
     
     return (
-      <div className="flex gap-1.5 justify-start">
-        {ranks.map((firstRank, colIndex) => {
-          // Dla każdej kolumny "firstRank" jest stałe
-          return (
-            <div key={firstRank} className="flex flex-col gap-1.5">
-              {ranks.map((secondRank) => {
-                // Logika wyboru układu zależna od typu
-                let lookupKey = "";
-                if (type === 'pair') {
-                  if (firstRank !== secondRank) return null;
-                  lookupKey = firstRank + secondRank;
-                } else if (type === 'suited') {
-                  if (ranks.indexOf(firstRank) >= ranks.indexOf(secondRank)) return null;
-                  lookupKey = firstRank + secondRank + 's';
-                } else { // offsuit
-                  if (ranks.indexOf(firstRank) >= ranks.indexOf(secondRank)) return null;
-                  lookupKey = firstRank + secondRank + 'o';
-                }
+      // Flex-row sprawia, że kolumny (pierwsza karta) są obok siebie
+      <div className="flex flex-row gap-1.5 justify-center">
+        {ranks.map((firstRank) => (
+          // Flex-col sprawia, że karty wewnątrz kolumny są jedna pod drugą
+          <div key={firstRank} className="flex flex-col gap-1.5 w-20">
+            {ranks.map((secondRank) => {
+              let lookupKey = "";
+              
+              // LOGIKA:
+              // 1. Jeśli to PARA (AA, KK...) -> tylko w widoku 'suited'
+              if (firstRank === secondRank) {
+                if (type !== 'suited') return null;
+                lookupKey = firstRank + secondRank;
+              } 
+              // 2. Jeśli to SUITED -> tylko jeśli type == 'suited'
+              else if (type === 'suited') {
+                // Wyświetlamy tylko układ w jednym kierunku (np. AKs), żeby nie duplikować (np. KAs)
+                if (ranks.indexOf(firstRank) > ranks.indexOf(secondRank)) return null;
+                lookupKey = firstRank + secondRank + 's';
+              } 
+              // 3. Jeśli to OFF-SUIT -> tylko jeśli type == 'offsuit'
+              else { 
+                if (type !== 'offsuit') return null; // Ukrywamy pary w off-suit
+                if (ranks.indexOf(firstRank) > ranks.indexOf(secondRank)) return null;
+                lookupKey = firstRank + secondRank + 'o';
+              }
 
-                const handObj = all169HandsData.find(h => h.key === lookupKey);
-                if (!handObj) return null;
+              const handObj = all169HandsData.find(h => h.key === lookupKey);
+              if (!handObj) return null;
 
-                const colorClass = getHeatmapColor(handObj);
-                const badgeColorClass = handObj ? getCountBadgeColor(handObj.count) : 'hidden';
+              const colorClass = getHeatmapColor(handObj);
+              const badgeColorClass = handObj ? getCountBadgeColor(handObj.count) : 'hidden';
 
-                return (
-                  <div 
-                    key={lookupKey} 
-                    className={`w-20 h-16 flex flex-col items-center justify-center rounded-xl border cursor-default transition-all hover:scale-110 hover:!z-50 relative ${colorClass}`}
-                    title={`${lookupKey}: Rozegrano ${handObj.count} | WR: ${handObj.winRate.toFixed(1)}%`}
-                  >
-                    {handObj.count > 0 && (
-                      <div className={`absolute -top-3 -right-3 w-8 h-8 rounded-full border border-black flex items-center justify-center text-sm font-black shadow-md select-none z-40 ${badgeColorClass}`}>
-                        {handObj.count}
-                      </div>
-                    )}
-                    <span className="text-base font-black tracking-tighter leading-none">{firstRank}-{secondRank}</span>
-                    {handObj.count > 0 && (
-                      <span className="text-sm leading-none font-black mt-1">{handObj.winRate.toFixed(0)}%</span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
+              return (
+                <div 
+                  key={lookupKey} 
+                  className={`w-20 h-16 flex flex-col items-center justify-center rounded-xl border cursor-default transition-all hover:scale-110 hover:!z-50 relative ${colorClass}`}
+                  title={`${lookupKey}: Rozegrano ${handObj.count} | WR: ${handObj.winRate.toFixed(1)}%`}
+                >
+                  {handObj.count > 0 && (
+                    <div className={`absolute -top-3 -right-3 w-8 h-8 rounded-full border border-black flex items-center justify-center text-sm font-black shadow-md select-none z-40 ${badgeColorClass}`}>
+                      {handObj.count}
+                    </div>
+                  )}
+                  <span className="text-base font-black tracking-tighter leading-none">{firstRank}-{secondRank}</span>
+                  {handObj.count > 0 && (
+                    <span className="text-sm leading-none font-black mt-1">{handObj.winRate.toFixed(0)}%</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
     );
   };
