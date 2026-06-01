@@ -2,9 +2,8 @@
 import React, { useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { toggleSource, removeSource, setApiKey, verifyApiKey } from '../store/pokerSlice.js';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { Filter, LayoutDashboard, Trophy, FileCode2, Trash2, Key, CheckCircle, AlertTriangle } from 'lucide-react';
-
 // --- WIDOK PORTFELA ---
 export const WalletView = () => {
   const { sessions } = useSelector((state) => state.poker);
@@ -20,19 +19,37 @@ export const WalletView = () => {
     handsToProcess.forEach((hand, idx) => {
       runningTotal += hand.netProfit;
       timeline.push({ handIndex: idx + 1, profit: parseFloat(runningTotal.toFixed(2)), date: hand.dateStr });
+      
       const pos = hand.position || 'UNKNOWN';
-      if (posWinsMap[pos] === undefined) posWinsMap[pos] = 0;
-      if (posLossesMap[pos] === undefined) posLossesMap[pos] = 0;
-      if (hand.outcome === 'WON') posWinsMap[pos] += 1; else posLossesMap[pos] += 1;
+      if (pos !== 'UNKNOWN') {
+        if (posWinsMap[pos] === undefined) posWinsMap[pos] = 0;
+        if (posLossesMap[pos] === undefined) posLossesMap[pos] = 0;
+        if (hand.outcome === 'WON') posWinsMap[pos] += 1; else posLossesMap[pos] += 1;
+      }
     });
 
-    const standardOrder = ['SB', 'BB', 'UTG', 'UTG1', 'CO', 'BTN'];
-    const getPosOrder = (p) => { const idx = standardOrder.indexOf(p); return idx !== -1 ? idx : 100; };
-    const positionFrequencyChart = Object.keys(posWinsMap)
-      .sort((a, b) => getPosOrder(a) - getPosOrder(b))
-      .map(key => ({ position: key, Wygrane: posWinsMap[key], Przegrane: posLossesMap[key] }));
+    // Ustalona kolejność wyświetlania na liście
+    const displayOrder = ['BTN', 'SB', 'BB', 'UTG', 'UTG+1', 'HJ', 'CO'];
+    
+    let positionFrequencyData = [];
+    Object.keys(posWinsMap).forEach(pos => {
+       const w = posWinsMap[pos];
+       const l = posLossesMap[pos];
+       positionFrequencyData.push({ position: pos, wins: w, losses: l, total: w + l });
+    });
 
-    return { timeline, positionFrequencyChart, totalHands: handsToProcess.length, totalProfit: runningTotal };
+    positionFrequencyData.sort((a, b) => {
+       let idxA = displayOrder.indexOf(a.position);
+       let idxB = displayOrder.indexOf(b.position);
+       if (idxA === -1) idxA = 99;
+       if (idxB === -1) idxB = 99;
+       return idxA - idxB;
+    });
+
+    // Najwyższa wartość do wyliczenia relatywnej szerokości całej linii
+    const maxPosHands = Math.max(...positionFrequencyData.map(d => d.total), 1);
+
+    return { timeline, positionFrequencyData, maxPosHands, totalHands: handsToProcess.length, totalProfit: runningTotal };
   }, [sessions, walletDateFrom, walletDateTo]);
 
   if (sessions.length === 0) return <div className="text-center p-12 text-gray-500">Brak aktywnych danych z gier Cash do analizy.</div>;
@@ -42,9 +59,9 @@ export const WalletView = () => {
       <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
         <Filter className="text-gray-400" size={20}/>
         <span className="font-bold text-gray-700">Filtruj daty:</span>
-        <input type="date" value={walletDateFrom} onChange={e => setWalletDateFrom(e.target.value)} className="border p-2 rounded text-sm"/>
+        <input type="date" value={walletDateFrom} onChange={e => setWalletDateFrom(e.target.value)} className="border p-2 rounded text-sm outline-none focus:ring-2 focus:ring-indigo-500"/>
         <span className="text-gray-400">-</span>
-        <input type="date" value={walletDateTo} onChange={e => setWalletDateTo(e.target.value)} className="border p-2 rounded text-sm"/>
+        <input type="date" value={walletDateTo} onChange={e => setWalletDateTo(e.target.value)} className="border p-2 rounded text-sm outline-none focus:ring-2 focus:ring-indigo-500"/>
         {(walletDateFrom || walletDateTo) && (<button onClick={()=>{setWalletDateFrom('');setWalletDateTo('');}} className="text-sm text-indigo-600 font-bold hover:underline">Resetuj</button>)}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -58,10 +75,10 @@ export const WalletView = () => {
         </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-          <h3 className="text-lg font-bold text-gray-800 mb-6">Wykres zysków w czasie (Cash)</h3>
-          <div className="w-full h-80">
-            <ResponsiveContainer width="100%" height={320}>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col h-96">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 shrink-0">Wykres zysków w czasie (Cash)</h3>
+          <div className="flex-1 w-full relative">
+            <ResponsiveContainer width="100%" height="100%">
               <LineChart data={walletData.timeline}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                 <XAxis dataKey="handIndex" stroke="#9ca3af" fontSize={11} minTickGap={30} />
@@ -73,19 +90,37 @@ export const WalletView = () => {
             </ResponsiveContainer>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-          <h3 className="text-lg font-bold text-gray-800 mb-6">Skuteczność wg. Pozycji (Cash)</h3>
-          <div className="w-full h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={walletData.positionFrequencyChart} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                <XAxis type="number" stroke="#9ca3af" fontSize={11} allowDecimals={false} />
-                <YAxis dataKey="position" type="category" stroke="#9ca3af" fontSize={11} width={50} />
-                <Tooltip cursor={{fill: '#f8fafc'}} />
-                <Bar dataKey="Wygrane" stackId="a" fill="#10b981" />
-                <Bar dataKey="Przegrane" stackId="a" fill="#ef4444" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+        
+        {/* NOWY, NIESTANDARDOWY WIDOK POZYCJI */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col h-96">
+          <h3 className="text-lg font-bold text-gray-800 mb-6 shrink-0">Skuteczność wg. Pozycji (Cash)</h3>
+          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar flex flex-col gap-3">
+            {walletData.positionFrequencyData.map(item => {
+               // Relatywna długość całego paska względem najczęstszej pozycji (częstotliwość występowania)
+               const widthPercent = (item.total / walletData.maxPosHands) * 100;
+               // Stosunek wygranych wewnątrz konkretnego paska
+               const winPercent = item.total > 0 ? (item.wins / item.total) * 100 : 0;
+               
+               return (
+                 <div key={item.position} className="flex items-center gap-4">
+                    <div className="w-12 text-right font-black text-gray-700 text-sm shrink-0">{item.position}</div>
+                    
+                    <div className="flex-1 flex items-center bg-slate-50 rounded-lg">
+                        <div 
+                          className="h-8 rounded-lg flex overflow-hidden shadow-inner border border-gray-200 relative" 
+                          style={{ width: `${widthPercent}%`, minWidth: '130px' }} // min-width zapobiega ucinaniu tekstu przy małej próbce
+                        >
+                           <div className="bg-emerald-500 h-full transition-all" style={{ width: `${winPercent}%` }} />
+                           <div className="bg-rose-500 h-full transition-all" style={{ width: `${100 - winPercent}%` }} />
+                           
+                           <div className="absolute inset-0 flex items-center px-3 text-[11px] font-black text-white drop-shadow-md z-10 whitespace-nowrap">
+                              {item.wins} W / {item.total} ({winPercent.toFixed(1)}%)
+                           </div>
+                        </div>
+                    </div>
+                 </div>
+               )
+            })}
           </div>
         </div>
       </div>

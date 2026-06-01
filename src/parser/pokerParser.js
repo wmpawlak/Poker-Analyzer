@@ -28,8 +28,6 @@ export const parseRawHandHistory = (rawText) => {
         heroWinnings: 0, netProfit: 0, outcome: 'FOLDED', rawText: rawHand.trim(),
         position: 'UNKNOWN', streets: [], isTournament: false, heroStartingStack: 0,
         tableId: '', tourneyName: '', tourneyId: '',
-        
-        // --- NOWE FLAGI DO METRYK ---
         heroVPIP: false, heroPFR: false, sawShowdown: false,
         heroPostFlopBetsRaises: 0, heroPostFlopCalls: 0,
         opponents: []
@@ -47,10 +45,6 @@ export const parseRawHandHistory = (rawText) => {
         handData.isTournament = true;
         handData.tourneyName = tourneyMatch[1];
         handData.tourneyId = tourneyMatch[2];
-      } else if (/Tournament '/i.test(rawHand)) {
-        handData.isTournament = true;
-        handData.tourneyName = 'Nieznany Turniej';
-        handData.tourneyId = `T_${handData.id}`;
       }
 
       const stackMatch = rawHand.match(/Seat \d+:\s+Hero\s*\([^\d]*([\d.,]+)\s+in chips\)/i);
@@ -64,7 +58,6 @@ export const parseRawHandHistory = (rawText) => {
         handData.dateStr = dateMatch[1].trim();
         const d = parsePokerDate(handData.dateStr);
         handData.timestamp = d.getTime();
-        handData.timeStr = d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
       } else {
         handData.timestamp = new Date().getTime();
       }
@@ -75,13 +68,20 @@ export const parseRawHandHistory = (rawText) => {
       const cardsMatch = rawHand.match(/Dealt to Hero \[(.+?)\]/i);
       if (cardsMatch) handData.heroCards = cardsMatch[1].split(' ');
 
-      // EKSTRAKCJA PRZECIWNIKÓW Z MIEJSC
-      const seats = [...rawHand.matchAll(/Seat (\d+): ([a-zA-Z0-9]+)/gi)]; 
+      // DEDUPLIKACJA MIEJSC (NAPRAWIA BŁĄD Z UTG+3 w 6-max)
+      // Zapobiega liczeniu gracza podwójnie z sekcji "Summary" na końcu rozdania
+      const seats = [...rawHand.matchAll(/Seat (\d+): ([^\s()]+)/gi)]; 
       let activeSeats = [];
+      let seenSeats = new Set();
+      
       seats.forEach(seat => {
+        const sNum = parseInt(seat[1]);
         const playerId = seat[2].trim();
-        activeSeats.push({ seatNum: parseInt(seat[1]), playerId });
-        if (playerId !== 'Hero') handData.opponents.push(playerId);
+        if (!seenSeats.has(sNum)) {
+            seenSeats.add(sNum);
+            activeSeats.push({ seatNum: sNum, playerId });
+            if (playerId !== 'Hero') handData.opponents.push(playerId);
+        }
       });
 
       const streetBlocks = rawHand.split(/(?=\*\*\* (?:HOLE CARDS|FLOP|TURN|RIVER|SHOWDOWN|SUMMARY))/);
@@ -90,7 +90,6 @@ export const parseRawHandHistory = (rawText) => {
       streetBlocks.forEach(block => {
         if (!block.trim()) return;
         const blockLines = block.split(/\r?\n/).map(l => l.trim()).filter(l => l);
-        if (blockLines.length === 0) return;
         
         const stMatch = blockLines[0].match(/\*\*\* (HOLE CARDS|FLOP|TURN|RIVER|SHOWDOWN|SUMMARY)(.*)/);
         
@@ -102,12 +101,11 @@ export const parseRawHandHistory = (rawText) => {
           let cards = [];
           if (['FLOP', 'TURN', 'RIVER'].includes(name)) {
             const brackets = [...stMatch[2].matchAll(/\[(.*?)\]/g)];
-            if (brackets.length > 0) cards = brackets[brackets.length - 1][1].split(' ').filter(c => c.trim());
+            if (brackets.length > 0) cards = brackets[brackets.length - 1][1].split(' ').filter(c => c.trim() !== '');
           }
           
           const actionLines = blockLines.slice(1).filter(l => !l.startsWith('Dealt to') && !l.startsWith('Total pot') && !l.startsWith('Board') && !l.startsWith('Hand was') && !l.startsWith('Game ended'));
           
-          // --- ANALIZA ZAGRAŃ DO METRYK ---
           actionLines.forEach(line => {
              if (line.startsWith('Hero:')) {
                 const isRaise = line.includes('raises') || line.includes('ALLIN');
@@ -166,63 +164,62 @@ export const parseRawHandHistory = (rawText) => {
         else if (wonMatch) handData.heroWinnings = parseChips(wonMatch[1]);
         else handData.heroWinnings = 0; 
       } else {
-        if (heroSummaryLine && heroSummaryLine.includes('and lost')) handData.outcome = 'LOST';
-        else handData.outcome = handData.heroInvestment > 0 ? 'LOST' : 'FOLDED';
+        handData.outcome = handData.heroInvestment > 0 ? 'LOST' : 'FOLDED';
         handData.heroWinnings = 0;
       }
 
       handData.netProfit = parseFloat((handData.heroWinnings - handData.heroInvestment).toFixed(2));
 
-      const rankMatch1 = rawHand.match(/Hero:\s+shows\s+\[.*?\]\s+\((.*?)\)/i);
-      const rankMatch2 = rawHand.match(/Hero\s+showed\s+\[.*?\]\s+and\s+.*?\s+with\s+(.*)/i);
-      if (rankMatch1) handData.handRanking = rankMatch1[1].trim();
-      else if (rankMatch2) handData.handRanking = rankMatch2[1].trim();
-      else if (handData.outcome === 'FOLDED') {
-         const foldStreet = streets.slice().reverse().find(s => s.lines.some(l => l.startsWith('Hero: folds')));
-         handData.handRanking = foldStreet ? `Fold (${foldStreet.name})` : 'Fold';
-      } else handData.handRanking = 'Muck / Brak Showdownu';
-
-      // Przypisanie Pozycji
-      let heroSeat = activeSeats.find(s => s.playerName === 'Hero')?.seatNum;
-      if (heroSeat !== undefined && activeSeats.length > 0) {
-        activeSeats.sort((a, b) => a.seatNum - b.seatNum); 
-        let N = activeSeats.length;
+      // PRECYZYJNA LOGIKA POZYCJI ODLICZANA OD BIG BLINDA
+      if (activeSeats.length >= 2) {
+        activeSeats.sort((a, b) => a.seatNum - b.seatNum);
+        
+        // Szukamy regularnego BB ignorując 'auto big blind'
+        const bbMatch = rawHand.match(/^([^:]+):\s+posts (?:small & )?big blind/m);
         let bbIndex = -1;
-        const bbLines = lines.filter(l => l.includes('posts big blind') || l.includes('posts small & big blind'));
-        if (bbLines.length > 0) {
-          const match = bbLines[bbLines.length - 1].match(/^(.+?):\s+posts/);
-          if (match) bbIndex = activeSeats.findIndex(s => s.playerName === match[1].trim());
+        
+        if (bbMatch) {
+            bbIndex = activeSeats.findIndex(s => s.playerId === bbMatch[1]);
         }
+        
+        // Zabezpieczenie: jeśli nie znaleziono czystego BB, próbujemy policzyć to od Buttona
         if (bbIndex === -1) {
-          const btnMatch = rawHand.match(/Seat #(\d+)\s+is the button/i);
-          if (btnMatch) {
-            const btnSeat = parseInt(btnMatch[1]);
-            let vBtn = activeSeats.length - 1;
-            for (let i = activeSeats.length - 1; i >= 0; i--) { if (activeSeats[i].seatNum <= btnSeat) { vBtn = i; break; } }
-            bbIndex = N === 2 ? (vBtn + 1) % 2 : (vBtn + 2) % N;
-          }
+            const btnMatch = rawHand.match(/Seat #(\d+) is the button/i);
+            if (btnMatch) {
+                const btnSeat = parseInt(btnMatch[1]);
+                const btnIndex = activeSeats.findIndex(s => s.seatNum === btnSeat);
+                if (btnIndex !== -1) {
+                    bbIndex = activeSeats.length === 2 ? (btnIndex + 1) % 2 : (btnIndex + 2) % activeSeats.length;
+                }
+            }
         }
-        if (bbIndex === -1) bbIndex = N - 1;
-        let heroIndex = activeSeats.findIndex(s => s.seatNum === heroSeat);
-        let diff = (heroIndex - bbIndex + N) % N;
 
-        if (N === 2) handData.position = diff === 0 ? 'BB' : 'BTN';
-        else {
-          if (diff === 0) handData.position = 'BB';
-          else if (diff === N - 1) handData.position = 'SB';
-          else if (diff === N - 2) handData.position = 'BTN';
-          else if (diff === 1 && N >= 5) handData.position = 'UTG';
-          else if (diff === N - 3 && N >= 4) handData.position = 'CO';
-          else handData.position = 'UTG1'; 
+        const heroIndex = activeSeats.findIndex(s => s.playerId === 'Hero');
+
+        if (heroIndex !== -1 && bbIndex !== -1) {
+           const N = activeSeats.length;
+           const distFromBB = (heroIndex - bbIndex + N) % N;
+           
+           let posMap = [];
+           // Skalowalna mapa (obsłuży również stoły z innej liczby graczy jeśli takie wyślesz)
+           if (N === 2) posMap = ['BB', 'BTN'];
+           else if (N === 3) posMap = ['BB', 'BTN', 'SB'];
+           else if (N === 4) posMap = ['BB', 'CO', 'BTN', 'SB'];
+           else if (N === 5) posMap = ['BB', 'HJ', 'CO', 'BTN', 'SB'];
+           else if (N === 6) posMap = ['BB', 'UTG', 'HJ', 'CO', 'BTN', 'SB'];
+           else if (N === 7) posMap = ['BB', 'UTG', 'UTG+1', 'HJ', 'CO', 'BTN', 'SB'];
+           else if (N === 8) posMap = ['BB', 'UTG', 'UTG+1', 'UTG+2', 'HJ', 'CO', 'BTN', 'SB'];
+           else if (N >= 9) posMap = ['BB', 'UTG', 'UTG+1', 'UTG+2', 'UTG+3', 'HJ', 'CO', 'BTN', 'SB'];
+
+           handData.position = posMap[distFromBB] || 'UNKNOWN';
         }
-      } else handData.position = 'UNKNOWN'; 
+      }
 
-      if (handData.id && handData.timestamp) parsedHands.push(handData);
+      parsedHands.push(handData);
     } catch (e) {
-      console.error(`[Parser] Błąd w rozdaniu:`, e);
+      console.error(e);
     }
   }
-
   return parsedHands.sort((a, b) => a.timestamp - b.timestamp);
 };
 
@@ -243,7 +240,6 @@ export const buildSessions = (hands) => {
     currentSession.totalProfit += hand.netProfit;
     currentSession.lastTimestamp = Math.max(currentSession.lastTimestamp, hand.timestamp);
   });
-
   return Object.values(sessionMap).map(finalizeSession).sort((a, b) => b.startTime - a.startTime);
 };
 
@@ -269,14 +265,12 @@ export const buildTourneySessions = (hands) => {
         totalProfit: 0, type: 'Tournament', rebuys: 0, startStack: hand.heroStartingStack
       };
     }
-    
     const currentSession = tourneyMap[tId];
     if (currentSession.hands.length > 0) {
       const lastActualHands = currentSession.hands.filter(h => !h.isRebuy);
       if (lastActualHands.length > 0) {
         const lastHand = lastActualHands[lastActualHands.length - 1];
         const expectedStack = lastHand.heroStartingStack + lastHand.netProfit;
-        
         if (hand.heroStartingStack > expectedStack + 100) {
           currentSession.rebuys += 1;
           const rebuyAmount = hand.heroStartingStack - expectedStack;
@@ -288,12 +282,10 @@ export const buildTourneySessions = (hands) => {
         }
       }
     }
-
     currentSession.hands.push({ ...hand, sessionHandIndex: currentSession.hands.length + 1 });
     currentSession.totalProfit += hand.netProfit;
     currentSession.lastTimestamp = Math.max(currentSession.lastTimestamp, hand.timestamp);
   });
-
   return Object.values(tourneyMap).map(finalizeTourneySession).sort((a, b) => b.startTime - a.startTime);
 };
 
