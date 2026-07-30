@@ -1,16 +1,67 @@
-# React + Vite
+# Poker Analyzer
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Lokalna aplikacja do przeglądania historii rozdań CoinPoker i generowania raportów trenera AI przez Gemini albo GPT. Klucze dostawców pozostają po stronie lokalnego serwera Express.
 
-Currently, two official plugins are available:
+## Uruchomienie
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Wymagany jest Node.js 20 lub nowszy.
 
-## React Compiler
+```powershell
+npm install
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Aplikacja będzie dostępna pod adresem `http://localhost:5173`. Należy uruchamiać ją przez `npm run dev`, ponieważ frontend korzysta z lokalnych endpointów Express.
 
-## Expanding the ESLint configuration
+W trybie produkcyjnym:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```powershell
+npm run build
+npm start
+```
+
+## Konfiguracja AI
+
+Utwórz albo uzupełnij ignorowany przez Git plik `.env.local` w katalogu projektu:
+
+```dotenv
+GEMINI_API_KEY=klucz_gemini
+OPENAI_API_KEY=klucz_openai
+```
+
+Pusty wzór znajduje się w `.env.example`. Zmienne nie mogą mieć prefiksu `VITE_`, ponieważ nie powinny trafić do kodu przeglądarki. Po zmianie kluczy uruchom ponownie serwer.
+
+Dostępne modele:
+
+- Gemini 2.5 Flash — wymaga `GEMINI_API_KEY`;
+- GPT-5.6 Terra — wymaga `OPENAI_API_KEY` i jest modelem domyślnym;
+- GPT-5.6 Sol — wymaga `OPENAI_API_KEY`.
+
+Ustawienia aplikacji pokazują status konfiguracji każdego modelu. Nieskonfigurowany model pozostaje widoczny, ale nie można wysłać nim analizy. Aplikacja nie przełącza automatycznie dostawcy.
+
+## Bezpieczeństwo i obrót klucza Gemini
+
+Klucz Gemini, który wcześniej pojawił się w adresie żądania lub konsoli, należy uznać za ujawniony:
+
+1. unieważnij stary klucz w panelu dostawcy;
+2. utwórz nowy klucz;
+3. wpisz go wyłącznie jako `GEMINI_API_KEY` w `.env.local`;
+4. uruchom ponownie lokalny serwer.
+
+Nie zapisuj prawdziwych kluczy w `.env.example`, kodzie, localStorage ani zrzutach konsoli. Backend przekazuje klucze tylko w nagłówkach żądań do dostawców i nie zwraca ich frontendowi.
+
+## Analizy i cache
+
+Przeglądarka zapisuje domyślny identyfikator modelu, historię raportów oraz ID zapisanych rąk. Nowa analiza jest dopisywana do historii danego rozdania. Cache v2 i v3 jest jednorazowo migrowany do v4; raporty z v2 są oznaczane jako wygenerowane przez Gemini 2.5 Flash.
+
+CoinPoker `SUMMARY` pozostaje źródłem prawdy dla ID rozdania, wyniku Hero, kwot i końcowego układu. Odpowiedź modelu jest odrzucana tylko wtedy, gdy błędnie podaje `WON`, `LOST` albo `FOLDED`.
+
+## Kontrole
+
+```powershell
+npm test
+npm run lint
+npm run build
+```
+
+Testy adapterów i API używają mocków i nie wykonują płatnych wywołań. Ręczny smoke test prawdziwego modelu należy wykonać świadomie z poziomu Replayera.

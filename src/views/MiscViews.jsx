@@ -1,9 +1,26 @@
 // src/views/MiscViews.jsx
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { toggleSource, removeSource, setApiKey, verifyApiKey } from '../store/pokerSlice.js';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { Filter, LayoutDashboard, Trophy, FileCode2, Trash2, Key, CheckCircle, AlertTriangle } from 'lucide-react';
+import {
+  LOCAL_SOURCE_ORIGIN,
+  fetchAiModels,
+  removeSource,
+  setDefaultAiModel,
+  syncLocalSources,
+  toggleSource,
+} from '../store/pokerSlice.js';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  AlertTriangle,
+  CheckCircle,
+  Filter,
+  LayoutDashboard,
+  Trophy,
+  FileCode2,
+  Trash2,
+  Key,
+  RefreshCw,
+} from 'lucide-react';
 
 // --- WIDOK PORTFELA ---
 export const WalletView = () => {
@@ -112,38 +129,96 @@ export const WalletView = () => {
 };
 
 // --- WIDOK ŹRÓDEŁ ---
-const SourceItem = ({ src, dispatch }) => (
-  <div className={`p-4 rounded-xl border flex items-center justify-between transition-colors ${src.enabled ? 'bg-white border-gray-200 shadow-sm' : 'bg-gray-50 border-gray-200 opacity-60'}`}>
-    <div className="flex items-center gap-3">
-      <FileCode2 className={src.enabled ? 'text-indigo-500' : 'text-gray-400'} size={24}/>
-      <div className="flex flex-col">
-        <span className="font-bold text-gray-800 text-sm truncate max-w-[150px] sm:max-w-xs">{src.filename}</span>
-        <span className="text-xs text-gray-500">{new Date(src.dateAdded).toLocaleDateString()} {new Date(src.dateAdded).toLocaleTimeString()}</span>
+const formatFileSize = (size) => {
+  if (!Number.isFinite(size) || size < 0) return 'Rozmiar nieznany';
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 ** 2) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / 1024 ** 2).toFixed(1)} MB`;
+};
+
+const formatModifiedAt = (modifiedAt) => {
+  const date = new Date(modifiedAt);
+  return Number.isNaN(date.getTime()) ? 'Data nieznana' : date.toLocaleString('pl-PL');
+};
+
+const SourceItem = ({ src, dispatch }) => {
+  const isLocal = src.origin === LOCAL_SOURCE_ORIGIN;
+
+  return (
+    <div className={`p-4 rounded-xl border flex items-center justify-between gap-3 transition-colors ${src.enabled ? 'bg-white border-gray-200 shadow-sm' : 'bg-gray-50 border-gray-200 opacity-60'}`}>
+      <div className="flex items-center gap-3 min-w-0">
+        <FileCode2 className={src.enabled ? 'text-indigo-500 shrink-0' : 'text-gray-400 shrink-0'} size={24}/>
+        <div className="flex flex-col min-w-0">
+          <span className="font-bold text-gray-800 text-sm truncate" title={src.filename}>{src.filename}</span>
+          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isLocal ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
+              {isLocal ? 'Lokalny' : 'Wgrany ręcznie'}
+            </span>
+            <span className="text-xs text-gray-500">{formatFileSize(src.size)}</span>
+          </div>
+          <span className="text-[11px] text-gray-500 mt-1">Zmodyfikowano: {formatModifiedAt(src.modifiedAt || src.dateAdded)}</span>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <button onClick={() => dispatch(toggleSource(src.id))} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors shadow-sm ${src.enabled ? 'bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200' : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200'}`}>{src.enabled ? 'Wyłącz' : 'Włącz'}</button>
+        {!isLocal && (
+          <button
+            type="button"
+            aria-label={`Usuń ${src.filename}`}
+            onClick={() => dispatch(removeSource(src.id))}
+            className="p-1.5 bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 rounded-lg transition-colors border border-red-100 shadow-sm"
+          >
+            <Trash2 size={16}/>
+          </button>
+        )}
       </div>
     </div>
-    <div className="flex items-center gap-2">
-      <button onClick={() => dispatch(toggleSource(src.id))} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors shadow-sm ${src.enabled ? 'bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200' : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200'}`}>{src.enabled ? 'Wyłącz' : 'Włącz'}</button>
-      <button onClick={() => dispatch(removeSource(src.id))} className="p-1.5 bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 rounded-lg transition-colors border border-red-100 shadow-sm"><Trash2 size={16}/></button>
-    </div>
-  </div>
-);
+  );
+};
 
 export const SourcesView = () => {
   const dispatch = useDispatch();
-  const sources = useSelector(state => state.poker.sources);
+  const { sources, localSourcesStatus, localSourcesError } = useSelector(state => state.poker);
+  const cashSources = sources.filter((source) => source.type === 'Cash');
+  const tournamentSources = sources.filter((source) => source.type === 'Tournament');
+  const isLoading = localSourcesStatus === 'loading';
 
   return (
-    <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-300">
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col h-[calc(100vh-140px)]">
-        <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-indigo-900 border-b pb-4"><LayoutDashboard className="text-indigo-600"/> Wgrane Pliki (Gry Cash)</h3>
-        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 flex flex-col gap-3">
-          {sources.filter(s => s.type === 'Cash').length === 0 ? <div className="text-center p-8 text-gray-400 italic">Brak plików Cash w bazie.</div> : sources.filter(s => s.type === 'Cash').map(src => <SourceItem key={src.id} src={src} dispatch={dispatch} />)}
+    <div className="max-w-7xl mx-auto flex flex-col gap-4 animate-in fade-in duration-300">
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="font-bold text-gray-800">Lokalny katalog danych</h3>
+          <p className="text-xs text-gray-500 mt-1">Pliki z katalogu data mają pierwszeństwo przed plikami wgranymi ręcznie.</p>
         </div>
+        <button
+          type="button"
+          onClick={() => dispatch(syncLocalSources())}
+          disabled={isLoading}
+          className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors"
+        >
+          <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''}/>
+          {isLoading ? 'Odświeżanie…' : 'Odśwież dane lokalne'}
+        </button>
       </div>
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col h-[calc(100vh-140px)]">
-        <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-amber-900 border-b pb-4"><Trophy className="text-amber-600"/> Wgrane Pliki (Turnieje)</h3>
-        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 flex flex-col gap-3">
-          {sources.filter(s => s.type === 'Tournament').length === 0 ? <div className="text-center p-8 text-gray-400 italic">Brak plików turniejowych w bazie.</div> : sources.filter(s => s.type === 'Tournament').map(src => <SourceItem key={src.id} src={src} dispatch={dispatch} />)}
+
+      {localSourcesStatus === 'failed' && (
+        <div role="alert" className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+          Nie udało się odświeżyć danych lokalnych: {localSourcesError}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col h-[calc(100vh-240px)] min-h-80">
+          <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-indigo-900 border-b pb-4"><LayoutDashboard className="text-indigo-600"/> Pliki gier Cash</h3>
+          <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 flex flex-col gap-3">
+            {cashSources.length === 0 ? <div className="text-center p-8 text-gray-400 italic">Brak plików Cash w bazie.</div> : cashSources.map(src => <SourceItem key={src.id} src={src} dispatch={dispatch} />)}
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col h-[calc(100vh-240px)] min-h-80">
+          <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-amber-900 border-b pb-4"><Trophy className="text-amber-600"/> Pliki turniejowe</h3>
+          <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 flex flex-col gap-3">
+            {tournamentSources.length === 0 ? <div className="text-center p-8 text-gray-400 italic">Brak plików turniejowych w bazie.</div> : tournamentSources.map(src => <SourceItem key={src.id} src={src} dispatch={dispatch} />)}
+          </div>
         </div>
       </div>
     </div>
@@ -153,22 +228,88 @@ export const SourcesView = () => {
 // --- WIDOK USTAWIEŃ ---
 export const SettingsView = () => {
   const dispatch = useDispatch();
-  const { apiKey, apiStatus } = useSelector(state => state.poker);
+  const {
+    aiModels,
+    aiModelsError,
+    aiModelsStatus,
+    defaultAiModel,
+  } = useSelector((state) => state.poker);
+  const isLoading = aiModelsStatus === 'loading';
 
   return (
     <div className="max-w-4xl mx-auto flex flex-col gap-6 animate-in fade-in duration-300">
       <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
-        <h3 className="text-xl font-bold mb-6 flex items-center gap-2 border-b pb-4"><Key className="text-indigo-600"/> Konfiguracja Gemini AI</h3>
-        <div className="flex flex-col gap-4 max-w-2xl">
-          <p className="text-sm text-gray-600">Wklej swój osobisty klucz API, aby umożliwić analizę rozdań przez asystenta AI.</p>
-          <div className="flex items-center gap-3">
-            <input type="password" placeholder="AIzaSyA..." value={apiKey} onChange={(e) => dispatch(setApiKey(e.target.value))} className="flex-1 border border-gray-300 rounded-xl px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all font-mono text-sm" />
-            <button onClick={() => dispatch(verifyApiKey(apiKey))} disabled={!apiKey || apiStatus === 'testing'} className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-xl font-bold shadow-md transition-all flex items-center gap-2">
-              {apiStatus === 'testing' ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/> : 'Testuj Połączenie'}
-            </button>
-          </div>
-          {apiStatus === 'valid' && <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-lg border border-green-200 font-semibold text-sm"><CheckCircle size={18} /> Połączono pomyślnie! Trener AI jest gotowy do analizy rozdań.</div>}
-          {apiStatus === 'invalid' && <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg border border-red-200 font-semibold text-sm"><AlertTriangle size={18} /> Odmowa dostępu. Klucz jest nieprawidłowy.</div>}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b pb-4">
+          <h3 className="text-xl font-bold flex items-center gap-2"><Key className="text-indigo-600"/> Konfiguracja Trenera AI</h3>
+          <button
+            type="button"
+            onClick={() => dispatch(fetchAiModels())}
+            disabled={isLoading}
+            className="px-3 py-2 rounded-lg border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 flex items-center gap-2"
+          >
+            <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''}/>
+            Odśwież status
+          </button>
+        </div>
+        <div className="flex flex-col gap-5 max-w-2xl">
+          <p className="text-sm text-gray-600">
+            Klucze dostawców są odczytywane wyłącznie przez lokalny serwer z pliku <code>.env.local</code>.
+            Nie są zapisywane w przeglądarce ani wysyłane do interfejsu.
+          </p>
+
+          <fieldset className="flex flex-col gap-3">
+            <legend className="text-sm font-bold text-gray-800 mb-2">Domyślny model analizy</legend>
+            {isLoading && (
+              <div role="status" className="text-sm text-indigo-600 flex items-center gap-2">
+                <RefreshCw size={16} className="animate-spin"/> Pobieranie konfiguracji modeli…
+              </div>
+            )}
+            {aiModels.map((model) => {
+              const isSelected = defaultAiModel === model.id;
+              return (
+                <label
+                  key={model.id}
+                  className={`flex items-center justify-between gap-4 rounded-xl border p-4 transition-colors ${
+                    model.configured
+                      ? 'cursor-pointer hover:border-indigo-300 bg-white'
+                      : 'cursor-not-allowed bg-gray-50 text-gray-400'
+                  } ${isSelected ? 'border-indigo-500 ring-2 ring-indigo-100' : 'border-gray-200'}`}
+                >
+                  <span className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="default-ai-model"
+                      value={model.id}
+                      checked={isSelected}
+                      disabled={!model.configured}
+                      onChange={() => dispatch(setDefaultAiModel(model.id))}
+                      className="w-4 h-4 accent-indigo-600"
+                    />
+                    <span>
+                      <span className="block text-sm font-bold text-gray-800">{model.name}</span>
+                      <span className="block text-xs mt-1">{model.id}</span>
+                    </span>
+                  </span>
+                  <span className={`text-xs font-bold flex items-center gap-1.5 ${model.configured ? 'text-green-600' : 'text-gray-400'}`}>
+                    {model.configured ? <CheckCircle size={16}/> : <AlertTriangle size={16}/>}
+                    {model.configured ? 'Skonfigurowany' : 'Brak klucza'}
+                  </span>
+                </label>
+              );
+            })}
+          </fieldset>
+
+          {aiModelsStatus === 'failed' && (
+            <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 flex items-start gap-2">
+              <AlertTriangle size={18} className="shrink-0 mt-0.5"/>
+              {aiModelsError}
+            </div>
+          )}
+
+          <p className="text-xs text-gray-500">
+            Aplikacja zapamiętuje w przeglądarce wyłącznie identyfikator wybranego modelu.
+            Model bez odpowiedniego klucza pozostaje widoczny, ale nie można go użyć.
+          </p>
         </div>
       </div>
     </div>

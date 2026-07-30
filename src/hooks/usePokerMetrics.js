@@ -41,21 +41,55 @@ export const usePokerMetrics = (gameTypeFilter = 'both') => {
 
   const opponentsMetrics = useMemo(() => {
     const oppMap = {};
+    
     activeHands.forEach(h => {
-       if (!h.opponents) return;
+       if (!h.opponents || !Array.isArray(h.opponents)) return;
+       
        const uniqueSessId = h.isTournament ? h.tourneyId : `${h.tableId}_${h.dateStr.split(' ')[0]}`;
 
-       h.opponents.forEach(opp => {
-          if (!oppMap[opp]) oppMap[opp] = { id: opp, handsPlayed: 0, sessions: new Set(), showdowns: 0, heroWins: 0, heroLosses: 0, netExchanged: 0 };
+       h.opponents.forEach(rawOpp => {
+          const opp = String(rawOpp).trim();
+          if (!opp) return;
+
+          if (!oppMap[opp]) {
+            oppMap[opp] = { 
+              id: opp, 
+              handsPlayed: 0, 
+              sessions: new Set(), 
+              showdowns: 0, 
+              heroWins: 0, 
+              heroLosses: 0, 
+              netExchanged: 0 
+            };
+          }
+          
           const o = oppMap[opp];
-          o.handsPlayed++; o.sessions.add(uniqueSessId);
-          if (h.sawShowdown) o.showdowns++;
-          if (h.outcome === 'WON') { o.heroWins++; o.netExchanged += h.netProfit; } 
-          else if (h.outcome === 'LOST') { o.heroLosses++; o.netExchanged += h.netProfit; }
+          o.handsPlayed += 1; 
+          o.sessions.add(uniqueSessId);
+          
+          if (h.sawShowdown) o.showdowns += 1;
+          
+          // Sprawiedliwe rozbicie zysku/straty na ilość zaangażowanych graczy
+          const profitShare = h.netProfit / h.opponents.length;
+          
+          if (h.outcome === 'WON') { 
+            o.heroWins += 1; 
+            o.netExchanged += profitShare; 
+          } else if (h.outcome === 'LOST') { 
+            o.heroLosses += 1; 
+            o.netExchanged += profitShare; 
+          }
        });
     });
 
-    return Object.values(oppMap).map(o => ({ ...o, sessionsCount: o.sessions.size })).sort((a, b) => b.handsPlayed - a.handsPlayed);
+    // Filtrujemy niekompatybilny obiekt 'Set' przy mapowaniu wartości na listę końcową
+    return Object.values(oppMap).map(o => {
+       const { sessions, ...rest } = o;
+       return { 
+           ...rest, 
+           sessionsCount: sessions.size 
+       };
+    }).sort((a, b) => b.handsPlayed - a.handsPlayed);
   }, [activeHands]);
 
   return { activeHands, heroMetrics, opponentsMetrics };

@@ -1,7 +1,7 @@
 // src/App.jsx
-import React, { useState, useRef } from 'react';
-import { useDispatch } from 'react-redux';
-import { uploadHandHistory } from './store/pokerSlice.js';
+import { useEffect, useState, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchAiModels, syncLocalSources, uploadHandHistory } from './store/pokerSlice.js';
 import { usePokerMetrics } from './hooks/usePokerMetrics.js';
 
 import { Sidebar } from './components/Sidebar.jsx';
@@ -15,6 +15,7 @@ import { Upload } from 'lucide-react';
 
 export default function App() {
   const dispatch = useDispatch();
+  const { localSourcesStatus, localSourcesError } = useSelector((state) => state.poker);
   
   // Stany UI
   const [activeTab, setActiveTab] = useState('profile'); 
@@ -22,6 +23,11 @@ export default function App() {
   const [modalHandId, setModalHandId] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragCounter = useRef(0);
+
+  useEffect(() => {
+    dispatch(syncLocalSources());
+    dispatch(fetchAiModels());
+  }, [dispatch]);
 
   // Pobranie przeliczonych metryk z custom hooka
   const { activeHands, heroMetrics, opponentsMetrics } = usePokerMetrics(gameTypeFilter);
@@ -34,7 +40,11 @@ export default function App() {
     const file = e.dataTransfer.files[0];
     if (file && file.name.endsWith('.txt')) {
       const reader = new FileReader();
-      reader.onload = (evt) => dispatch(uploadHandHistory({ filename: file.name, content: evt.target.result }));
+      reader.onload = (evt) => dispatch(uploadHandHistory({
+        filename: file.name,
+        content: evt.target.result,
+        modifiedAt: new Date(file.lastModified).toISOString(),
+      }));
       reader.readAsText(file);
     }
   };
@@ -73,10 +83,30 @@ export default function App() {
             <Upload size={16} /> Wgraj logi (.txt)
             <input type="file" accept=".txt" onChange={(e) => {
                const file = e.target.files[0];
-               if(file){ const r = new FileReader(); r.onload = (evt) => dispatch(uploadHandHistory({ filename: file.name, content: evt.target.result })); r.readAsText(file); }
+               if(file){
+                 const r = new FileReader();
+                 r.onload = (evt) => dispatch(uploadHandHistory({
+                   filename: file.name,
+                   content: evt.target.result,
+                   modifiedAt: new Date(file.lastModified).toISOString(),
+                 }));
+                 r.readAsText(file);
+               }
             }} className="hidden" />
           </label>
         </header>
+
+        {localSourcesStatus === 'loading' && (
+          <div role="status" className="bg-indigo-50 border-b border-indigo-100 px-8 py-2 text-sm font-semibold text-indigo-700 flex items-center gap-2">
+            <span className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+            Wczytywanie i przeliczanie lokalnych historii rozdań…
+          </div>
+        )}
+        {localSourcesStatus === 'failed' && (
+          <div role="alert" className="bg-red-50 border-b border-red-100 px-8 py-2 text-sm text-red-700">
+            Nie udało się wczytać danych lokalnych: {localSourcesError} Możesz nadal wgrywać pliki ręcznie.
+          </div>
+        )}
 
         <div className="flex-1 overflow-auto p-6 scrollbar-thin">
           {activeTab === 'profile' && <ProfileView heroMetrics={heroMetrics} />}

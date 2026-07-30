@@ -1,19 +1,47 @@
 // src/components/replayer/ReplayerModal.jsx
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { selectHand, analyzeHandWithAI } from '../../store/pokerSlice.js';
+import { analyzeHandWithAI, selectHand, toggleSavedHand } from '../../store/pokerSlice.js';
+import { getAnalysisHistory } from '../../utils/handCollections.js';
 import { CardIcon } from '../CardIcon.jsx';
-import { X, Brain, FileText, Key, AlertTriangle, CheckCircle, Lightbulb } from 'lucide-react';
+import {
+  AlertTriangle,
+  Brain,
+  CheckCircle,
+  FileText,
+  History,
+  Lightbulb,
+  Save,
+  X,
+} from 'lucide-react';
 
 export const ReplayerModal = ({ handId, onClose }) => {
   const dispatch = useDispatch();
-  const { rawHands, aiAnalyses, apiKey, loadingAI, errorAI } = useSelector((state) => state.poker);
+  const {
+    rawHands,
+    aiAnalyses,
+    loadingAI,
+    errorAI,
+    defaultAiModel,
+    aiModels,
+    aiModelsStatus,
+    savedHandIds,
+  } = useSelector((state) => state.poker);
   
   const [modalRightTab, setModalRightTab] = useState('ai');
   const [showAIComments, setShowAIComments] = useState(true);
+  const [selectedReportId, setSelectedReportId] = useState(null);
 
   const modalHand = rawHands.find(h => h.id === handId);
-  const currentAnalysis = modalHand ? aiAnalyses[modalHand.id] : null;
+  const analysisHistory = modalHand ? getAnalysisHistory(aiAnalyses[modalHand.id]) : [];
+  const currentReport = analysisHistory.find((report) => report.reportId === selectedReportId)
+    || analysisHistory.at(-1);
+  const currentAnalysis = currentReport?.analysis;
+  const isHandSaved = modalHand ? savedHandIds.includes(String(modalHand.id)) : false;
+  const selectedModel = aiModels.find((model) => model.id === defaultAiModel);
+  const canAnalyze = selectedModel?.configured === true;
+  const selectedModelName = selectedModel?.name || defaultAiModel;
+  const modelsAreLoading = aiModelsStatus === 'idle' || aiModelsStatus === 'loading';
 
   if (!modalHand) return null;
 
@@ -92,26 +120,82 @@ export const ReplayerModal = ({ handId, onClose }) => {
 
         {/* PRAWA KOLUMNA: TRENER AI & TEKST */}
         <div className="w-full md:w-2/5 p-6 bg-slate-50 flex flex-col relative h-full">
-          <div className="flex items-center justify-between border-b border-gray-200 pb-4 mb-4 shrink-0">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 pb-4 mb-4 shrink-0">
             <div className="flex gap-4">
               <button onClick={() => setModalRightTab('ai')} className={`text-base font-bold flex items-center gap-1.5 transition-colors ${modalRightTab === 'ai' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}><Brain size={18}/> AI Coach</button>
               <button onClick={() => setModalRightTab('raw')} className={`text-base font-bold flex items-center gap-1.5 transition-colors ${modalRightTab === 'raw' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}><FileText size={18}/> Tekst Źródłowy</button>
             </div>
-            {modalRightTab === 'ai' && (<label className="flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer select-none"><input type="checkbox" checked={showAIComments} onChange={(e) => setShowAIComments(e.target.checked)} className="rounded text-indigo-600 accent-indigo-600 w-4 h-4 cursor-pointer" /> Pokaż Analizę</label>)}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-label={isHandSaved ? 'Usuń rękę z zapisanych' : 'Zapisz rękę'}
+                title={isHandSaved ? 'Usuń z zapisanych rąk' : 'Zapisz rękę'}
+                onClick={() => dispatch(toggleSavedHand(modalHand.id))}
+                className={`p-2 rounded-lg border transition-colors ${
+                  isHandSaved
+                    ? 'border-emerald-300 bg-emerald-100 text-emerald-700'
+                    : 'border-gray-200 bg-white text-gray-500 hover:border-indigo-300 hover:text-indigo-600'
+                }`}
+              >
+                <Save size={17}/>
+              </button>
+              {modalRightTab === 'ai' && (
+                <label className="flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer select-none">
+                  <input type="checkbox" checked={showAIComments} onChange={(e) => setShowAIComments(e.target.checked)} className="rounded text-indigo-600 accent-indigo-600 w-4 h-4 cursor-pointer" />
+                  Pokaż Analizę
+                </label>
+              )}
+            </div>
           </div>
+
+          {modalRightTab === 'ai' && (
+            <div className="mb-4 rounded-xl border border-gray-200 bg-white p-3 shrink-0">
+              <label htmlFor="analysis-history" className="mb-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-gray-500">
+                <History size={15} className="text-indigo-500"/>
+                Historia analiz ({analysisHistory.length})
+              </label>
+              <select
+                id="analysis-history"
+                value={currentReport?.reportId || ''}
+                disabled={analysisHistory.length === 0}
+                onChange={(event) => setSelectedReportId(event.target.value)}
+                className="w-full rounded-lg border border-gray-200 bg-slate-50 px-3 py-2.5 text-xs font-bold text-gray-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:text-gray-400"
+              >
+                {analysisHistory.length === 0 ? (
+                  <option value="">Brak analiz tego rozdania</option>
+                ) : (
+                  [...analysisHistory].reverse().map((report) => (
+                    <option key={report.reportId} value={report.reportId}>
+                      {report.model?.name || 'Nieznany model'} — {new Date(report.analyzedAt).toLocaleString('pl-PL')}
+                    </option>
+                  ))
+                )}
+              </select>
+              <p className="mt-2 text-[11px] text-gray-500">
+                Nowa analiza zostanie wykonana modelem <strong>{selectedModelName}</strong> i dopisana do historii.
+              </p>
+            </div>
+          )}
           
           {modalRightTab === 'raw' ? (
              <div className="flex-1 bg-slate-900 rounded-xl p-5 overflow-y-auto custom-scrollbar shadow-inner"><pre className="text-xs text-emerald-400 font-mono whitespace-pre-wrap leading-relaxed">{modalHand.rawText}</pre></div>
           ) : (
             <>
-              {!apiKey ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-white border border-gray-200 rounded-xl shadow-sm"><Key size={40} className="text-gray-300 mb-4" /><p className="text-sm text-gray-500 mb-4">Skonfiguruj klucz API w ustawieniach, aby włączyć Trenera AI.</p></div>
-              ) : !currentAnalysis && !loadingAI ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-indigo-200 rounded-xl bg-indigo-50/50"><Brain size={48} className="text-indigo-300 mb-4" /><p className="text-sm text-gray-600 mb-6">Kliknij, aby wygenerować komentarze krok-po-kroku do tego rozdania.</p><button onClick={() => { dispatch(selectHand(modalHand.id)); dispatch(analyzeHandWithAI({ handText: modalHand.rawText, apiKey })); setShowAIComments(true); }} className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg transition-all active:scale-95 w-full">Analizuj Rozdanie</button></div>
-              ) : loadingAI ? (
+              {loadingAI ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-center"><div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div><p className="text-indigo-600 font-semibold animate-pulse">Piszę komentarze...</p></div>
               ) : errorAI ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-red-50 border border-red-200 rounded-xl"><AlertTriangle size={40} className="text-red-400 mb-4" /><p className="text-xs text-red-600 mb-4">{errorAI}</p><button onClick={() => { dispatch(selectHand(modalHand.id)); dispatch(analyzeHandWithAI({ handText: modalHand.rawText, apiKey })); }} className="bg-red-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-red-700">Spróbuj Ponownie</button></div>
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-red-50 border border-red-200 rounded-xl"><AlertTriangle size={40} className="text-red-400 mb-4" /><p className="text-xs text-red-600 mb-4">{errorAI}</p><button disabled={!canAnalyze} onClick={() => { setSelectedReportId(null); dispatch(selectHand(modalHand.id)); dispatch(analyzeHandWithAI({ handId: modalHand.id })); }} className="bg-red-600 hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-xs font-bold">Spróbuj Ponownie</button></div>
+              ) : !currentAnalysis ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-indigo-200 rounded-xl bg-indigo-50/50">
+                  <Brain size={48} className="text-indigo-300 mb-4" />
+                  <p className="text-sm text-gray-600 mb-2">Kliknij, aby wygenerować komentarze krok-po-kroku do tego rozdania.</p>
+                  {!canAnalyze && (
+                    <p className="text-xs text-amber-700 mb-5">
+                      {modelsAreLoading ? 'Trwa sprawdzanie konfiguracji modeli…' : `Model ${selectedModelName} nie ma skonfigurowanego klucza.`}
+                    </p>
+                  )}
+                  <button disabled={!canAnalyze} onClick={() => { setSelectedReportId(null); dispatch(selectHand(modalHand.id)); dispatch(analyzeHandWithAI({ handId: modalHand.id })); setShowAIComments(true); }} className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-xl shadow-lg transition-all active:scale-95 w-full">Analizuj Rozdanie</button>
+                </div>
               ) : currentAnalysis && showAIComments ? (
                 <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar flex flex-col h-full animate-in fade-in duration-300">
                   {typeof currentAnalysis === 'string' ? (<div className="prose prose-sm prose-indigo leading-relaxed text-gray-700">{formatTextWithCards(currentAnalysis)}</div>) : (
@@ -121,7 +205,14 @@ export const ReplayerModal = ({ handId, onClose }) => {
                         <div className="text-sm text-gray-700 leading-relaxed font-medium">{formatTextWithCards(currentAnalysis.summary)}</div>
                         <div className="mt-6 p-4 bg-indigo-50 rounded-lg border border-indigo-100 flex gap-3"><Lightbulb className="text-indigo-400 shrink-0 mt-0.5" size={18}/><p className="text-xs text-indigo-800">Szczegółowe uwagi trenera do Twoich zagrań zostały przypięte do konkretnych akcji (Pre-flop, Flop itd.) po lewej stronie.</p></div>
                       </div>
-                      <div className="mt-4 shrink-0"><button onClick={() => { dispatch(selectHand(modalHand.id)); dispatch(analyzeHandWithAI({ handText: modalHand.rawText, apiKey })); }} className="text-xs font-bold text-indigo-600 hover:text-indigo-800 w-full text-center p-3 border border-indigo-200 rounded-lg bg-indigo-50 transition-colors">Przeanalizuj ponownie</button></div>
+                      <div className="mt-4 shrink-0">
+                        {!canAnalyze && (
+                          <p className="text-xs text-amber-700 text-center mb-2">
+                            {modelsAreLoading ? 'Trwa sprawdzanie konfiguracji modeli…' : `Model ${selectedModelName} nie ma skonfigurowanego klucza.`}
+                          </p>
+                        )}
+                        <button disabled={!canAnalyze} onClick={() => { setSelectedReportId(null); dispatch(selectHand(modalHand.id)); dispatch(analyzeHandWithAI({ handId: modalHand.id })); }} className="text-xs font-bold text-indigo-600 hover:text-indigo-800 disabled:text-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed w-full text-center p-3 border border-indigo-200 rounded-lg bg-indigo-50 transition-colors">Przeanalizuj ponownie modelem {selectedModelName}</button>
+                      </div>
                     </>
                   )}
                 </div>

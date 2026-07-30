@@ -1,30 +1,47 @@
 // src/views/TournamentsView.jsx
-import React, { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { selectTourney } from '../store/pokerSlice.js';
+import { HandCollectionTabs } from '../components/HandCollectionTabs.jsx';
 import { HandTile } from '../components/HandTile.jsx';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Filter } from 'lucide-react';
+import { getAvailableHandRanks, getFilteredSessions, getSelectedEntityId, getVisibleHands } from '../utils/handFilters.js';
+import { getAnalyzedHands, getSavedHands, sortHands } from '../utils/handCollections.js';
 
 export const TournamentsView = ({ onHandClick }) => {
   const dispatch = useDispatch();
-  const { tournaments, selectedTourneyId } = useSelector(state => state.poker);
+  const {
+    aiAnalyses,
+    rawHands,
+    savedHandIds,
+    tournaments,
+    selectedTourneyId,
+  } = useSelector(state => state.poker);
 
+  const [collectionMode, setCollectionMode] = useState('session');
   const [tourneyFilterRank, setTourneyFilterRank] = useState('');
   const [tourneySortBy, setTourneySortBy] = useState('date');
   const [tourneySortOrder, setTourneySortOrder] = useState('desc');
   const [tourneyHandsSortBy, setTourneyHandsSortBy] = useState('date');
   const [tourneyHandsSortOrder, setTourneyHandsSortOrder] = useState('desc');
 
-  const availableRanks = useMemo(() => {
-    const ranks = new Set();
-    tournaments.flatMap(s => s.hands).forEach(h => { if (h.handRanking && h.handRanking !== 'UNKNOWN' && !h.isRebuy) ranks.add(h.handRanking); });
-    return [...ranks].sort();
-  }, [tournaments]);
+  const availableRanks = useMemo(() => getAvailableHandRanks(tournaments), [tournaments]);
+  const tournamentHands = useMemo(
+    () => rawHands.filter((hand) => hand.isTournament && !hand.isRebuy),
+    [rawHands],
+  );
+  const analyzedTournamentHands = useMemo(
+    () => getAnalyzedHands(tournamentHands, aiAnalyses),
+    [aiAnalyses, tournamentHands],
+  );
+  const savedTournamentHands = useMemo(
+    () => getSavedHands(tournamentHands, savedHandIds),
+    [savedHandIds, tournamentHands],
+  );
 
   const filteredTournaments = useMemo(() => {
-    if (!tourneyFilterRank) return tournaments;
-    return tournaments.filter(t => t.hands.some(h => h.handRanking === tourneyFilterRank));
+    return getFilteredSessions(tournaments, tourneyFilterRank);
   }, [tournaments, tourneyFilterRank]);
 
   const sortedTournaments = [...filteredTournaments].sort((a, b) => {
@@ -33,25 +50,55 @@ export const TournamentsView = ({ onHandClick }) => {
     return tourneySortOrder === 'desc' ? valB - valA : valA - valB;
   });
 
-  const currentTourney = tournaments.find(t => t.id === selectedTourneyId);
+  useEffect(() => {
+    const nextTourneyId = getSelectedEntityId(sortedTournaments, selectedTourneyId);
+    if (nextTourneyId !== selectedTourneyId) dispatch(selectTourney(nextTourneyId));
+  }, [dispatch, selectedTourneyId, sortedTournaments]);
+
+  const currentTourney = sortedTournaments.find(t => t.id === selectedTourneyId);
   const visibleTourneyHands = useMemo(() => {
     if (!currentTourney) return [];
-    let hands = tourneyFilterRank ? currentTourney.hands.filter(h => h.handRanking === tourneyFilterRank) : [...currentTourney.hands];
-    return hands.sort((a, b) => {
-      let valA = tourneyHandsSortBy === 'date' ? a.timestamp : a.netProfit;
-      let valB = tourneyHandsSortBy === 'date' ? b.timestamp : b.netProfit;
-      return tourneyHandsSortOrder === 'desc' ? valB - valA : valA - valB;
-    });
+    const hands = getVisibleHands(currentTourney, tourneyFilterRank);
+    return sortHands(hands, tourneyHandsSortBy, tourneyHandsSortOrder);
   }, [currentTourney, tourneyFilterRank, tourneyHandsSortBy, tourneyHandsSortOrder]);
+
+  const collectionHands = useMemo(() => {
+    const source = collectionMode === 'analyzed'
+      ? analyzedTournamentHands
+      : savedTournamentHands;
+    const filtered = tourneyFilterRank
+      ? source.filter((hand) => hand.handRanking === tourneyFilterRank)
+      : source;
+    return sortHands(filtered, tourneyHandsSortBy, tourneyHandsSortOrder);
+  }, [
+    analyzedTournamentHands,
+    collectionMode,
+    savedTournamentHands,
+    tourneyFilterRank,
+    tourneyHandsSortBy,
+    tourneyHandsSortOrder,
+  ]);
+  const isCollectionView = collectionMode !== 'session';
+  const collectionTitle = collectionMode === 'analyzed' ? 'Rozdania z analizą' : 'Zapisane ręce';
+  const collectionDescription = collectionMode === 'analyzed'
+    ? 'Wszystkie przeanalizowane rozdania turniejowe ze wszystkich turniejów.'
+    : 'Wszystkie zapisane rozdania turniejowe ze wszystkich turniejów.';
 
   return (
     <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-300 h-[calc(100vh-140px)]">
       <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex flex-col gap-4 h-full">
+        <HandCollectionTabs
+          mode={collectionMode}
+          onChange={setCollectionMode}
+          analyzedCount={analyzedTournamentHands.length}
+          savedCount={savedTournamentHands.length}
+          accent="amber"
+        />
         <div className="relative shrink-0">
           <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
           <select value={tourneyFilterRank} onChange={(e) => setTourneyFilterRank(e.target.value)} className="w-full bg-slate-50 border border-gray-200 rounded-xl py-2.5 pl-10 pr-4 outline-none text-sm font-semibold text-gray-700 cursor-pointer">
             <option value="">Wszystkie układy...</option>
-            {availableRanks.map(rank => <option key={rank} value={rank}>{rank}</option>)}
+            {availableRanks.map(rank => <option key={rank.id} value={rank.id}>{rank.label}</option>)}
           </select>
         </div>
         {filteredTournaments.length === 0 ? <div className="text-center p-8 text-gray-400">Brak Turniejów. Wgraj logi.</div> : (
@@ -62,7 +109,7 @@ export const TournamentsView = ({ onHandClick }) => {
             </div>
             <div className="flex-1 overflow-y-auto flex flex-col gap-2.5 pr-2 custom-scrollbar">
               {sortedTournaments.map((tourney) => (
-                <button key={tourney.id} onClick={() => dispatch(selectTourney(tourney.id))} className={`w-full text-left p-4 rounded-xl border transition-all flex flex-col ${selectedTourneyId === tourney.id ? 'border-amber-600 bg-amber-50 shadow-md ring-2 ring-amber-100' : 'border-gray-200 hover:bg-slate-50'}`}>
+                <button key={tourney.id} onClick={() => { setCollectionMode('session'); dispatch(selectTourney(tourney.id)); }} className={`w-full text-left p-4 rounded-xl border transition-all flex flex-col ${collectionMode === 'session' && selectedTourneyId === tourney.id ? 'border-amber-600 bg-amber-50 shadow-md ring-2 ring-amber-100' : 'border-gray-200 hover:bg-slate-50'}`}>
                   <div className="flex justify-between items-center font-semibold text-sm w-full">
                     <span className="text-gray-900 truncate max-w-[180px]" title={tourney.tourneyName}>{tourney.tourneyName}<span className="text-gray-400 text-xs font-normal ml-2">#{tourney.tourneyId}</span></span>
                     <span className={`font-mono text-base tracking-tight shrink-0 ml-2 ${tourney.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{tourney.totalProfit >= 0 ? '+' : ''}{tourney.totalProfit.toLocaleString('en-US', {maximumFractionDigits: 2})}</span>
@@ -81,7 +128,25 @@ export const TournamentsView = ({ onHandClick }) => {
       </div>
 
       <div className="lg:col-span-2 flex flex-col gap-6 h-full overflow-y-auto pr-2 custom-scrollbar">
-        {currentTourney ? (
+        {isCollectionView ? (
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex-1 flex flex-col min-h-0">
+            <div className="flex flex-wrap justify-between items-center gap-3 border-b border-gray-100 pb-3 mb-4 shrink-0">
+              <div>
+                <h3 className="text-base font-bold text-gray-800">{collectionTitle}</h3>
+                <p className="text-xs text-gray-500 mt-1">{collectionDescription}</p>
+              </div>
+              <div className="flex bg-slate-50 p-2 rounded-xl text-xs gap-3 border border-gray-200">
+                <div className="text-gray-500">Sortuj: <select value={tourneyHandsSortBy} onChange={(e) => setTourneyHandsSortBy(e.target.value)} className="bg-transparent font-bold cursor-pointer outline-none"><option value="date">Datą</option><option value="profit">Wynikiem</option></select></div>
+                <div className="text-gray-500">Kolejność: <select value={tourneyHandsSortOrder} onChange={(e) => setTourneyHandsSortOrder(e.target.value)} className="bg-transparent font-bold cursor-pointer outline-none"><option value="desc">Malejąco</option><option value="asc">Rosnąco</option></select></div>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto flex flex-col pr-2 custom-scrollbar">
+              {collectionHands.length > 0
+                ? collectionHands.map((hand) => <HandTile key={hand.id} hand={hand} onClick={onHandClick} />)
+                : <div className="text-gray-400 text-center mt-10">Brak rozdań w tej kolekcji.</div>}
+            </div>
+          </div>
+        ) : currentTourney ? (
           <>
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 shrink-0">
               <div className="flex justify-between items-center mb-4">

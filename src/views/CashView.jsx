@@ -1,30 +1,47 @@
 // src/views/CashView.jsx
-import React, { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { selectSession } from '../store/pokerSlice.js';
+import { HandCollectionTabs } from '../components/HandCollectionTabs.jsx';
 import { HandTile } from '../components/HandTile.jsx';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { Filter } from 'lucide-react';
+import { getAvailableHandRanks, getFilteredSessions, getSelectedEntityId, getVisibleHands } from '../utils/handFilters.js';
+import { getAnalyzedHands, getSavedHands, sortHands } from '../utils/handCollections.js';
 
 export const CashView = ({ onHandClick }) => {
   const dispatch = useDispatch();
-  const { sessions, selectedSessionId } = useSelector(state => state.poker);
+  const {
+    aiAnalyses,
+    rawHands,
+    savedHandIds,
+    sessions,
+    selectedSessionId,
+  } = useSelector(state => state.poker);
 
+  const [collectionMode, setCollectionMode] = useState('session');
   const [handsFilterRank, setHandsFilterRank] = useState('');
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
   const [handsSortBy, setHandsSortBy] = useState('date');
   const [handsSortOrder, setHandsSortOrder] = useState('desc');
 
-  const availableRanks = useMemo(() => {
-    const ranks = new Set();
-    sessions.flatMap(s => s.hands).forEach(h => { if (h.handRanking && h.handRanking !== 'UNKNOWN' && !h.isRebuy) ranks.add(h.handRanking); });
-    return [...ranks].sort();
-  }, [sessions]);
+  const availableRanks = useMemo(() => getAvailableHandRanks(sessions), [sessions]);
+  const cashHands = useMemo(
+    () => rawHands.filter((hand) => !hand.isTournament && !hand.isRebuy),
+    [rawHands],
+  );
+  const analyzedCashHands = useMemo(
+    () => getAnalyzedHands(cashHands, aiAnalyses),
+    [aiAnalyses, cashHands],
+  );
+  const savedCashHands = useMemo(
+    () => getSavedHands(cashHands, savedHandIds),
+    [cashHands, savedHandIds],
+  );
 
   const filteredSessions = useMemo(() => {
-    if (!handsFilterRank) return sessions;
-    return sessions.filter(session => session.hands.some(h => h.handRanking === handsFilterRank));
+    return getFilteredSessions(sessions, handsFilterRank);
   }, [sessions, handsFilterRank]);
 
   const sortedSessions = [...filteredSessions].sort((a, b) => {
@@ -33,27 +50,54 @@ export const CashView = ({ onHandClick }) => {
     return sortOrder === 'desc' ? valB - valA : valA - valB;
   });
 
-  const currentSession = sessions.find(s => s.id === selectedSessionId);
+  useEffect(() => {
+    const nextSessionId = getSelectedEntityId(sortedSessions, selectedSessionId);
+    if (nextSessionId !== selectedSessionId) dispatch(selectSession(nextSessionId));
+  }, [dispatch, selectedSessionId, sortedSessions]);
+
+  const currentSession = sortedSessions.find(s => s.id === selectedSessionId);
 
   const visibleHands = useMemo(() => {
     if (!currentSession) return [];
-    let hands = handsFilterRank ? currentSession.hands.filter(h => h.handRanking === handsFilterRank) : [...currentSession.hands];
-    return hands.sort((a, b) => {
-      let valA = handsSortBy === 'date' ? a.timestamp : a.netProfit;
-      let valB = handsSortBy === 'date' ? b.timestamp : b.netProfit;
-      return handsSortOrder === 'desc' ? valB - valA : valA - valB;
-    });
+    const hands = getVisibleHands(currentSession, handsFilterRank);
+    return sortHands(hands, handsSortBy, handsSortOrder);
   }, [currentSession, handsFilterRank, handsSortBy, handsSortOrder]);
+
+  const collectionHands = useMemo(() => {
+    const source = collectionMode === 'analyzed' ? analyzedCashHands : savedCashHands;
+    const filtered = handsFilterRank
+      ? source.filter((hand) => hand.handRanking === handsFilterRank)
+      : source;
+    return sortHands(filtered, handsSortBy, handsSortOrder);
+  }, [
+    analyzedCashHands,
+    collectionMode,
+    handsFilterRank,
+    handsSortBy,
+    handsSortOrder,
+    savedCashHands,
+  ]);
+  const isCollectionView = collectionMode !== 'session';
+  const collectionTitle = collectionMode === 'analyzed' ? 'Rozdania z analizą' : 'Zapisane ręce';
+  const collectionDescription = collectionMode === 'analyzed'
+    ? 'Wszystkie przeanalizowane rozdania Cash ze wszystkich sesji.'
+    : 'Wszystkie zapisane rozdania Cash ze wszystkich sesji.';
 
   return (
     <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-300 h-[calc(100vh-140px)]">
       {/* LEWA KOLUMNA: Lista Sesji */}
       <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex flex-col gap-4 h-full">
+        <HandCollectionTabs
+          mode={collectionMode}
+          onChange={setCollectionMode}
+          analyzedCount={analyzedCashHands.length}
+          savedCount={savedCashHands.length}
+        />
         <div className="relative shrink-0">
           <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
           <select value={handsFilterRank} onChange={(e) => setHandsFilterRank(e.target.value)} className="w-full bg-slate-50 border border-gray-200 rounded-xl py-2.5 pl-10 pr-4 outline-none text-sm font-semibold text-gray-700 cursor-pointer">
             <option value="">Wszystkie układy...</option>
-            {availableRanks.map(rank => <option key={rank} value={rank}>{rank}</option>)}
+            {availableRanks.map(rank => <option key={rank.id} value={rank.id}>{rank.label}</option>)}
           </select>
         </div>
         {filteredSessions.length === 0 ? <div className="text-center p-8 text-gray-400">Brak sesji Cash. Wgraj pliki.</div> : (
@@ -64,7 +108,7 @@ export const CashView = ({ onHandClick }) => {
             </div>
             <div className="flex-1 overflow-y-auto flex flex-col gap-2.5 pr-2 custom-scrollbar">
               {sortedSessions.map((session) => (
-                <button key={session.id} onClick={() => dispatch(selectSession(session.id))} className={`w-full text-left p-4 rounded-xl border transition-all flex flex-col ${selectedSessionId === session.id ? 'border-indigo-600 bg-indigo-50 shadow-md ring-2 ring-indigo-100' : 'border-gray-200 hover:bg-slate-50'}`}>
+                <button key={session.id} onClick={() => { setCollectionMode('session'); dispatch(selectSession(session.id)); }} className={`w-full text-left p-4 rounded-xl border transition-all flex flex-col ${collectionMode === 'session' && selectedSessionId === session.id ? 'border-indigo-600 bg-indigo-50 shadow-md ring-2 ring-indigo-100' : 'border-gray-200 hover:bg-slate-50'}`}>
                   <div className="flex justify-between items-center font-semibold text-sm w-full">
                     <span className="text-gray-900 truncate" title={`Stół: ${session.tableId}`}>Stół #{session.tableId} <span className="text-gray-400 text-xs font-normal ml-2">({session.dateStr})</span></span>
                     <span className={`font-mono text-base tracking-tight shrink-0 ml-2 ${session.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{session.totalProfit >= 0 ? '+' : ''}₮{session.totalProfit.toFixed(2)}</span>
@@ -82,7 +126,25 @@ export const CashView = ({ onHandClick }) => {
 
       {/* PRAWA KOLUMNA: Wykres i Ręce */}
       <div className="lg:col-span-2 flex flex-col gap-6 h-full overflow-y-auto pr-2 custom-scrollbar">
-        {currentSession ? (
+        {isCollectionView ? (
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex-1 flex flex-col min-h-0">
+            <div className="flex flex-wrap justify-between items-center gap-3 border-b border-gray-100 pb-3 mb-4 shrink-0">
+              <div>
+                <h3 className="text-base font-bold text-gray-800">{collectionTitle}</h3>
+                <p className="text-xs text-gray-500 mt-1">{collectionDescription}</p>
+              </div>
+              <div className="flex bg-slate-50 p-2 rounded-xl text-xs gap-3 border border-gray-200">
+                <div className="text-gray-500">Sortuj: <select value={handsSortBy} onChange={(e) => setHandsSortBy(e.target.value)} className="bg-transparent font-bold cursor-pointer outline-none"><option value="date">Datą</option><option value="profit">Wynikiem</option></select></div>
+                <div className="text-gray-500">Kolejność: <select value={handsSortOrder} onChange={(e) => setHandsSortOrder(e.target.value)} className="bg-transparent font-bold cursor-pointer outline-none"><option value="desc">Malejąco</option><option value="asc">Rosnąco</option></select></div>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto flex flex-col pr-2 custom-scrollbar">
+              {collectionHands.length > 0
+                ? collectionHands.map((hand) => <HandTile key={hand.id} hand={hand} onClick={onHandClick} />)
+                : <div className="text-gray-400 text-center mt-10">Brak rozdań w tej kolekcji.</div>}
+            </div>
+          </div>
+        ) : currentSession ? (
           <>
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 shrink-0">
               <h3 className="text-base font-bold mb-4 text-gray-800">Wykres portfela (Stół #{currentSession.tableId})</h3>

@@ -14,6 +14,31 @@ const parseChips = (valStr) => {
   return parseFloat(valStr.replace(/[^\d.-]/g, '')) || 0;
 };
 
+export const normalizeHandRanking = (value) => {
+  const normalized = (value || '').trim().toLowerCase();
+  if (!normalized) return 'NO_HAND';
+  if (/straight\s*flush|royal\s*flush|\bpoker\b/.test(normalized)) return 'STRAIGHT_FLUSH';
+  if (/four of a kind|quads?|kareta/.test(normalized)) return 'FOUR_OF_A_KIND';
+  if (/full house|full\b/.test(normalized)) return 'FULL_HOUSE';
+  if (/flush|kolor/.test(normalized)) return 'FLUSH';
+  if (/straight|strit/.test(normalized)) return 'STRAIGHT';
+  if (/three of a kind|trips?|set\b|trójka/.test(normalized)) return 'THREE_OF_A_KIND';
+  if (/two pair|dwie pary/.test(normalized)) return 'TWO_PAIR';
+  if (/one pair|\bpair\b|para/.test(normalized)) return 'PAIR';
+  if (/high card|wysoka karta/.test(normalized)) return 'HIGH_CARD';
+  return 'NO_HAND';
+};
+
+const getSummaryHeroLine = (rawHand) => {
+  const summaryMatch = rawHand.match(/^\*\*\* SUMMARY \*\*\*\s*([\s\S]*)$/im);
+  if (!summaryMatch) return '';
+
+  return summaryMatch[1]
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => /^Seat \d+:\s+Hero(?:\s|:|$)/i.test(line)) || '';
+};
+
 export const parseRawHandHistory = (rawText) => {
   const rawHands = rawText.split(/(?=CoinPoker Hand #)/i);
   const parsedHands = [];
@@ -24,7 +49,7 @@ export const parseRawHandHistory = (rawText) => {
     try {
       const handData = {
         id: '', timestamp: null, dateStr: '', timeStr: '', blinds: '', gameType: 'NLH',
-        heroCards: [], boardCards: [], handRanking: '', heroInvestment: 0,
+        heroCards: [], boardCards: [], handRanking: 'NO_HAND', heroInvestment: 0,
         heroWinnings: 0, netProfit: 0, outcome: 'FOLDED', rawText: rawHand.trim(),
         position: 'UNKNOWN', streets: [], isTournament: false, heroStartingStack: 0,
         tableId: '', tourneyName: '', tourneyId: '',
@@ -68,15 +93,16 @@ export const parseRawHandHistory = (rawText) => {
       const cardsMatch = rawHand.match(/Dealt to Hero \[(.+?)\]/i);
       if (cardsMatch) handData.heroCards = cardsMatch[1].split(' ');
 
-      // DEDUPLIKACJA MIEJSC (NAPRAWIA BŁĄD Z UTG+3 w 6-max)
-      // Zapobiega liczeniu gracza podwójnie z sekcji "Summary" na końcu rozdania
-      const seats = [...rawHand.matchAll(/Seat (\d+): ([^\s()]+)/gi)]; 
+// DEDUPLIKACJA MIEJSC (PANCERNA WERSJA)
+      // Szuka graczy TYLKO na początku rozdania, gdzie deklarowane są żetony (in chips)
+      // Dzięki temu ignoruje fałszywe nicki i podsumowania na końcu logu.
+      const seats = [...rawHand.matchAll(/Seat (\d+):\s+(.*?)\s*\([^)]+in chips\)/gi)]; 
       let activeSeats = [];
       let seenSeats = new Set();
       
       seats.forEach(seat => {
         const sNum = parseInt(seat[1]);
-        const playerId = seat[2].trim();
+        const playerId = seat[2].trim(); // Pobiera pełny nick, nawet ze spacjami
         if (!seenSeats.has(sNum)) {
             seenSeats.add(sNum);
             activeSeats.push({ seatNum: sNum, playerId });
@@ -149,20 +175,24 @@ export const parseRawHandHistory = (rawText) => {
 
       handData.heroInvestment = parseFloat((totalInvested - totalReturned).toFixed(2));
 
-      let isWinner = false;
-      const heroSummaryLine = lines.find(l => l.match(/^Seat \d+:\s+Hero\s+/i));
-      
-      if (heroSummaryLine && heroSummaryLine.includes('and won')) isWinner = true;
-      else if (rawHand.match(/Hero collected/i)) isWinner = true;
-      else if (rawHand.match(/Hero.*? won /i)) isWinner = true;
+      const heroSummaryLine = getSummaryHeroLine(rawHand);
+      const isWinner = /\b(?:and\s+won|collected)\b/i.test(heroSummaryLine);
+      const isLoser = /\band\s+lost\b/i.test(heroSummaryLine);
+      const isFolded = /\b(?:folded|mucked)\b/i.test(heroSummaryLine);
+      const rankMatch = heroSummaryLine.match(/\bwith\s+(.+?)(?:\s*\([^)]*\))?\s*$/i);
+      handData.handRanking = normalizeHandRanking(rankMatch?.[1]);
 
       if (isWinner) {
         handData.outcome = 'WON';
-        const collectMatch = rawHand.match(/Hero collected\s+[^\d]*([\d.,]+)/i);
-        const wonMatch = rawHand.match(/Hero.*?won\s*\([^\d]*([\d.,]+)\)/i);
-        if (collectMatch) handData.heroWinnings = parseChips(collectMatch[1]);
-        else if (wonMatch) handData.heroWinnings = parseChips(wonMatch[1]);
-        else handData.heroWinnings = 0; 
+        const wonMatch = heroSummaryLine.match(/\b(?:and\s+won|collected)\s*\([^\d]*([\d.,]+)\)/i)
+          || heroSummaryLine.match(/\bcollected\s+[^\d]*([\d.,]+)/i);
+        handData.heroWinnings = wonMatch ? parseChips(wonMatch[1]) : 0;
+      } else if (isLoser) {
+        handData.outcome = 'LOST';
+        handData.heroWinnings = 0;
+      } else if (isFolded) {
+        handData.outcome = 'FOLDED';
+        handData.heroWinnings = 0;
       } else {
         handData.outcome = handData.heroInvestment > 0 ? 'LOST' : 'FOLDED';
         handData.heroWinnings = 0;

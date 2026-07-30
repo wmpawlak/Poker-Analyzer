@@ -2,71 +2,223 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { parseRawHandHistory, buildSessions, buildTourneySessions } from '../parser/pokerParser.js';
 
-export const verifyApiKey = createAsyncThunk(
-  'poker/verifyApi',
-  async (apiKey, { rejectWithValue }) => {
-    try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: "ping" }] }] })
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error?.message || 'Błąd Gemini API');
-      }
-      return true;
-    } catch (e) {
-      return rejectWithValue(e.message);
-    }
+export const AI_ANALYSES_CACHE_KEY = 'poker_ai_analyses_v4';
+export const LEGACY_V3_AI_ANALYSES_CACHE_KEY = 'poker_ai_analyses_v3';
+export const LEGACY_AI_ANALYSES_CACHE_KEY = 'poker_ai_analyses_v2';
+export const AI_DEFAULT_MODEL_CACHE_KEY = 'poker_ai_default_model';
+export const SAVED_HANDS_CACHE_KEY = 'poker_saved_hands_v1';
+export const DEFAULT_AI_MODEL = 'gpt-5.6-terra';
+export const AI_MODEL_CATALOG = [
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
+  { id: 'gpt-5.6-terra', name: 'GPT-5.6 Terra' },
+  { id: 'gpt-5.6-sol', name: 'GPT-5.6 Sol' },
+];
+export const AI_MODEL_IDS = AI_MODEL_CATALOG.map(({ id }) => id);
+const LEGACY_GEMINI_MODEL = {
+  ...AI_MODEL_CATALOG[0],
+};
+export const LOCAL_SOURCE_ORIGIN = 'local';
+export const UPLOAD_SOURCE_ORIGIN = 'upload';
+export {
+  analysisResponseSchema,
+  buildHandAnalysisPrompt,
+  validateHandAnalysis,
+} from '../ai/handAnalysisContract.js';
+
+const getResponseError = async (response, fallbackMessage) => {
+  try {
+    const data = await response.json();
+    return data.error || fallbackMessage;
+  } catch {
+    return fallbackMessage;
   }
+};
+
+export const getLocalSourceId = (filename) => `local:${filename}`;
+
+export const syncLocalSources = createAsyncThunk(
+  'poker/syncLocalSources',
+  async (_, { rejectWithValue }) => {
+    try {
+      const listResponse = await fetch('/api/local-sources');
+      if (!listResponse.ok) {
+        throw new Error(await getResponseError(listResponse, 'Nie udało się pobrać listy lokalnych plików.'));
+      }
+
+      const { sources = [] } = await listResponse.json();
+      return await Promise.all(sources.map(async (metadata) => {
+        const contentResponse = await fetch(`/api/local-sources/${encodeURIComponent(metadata.filename)}/content`);
+        if (!contentResponse.ok) {
+          throw new Error(await getResponseError(contentResponse, `Nie udało się odczytać pliku ${metadata.filename}.`));
+        }
+
+        const content = await contentResponse.text();
+        return {
+          id: getLocalSourceId(metadata.filename),
+          filename: metadata.filename,
+          content,
+          type: /Tournament '/i.test(content) ? 'Tournament' : 'Cash',
+          origin: LOCAL_SOURCE_ORIGIN,
+          enabled: true,
+          size: metadata.size,
+          modifiedAt: metadata.modifiedAt,
+          dateAdded: metadata.modifiedAt,
+        };
+      }));
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+  {
+    condition: (_, { getState }) => getState().poker.localSourcesStatus !== 'loading',
+  },
+);
+
+const parseStoredObject = (value) => {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const parseStoredArray = (value) => {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const createReportId = (handId) => (
+  globalThis.crypto?.randomUUID?.()
+  || `${handId}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+);
+
+const normalizeHistory = (entry, handId, analyzedAt, sourceVersion) => {
+  const reports = Array.isArray(entry) ? entry : entry?.analysis ? [entry] : [];
+  return reports.map((report, index) => ({
+    ...report,
+    reportId: report.reportId || `legacy-${sourceVersion}-${handId}-${index + 1}`,
+    analyzedAt: report.analyzedAt || analyzedAt,
+  }));
+};
+
+export const loadDefaultAiModel = (storage = localStorage) => {
+  const storedModel = storage.getItem(AI_DEFAULT_MODEL_CACHE_KEY);
+  return AI_MODEL_IDS.includes(storedModel) ? storedModel : DEFAULT_AI_MODEL;
+};
+
+export const loadAiAnalyses = ({
+  storage = localStorage,
+  analyzedAt = new Date().toISOString(),
+} = {}) => {
+  storage.removeItem('poker_ai_analyses');
+  storage.removeItem('poker_gemini_key');
+
+  const cachedV4 = parseStoredObject(storage.getItem(AI_ANALYSES_CACHE_KEY));
+  if (cachedV4) {
+    storage.removeItem(LEGACY_V3_AI_ANALYSES_CACHE_KEY);
+    storage.removeItem(LEGACY_AI_ANALYSES_CACHE_KEY);
+    return Object.fromEntries(
+      Object.entries(cachedV4).map(([handId, entry]) => [
+        handId,
+        normalizeHistory(entry, handId, analyzedAt, 'v4'),
+      ]),
+    );
+  }
+
+  const cachedV3 = parseStoredObject(storage.getItem(LEGACY_V3_AI_ANALYSES_CACHE_KEY));
+  const cachedV2 = parseStoredObject(storage.getItem(LEGACY_AI_ANALYSES_CACHE_KEY));
+  const source = cachedV3 || cachedV2;
+  if (!source) return {};
+
+  const migrated = Object.fromEntries(
+    Object.entries(source).map(([handId, entry]) => {
+      if (cachedV3) {
+        return [
+          handId,
+          normalizeHistory(entry, handId, analyzedAt, 'v3'),
+        ];
+      }
+      return [
+        handId,
+        normalizeHistory({
+          model: { ...LEGACY_GEMINI_MODEL },
+          analyzedAt,
+          analysis: entry,
+        }, handId, analyzedAt, 'v2'),
+      ];
+    }),
+  );
+  storage.setItem(AI_ANALYSES_CACHE_KEY, JSON.stringify(migrated));
+  storage.removeItem(LEGACY_V3_AI_ANALYSES_CACHE_KEY);
+  storage.removeItem(LEGACY_AI_ANALYSES_CACHE_KEY);
+  return migrated;
+};
+
+export const loadSavedHandIds = (storage = localStorage) => {
+  const savedIds = parseStoredArray(storage.getItem(SAVED_HANDS_CACHE_KEY)) || [];
+  return [...new Set(savedIds.map(String))];
+};
+
+export const fetchAiModels = createAsyncThunk(
+  'poker/fetchAiModels',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await fetch('/api/ai/models');
+      if (!response.ok) {
+        throw new Error(await getResponseError(response, 'Nie udało się pobrać konfiguracji modeli AI.'));
+      }
+      const { models } = await response.json();
+      if (!Array.isArray(models)) throw new Error('Serwer zwrócił nieprawidłową listę modeli AI.');
+      return models;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+  {
+    condition: (_, { getState }) => getState().poker.aiModelsStatus !== 'loading',
+  },
 );
 
 export const analyzeHandWithAI = createAsyncThunk(
   'poker/analyzeHand',
-  async ({ handText, apiKey }, { rejectWithValue }) => {
+  async ({ handId, modelId }, { getState, rejectWithValue }) => {
     try {
-      const prompt = `Jesteś profesjonalnym, ale przystępnym trenerem pokera. Przeanalizuj to rozdanie krok po kroku z perspektywy gracza "Hero". 
-MUSISZ zwrócić odpowiedź WYŁĄCZNIE jako poprawny obiekt JSON. Żadnego tekstu przed i po JSONie.
-ZAWSZE odpowiadaj w języku polskim. 
-Używaj prostego, naturalnego języka. Unikaj skomplikowanego żargonu matematycznego (np. skomplikowanych pojęć GTO). Skup się na praktycznej ocenie zagrań, błędach w sizingach i czytaniu zachowania przeciwników. 
+      const { rawHands, defaultAiModel } = getState().poker;
+      const hand = rawHands.find((candidate) => candidate.id === handId);
+      if (!hand?.id || !hand.rawText) throw new Error('Brakuje danych rozdania do analizy AI.');
+      const selectedModelId = modelId || defaultAiModel;
 
-BARDZO WAŻNE DOTYCZĄCE KART:
-Jeśli w komentarzach wymieniasz jakiekolwiek karty (zarówno z ręki, jak i ze stołu), MUSISZ użyć wyłącznie formatu nawiasów kwadratowych, np. [Kh As], [Tc], [Qd 2c].
-ABSOLUTNIE NIE PISZ słownych nazw kart! ZABRONIONE JEST pisanie np. "[Kh Ah] (As-Król Kier)" czy "Para Króli". Zamiast tego napisz po prostu "[Kh Ah]" lub "[Kc Kd]". Traktuj zapis w nawiasach kwadratowych jako jedyny istniejący sposób opisu kart.
-
-Struktura JSON musi wyglądać dokładnie tak:
-{
-  "preflop": "Twój komentarz pre-flop po polsku, karty np. [As Kd]",
-  "flop": "Twój komentarz do gry na flopie (lub null jeśli runda się nie odbyła)",
-  "turn": "Twój komentarz do gry na turnie (lub null)",
-  "river": "Twój komentarz do gry na riverze (lub null)",
-  "summary": "Ogólne wnioski co było dobre, a co złe. Krótko, jasno i na temat."
-}
-Oto log rozdania:\n\n${handText}`;
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch('/api/ai/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
-        })
+          modelId: selectedModelId,
+          hand,
+        }),
       });
-      
-      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error(data.error?.message || 'Błąd Gemini API');
+        throw new Error(await getResponseError(response, 'Nie udało się przeanalizować rozdania.'));
       }
-      
-      let aiText = data.candidates[0].content.parts[0].text;
-      aiText = aiText.replace(/```json/gi, '').replace(/```/g, '').trim();
-      
-      try {
-        return JSON.parse(aiText);
-      } catch (parseError) {
-        return { summary: aiText };
+
+      const { model, analysis } = await response.json();
+      if (!model?.id || !model?.name || !analysis) {
+        throw new Error('Serwer zwrócił nieprawidłowy raport analizy AI.');
       }
-      
+      return {
+        handId: hand.id,
+        reportId: createReportId(hand.id),
+        model,
+        analyzedAt: new Date().toISOString(),
+        analysis,
+      };
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -79,24 +231,45 @@ const initialState = {
   tournaments: [],
   heroMetrics: null,
   opponentsMetrics: [],
-  apiKey: localStorage.getItem('poker_gemini_key') || '',
-  apiStatus: 'idle', 
   selectedSessionId: null,
   selectedTourneyId: null,
   selectedHandId: null,
-  aiAnalyses: JSON.parse(localStorage.getItem('poker_ai_analyses')) || {},
+  defaultAiModel: loadDefaultAiModel(),
+  aiModels: AI_MODEL_CATALOG.map((model) => ({ ...model, configured: false })),
+  aiModelsStatus: 'idle',
+  aiModelsError: null,
+  aiAnalyses: loadAiAnalyses(),
+  savedHandIds: loadSavedHandIds(),
   loadingAI: false,
-  errorAI: null
+  errorAI: null,
+  localSourcesStatus: 'idle',
+  localSourcesError: null,
+};
+
+export const getUniqueHandsFromSources = (sources) => {
+  const orderedSources = sources
+    .filter((source) => source.enabled)
+    .map((source, index) => ({ source, index }))
+    .sort((a, b) => {
+      const priorityA = a.source.origin === LOCAL_SOURCE_ORIGIN ? 0 : 1;
+      const priorityB = b.source.origin === LOCAL_SOURCE_ORIGIN ? 0 : 1;
+      return priorityA - priorityB || a.index - b.index;
+    })
+    .map(({ source }) => source);
+
+  const handsById = new Map();
+  orderedSources.forEach((source) => {
+    parseRawHandHistory(source.content).forEach((hand) => {
+      if (!handsById.has(hand.id)) handsById.set(hand.id, hand);
+    });
+  });
+
+  return [...handsById.values()].sort((a, b) => a.timestamp - b.timestamp);
 };
 
 // Funkcja pomocnicza do przeliczania rozdań na podstawie TYLKO aktywnych plików
 const recalculateAllHands = (state) => {
-  const enabledText = state.sources
-    .filter(s => s.enabled)
-    .map(s => s.content)
-    .join('\n\n');
-
-  const allHands = parseRawHandHistory(enabledText);
+  const allHands = getUniqueHandsFromSources(state.sources);
   state.rawHands = allHands;
   
   const cashHands = allHands.filter(h => !h.isTournament);
@@ -187,16 +360,20 @@ const pokerSlice = createSlice({
   initialState,
   reducers: {
     uploadHandHistory: (state, action) => {
-      const { filename, content } = action.payload;
+      const { filename, content, modifiedAt } = action.payload;
       const isTourney = /Tournament '/i.test(content);
+      const now = new Date().toISOString();
       
       state.sources.push({
         id: `src_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         filename,
         content,
         type: isTourney ? 'Tournament' : 'Cash',
+        origin: UPLOAD_SOURCE_ORIGIN,
         enabled: true,
-        dateAdded: new Date().toISOString()
+        size: new TextEncoder().encode(content).length,
+        modifiedAt: modifiedAt || now,
+        dateAdded: now,
       });
       
       recalculateAllHands(state);
@@ -209,39 +386,101 @@ const pokerSlice = createSlice({
       }
     },
     removeSource: (state, action) => {
-      state.sources = state.sources.filter(s => s.id !== action.payload);
+      state.sources = state.sources.filter(s => s.id !== action.payload || s.origin === LOCAL_SOURCE_ORIGIN);
       recalculateAllHands(state);
-    },
-    setApiKey: (state, action) => {
-      state.apiKey = action.payload;
-      state.apiStatus = 'idle';
-      localStorage.setItem('poker_gemini_key', action.payload);
     },
     selectSession: (state, action) => { state.selectedSessionId = action.payload; state.selectedHandId = null; },
     selectTourney: (state, action) => { state.selectedTourneyId = action.payload; state.selectedHandId = null; },
     selectHand: (state, action) => { state.selectedHandId = action.payload; },
+    setDefaultAiModel: (state, action) => {
+      if (!AI_MODEL_IDS.includes(action.payload)) return;
+      state.defaultAiModel = action.payload;
+      localStorage.setItem(AI_DEFAULT_MODEL_CACHE_KEY, action.payload);
+    },
+    toggleSavedHand: (state, action) => {
+      const handId = String(action.payload);
+      const index = state.savedHandIds.indexOf(handId);
+      if (index >= 0) state.savedHandIds.splice(index, 1);
+      else state.savedHandIds.push(handId);
+      localStorage.setItem(SAVED_HANDS_CACHE_KEY, JSON.stringify(state.savedHandIds));
+    },
     clearData: (state) => {
       state.sources = []; state.rawHands = []; state.sessions = []; state.tournaments = []; 
       state.selectedSessionId = null; state.selectedTourneyId = null; state.selectedHandId = null;
-      state.aiAnalyses = {}; localStorage.removeItem('poker_ai_analyses');
+      state.aiAnalyses = {}; localStorage.removeItem(AI_ANALYSES_CACHE_KEY);
+      state.savedHandIds = []; localStorage.removeItem(SAVED_HANDS_CACHE_KEY);
     }
   },
   extraReducers: (builder) => {
     builder
-      .addCase(verifyApiKey.pending, (state) => { state.apiStatus = 'testing'; })
-      .addCase(verifyApiKey.fulfilled, (state) => { state.apiStatus = 'valid'; })
-      .addCase(verifyApiKey.rejected, (state) => { state.apiStatus = 'invalid'; })
       .addCase(analyzeHandWithAI.pending, (state) => { state.loadingAI = true; state.errorAI = null; })
       .addCase(analyzeHandWithAI.fulfilled, (state, action) => {
         state.loadingAI = false;
-        state.aiAnalyses[state.selectedHandId] = action.payload;
-        localStorage.setItem('poker_ai_analyses', JSON.stringify(state.aiAnalyses));
+        const existingEntry = state.aiAnalyses[action.payload.handId];
+        const history = Array.isArray(existingEntry)
+          ? existingEntry
+          : existingEntry?.analysis ? [existingEntry] : [];
+        history.push({
+          reportId: action.payload.reportId,
+          model: action.payload.model,
+          analyzedAt: action.payload.analyzedAt,
+          analysis: action.payload.analysis,
+        });
+        state.aiAnalyses[action.payload.handId] = history;
+        localStorage.setItem(AI_ANALYSES_CACHE_KEY, JSON.stringify(state.aiAnalyses));
       })
-      .addCase(analyzeHandWithAI.rejected, (state, action) => { state.loadingAI = false; state.errorAI = action.payload; });
+      .addCase(analyzeHandWithAI.rejected, (state, action) => { state.loadingAI = false; state.errorAI = action.payload; })
+      .addCase(fetchAiModels.pending, (state) => {
+        state.aiModelsStatus = 'loading';
+        state.aiModelsError = null;
+      })
+      .addCase(fetchAiModels.fulfilled, (state, action) => {
+        state.aiModels = action.payload;
+        state.aiModelsStatus = 'succeeded';
+        state.aiModelsError = null;
+      })
+      .addCase(fetchAiModels.rejected, (state, action) => {
+        state.aiModelsStatus = 'failed';
+        state.aiModelsError = action.payload || 'Nie udało się pobrać konfiguracji modeli AI.';
+      })
+      .addCase(syncLocalSources.pending, (state) => {
+        state.localSourcesStatus = 'loading';
+        state.localSourcesError = null;
+      })
+      .addCase(syncLocalSources.fulfilled, (state, action) => {
+        const enabledById = new Map(
+          state.sources
+            .filter((source) => source.origin === LOCAL_SOURCE_ORIGIN)
+            .map((source) => [source.id, source.enabled]),
+        );
+        const localSources = action.payload.map((source) => ({
+          ...source,
+          enabled: enabledById.get(source.id) ?? true,
+        }));
+        const uploadedSources = state.sources.filter((source) => source.origin !== LOCAL_SOURCE_ORIGIN);
+        state.sources = [...localSources, ...uploadedSources];
+        state.localSourcesStatus = 'succeeded';
+        state.localSourcesError = null;
+        recalculateAllHands(state);
+      })
+      .addCase(syncLocalSources.rejected, (state, action) => {
+        state.localSourcesStatus = 'failed';
+        state.localSourcesError = action.payload || 'Nie udało się zsynchronizować lokalnych plików.';
+      });
   }
 });
 
-export const { uploadHandHistory, toggleSource, removeSource, setApiKey, selectSession, selectTourney, selectHand, clearData } = pokerSlice.actions;
+export const {
+  uploadHandHistory,
+  toggleSource,
+  removeSource,
+  selectSession,
+  selectTourney,
+  selectHand,
+  setDefaultAiModel,
+  toggleSavedHand,
+  clearData,
+} = pokerSlice.actions;
 export default pokerSlice.reducer;
 
 //Chciałbym żebyś mi zrobił podstawowe metryki gracza pokerowego w nowej zakładce "Mój profil". Które to statystki wyliczają się do gracza Hero. Statystyki takie: VPIP, PFR, AF, WSTD, WATSD, Winrate
