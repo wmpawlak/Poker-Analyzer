@@ -1,6 +1,7 @@
 // src/hooks/usePokerMetrics.js
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
+import { calculateHeroMetrics } from '../utils/heroMetrics.js';
 
 export const usePokerMetrics = (gameTypeFilter = 'both') => {
   const { sessions, tournaments } = useSelector((state) => state.poker);
@@ -13,31 +14,7 @@ export const usePokerMetrics = (gameTypeFilter = 'both') => {
     return h.filter(hand => !hand.isRebuy);
   }, [sessions, tournaments, gameTypeFilter]);
 
-  const heroMetrics = useMemo(() => {
-    if (activeHands.length === 0) return null;
-    let vpip = 0, pfr = 0, wtsd = 0, wsd = 0, betsRaises = 0, calls = 0, profit = 0;
-    
-    activeHands.forEach(h => {
-       if (h.heroVPIP) vpip++;
-       if (h.heroPFR) pfr++;
-       if (h.sawShowdown) wtsd++;
-       if (h.sawShowdown && h.outcome === 'WON') wsd++;
-       betsRaises += h.heroPostFlopBetsRaises || 0;
-       calls += h.heroPostFlopCalls || 0;
-       profit += h.netProfit;
-    });
-
-    return {
-      totalHands: activeHands.length,
-      vpip: ((vpip / activeHands.length) * 100).toFixed(1),
-      pfr: ((pfr / activeHands.length) * 100).toFixed(1),
-      af: calls === 0 ? (betsRaises > 0 ? '∞' : '0.0') : (betsRaises / calls).toFixed(2),
-      wtsd: ((wtsd / activeHands.length) * 100).toFixed(1),
-      wsd: wtsd === 0 ? '0.0' : ((wsd / wtsd) * 100).toFixed(1),
-      totalProfit: profit.toFixed(2),
-      winrate: ((profit / activeHands.length) * 100).toFixed(2)
-    };
-  }, [activeHands]);
+  const heroMetrics = useMemo(() => calculateHeroMetrics(activeHands), [activeHands]);
 
   const opponentsMetrics = useMemo(() => {
     const oppMap = {};

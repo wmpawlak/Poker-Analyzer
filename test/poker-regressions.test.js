@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizeHandRanking, parseRawHandHistory } from '../src/parser/pokerParser.js';
 import { getFilteredSessions, getSelectedEntityId, getVisibleHands } from '../src/utils/handFilters.js';
+import { buildStartingHandStats, getWinRateColorTier } from '../src/utils/startingHandStats.js';
+import { calculateHeroMetrics } from '../src/utils/heroMetrics.js';
 
 const hand = (summary) => `CoinPoker Hand #96890300082: NLH (₮0.05/₮0.10) - 2026/07/29 12:00:00 UTC
 Table 'Example' 6-max Seat #2 is the button
@@ -12,6 +14,11 @@ Dealt to Hero [Qh Qd]
 Hero: calls ₮0.10
 *** SUMMARY ***
 ${summary}`;
+
+const beforeSummary = (rawHand, actions) => rawHand.replace(
+  '*** SUMMARY ***',
+  `${actions}\n*** SUMMARY ***`,
+);
 
 test('normalizuje główne kategorie układów', () => {
   assert.equal(normalizeHandRanking('High Card'), 'HIGH_CARD');
@@ -37,6 +44,109 @@ test('rozróżnia przegraną, fold i brak układu z podsumowania', () => {
   assert.equal(folded.outcome, 'FOLDED');
   assert.equal(folded.handRanking, 'NO_HAND');
   assert.equal(mucked.handRanking, 'NO_HAND');
+});
+
+test('showdown wymaga faktycznej akcji pokazania lub muckowania kart przez Hero', () => {
+  const foldedWhileOthersShow = hand(`Seat 2: Hero folded before Flop
+Seat 3: Villain showed [Ah Kh] and won (₮1.00) with Pair`)
+    .replace('*** SUMMARY ***', `*** SHOWDOWN ***
+Villain: shows [Ah Kh]
+*** SUMMARY ***`);
+  const [folded] = parseRawHandHistory(foldedWhileOthersShow);
+  const [summaryOnly] = parseRawHandHistory(hand('Seat 2: Hero showed [Qh Qd] and won (₮1.00) with Pair'));
+  const [showed] = parseRawHandHistory(beforeSummary(
+    hand('Seat 2: Hero showed [Qh Qd] and lost with Pair'),
+    '*** SHOWDOWN ***\nHero: shows [Qh Qd]\nVillain: shows [Ah Ad]',
+  ));
+  const [mucked] = parseRawHandHistory(beforeSummary(
+    hand('Seat 2: Hero mucked [Qh Qd]'),
+    '*** SHOWDOWN ***\nHero: mucks hand',
+  ));
+
+  assert.equal(folded.sawShowdown, false);
+  assert.equal(summaryOnly.sawShowdown, false);
+  assert.equal(showed.sawShowdown, true);
+  assert.equal(mucked.sawShowdown, true);
+  assert.equal(showed.heroReachedRiverOrShowdown, true);
+  assert.equal(mucked.heroReachedRiverOrShowdown, true);
+});
+
+test('filtr River/Showdown obejmuje river fold win, ale pomija wcześniejsze foldy i fold Hero', () => {
+  const [flopFoldWin] = parseRawHandHistory(beforeSummary(
+    hand('Seat 2: Hero showed [Qh Qd] and won (₮1.00) with Pair'),
+    '*** FLOP *** [2c 3d 4h]\nHero: bets ₮0.20\nVillain: folds',
+  ));
+  const [riverFoldWin] = parseRawHandHistory(beforeSummary(
+    hand('Seat 2: Hero showed [Qh Qd] and won (₮1.00) with Pair'),
+    '*** FLOP *** [2c 3d 4h]\nHero: checks\nVillain: checks\n*** TURN *** [2c 3d 4h] [5s]\nHero: checks\nVillain: checks\n*** RIVER *** [2c 3d 4h 5s] [9c]\nHero: bets ₮0.20\nVillain: folds',
+  ));
+  const [heroFoldsRiver] = parseRawHandHistory(beforeSummary(
+    hand('Seat 2: Hero folded on the River'),
+    '*** FLOP *** [2c 3d 4h]\nHero: checks\n*** TURN *** [2c 3d 4h] [5s]\nHero: checks\n*** RIVER *** [2c 3d 4h 5s] [9c]\nHero: folds',
+  ));
+  const [multiBoardRiverFoldWin] = parseRawHandHistory(beforeSummary(
+    hand('Seat 2: Hero showed [Qh Qd] and won (₮1.00) with Pair'),
+    '*** FIRST FLOP *** [2c 3d 4h]\nHero: checks\n*** FIRST RIVER *** [2c 3d 4h 5s] [9c]\nVillain: folds',
+  ));
+
+  assert.equal(flopFoldWin.heroSawFlop, true);
+  assert.equal(flopFoldWin.heroReachedRiverOrShowdown, false);
+  assert.equal(riverFoldWin.sawShowdown, false);
+  assert.equal(riverFoldWin.heroReachedRiverOrShowdown, true);
+  assert.equal(heroFoldsRiver.heroReachedRiverOrShowdown, false);
+  assert.equal(multiBoardRiverFoldWin.heroSawFlop, true);
+  assert.equal(multiBoardRiverFoldWin.heroReachedRiverOrShowdown, true);
+});
+
+test('statystyki 169 rąk przeliczają WR po filtrze River/Showdown i pomijają PLO', () => {
+  const hands = [
+    { heroCards: ['Ah', 'Kh'], outcome: 'WON', heroReachedRiverOrShowdown: true },
+    { heroCards: ['As', 'Ks'], outcome: 'LOST', heroReachedRiverOrShowdown: false },
+    { heroCards: ['Kd', 'Ah'], outcome: 'WON', heroReachedRiverOrShowdown: true },
+    { heroCards: ['2d', '5s', 'Ah', '6h'], outcome: 'WON', heroReachedRiverOrShowdown: true },
+  ];
+
+  const allStats = buildStartingHandStats(hands);
+  const riverOrShowdownStats = buildStartingHandStats(hands, { riverOrShowdownOnly: true });
+  const allAKs = allStats.find(({ key }) => key === 'AKs');
+  const filteredAKs = riverOrShowdownStats.find(({ key }) => key === 'AKs');
+
+  assert.equal(allStats.length, 169);
+  assert.equal(allStats.reduce((sum, stats) => sum + stats.count, 0), 3);
+  assert.deepEqual(
+    { count: allAKs.count, wins: allAKs.wins, losses: allAKs.losses, winRate: allAKs.winRate },
+    { count: 2, wins: 1, losses: 1, winRate: 50 },
+  );
+  assert.deepEqual(
+    { count: filteredAKs.count, wins: filteredAKs.wins, losses: filteredAKs.losses, winRate: filteredAKs.winRate },
+    { count: 1, wins: 1, losses: 0, winRate: 100 },
+  );
+});
+
+test('kolory mapy mają stałe progi surowego WR', () => {
+  assert.equal(getWinRateColorTier(0, 0), 'none');
+  assert.equal(getWinRateColorTier(100, 9), 'insufficient');
+  assert.equal(getWinRateColorTier(24.99, 10), 'critical');
+  assert.equal(getWinRateColorTier(25, 10), 'pink');
+  assert.equal(getWinRateColorTier(44.99, 10), 'pink');
+  assert.equal(getWinRateColorTier(45, 10), 'yellow');
+  assert.equal(getWinRateColorTier(55, 10), 'yellow');
+  assert.equal(getWinRateColorTier(55.01, 10), 'light-green');
+  assert.equal(getWinRateColorTier(70, 10), 'green');
+  assert.equal(getWinRateColorTier(84.99, 10), 'green');
+  assert.equal(getWinRateColorTier(85, 10), 'dark-green');
+});
+
+test('profil liczy standardowe WTSD względem rozdań, w których Hero zobaczył flop', () => {
+  const metrics = calculateHeroMetrics([
+    { heroSawFlop: true, sawShowdown: true, outcome: 'WON', netProfit: 1 },
+    { heroSawFlop: true, sawShowdown: true, outcome: 'LOST', netProfit: -1 },
+    { heroSawFlop: true, sawShowdown: false, outcome: 'WON', netProfit: 1 },
+    { heroSawFlop: false, sawShowdown: false, outcome: 'FOLDED', netProfit: 0 },
+  ]);
+
+  assert.equal(metrics.wtsd, '66.7');
+  assert.equal(metrics.wsd, '50.0');
 });
 
 test('filtr ogranicza sesje i ręce oraz wybiera pierwszy pasujący element', () => {

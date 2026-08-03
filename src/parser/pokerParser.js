@@ -54,6 +54,7 @@ export const parseRawHandHistory = (rawText) => {
         position: 'UNKNOWN', streets: [], isTournament: false, heroStartingStack: 0,
         tableId: '', tourneyName: '', tourneyId: '',
         heroVPIP: false, heroPFR: false, sawShowdown: false,
+        heroSawFlop: false, heroReachedRiverOrShowdown: false,
         heroPostFlopBetsRaises: 0, heroPostFlopCalls: 0,
         opponents: []
       };
@@ -93,6 +94,13 @@ export const parseRawHandHistory = (rawText) => {
       const cardsMatch = rawHand.match(/Dealt to Hero \[(.+?)\]/i);
       if (cardsMatch) handData.heroCards = cardsMatch[1].split(' ');
 
+      const actionText = rawHand.split(/^\*\*\* SUMMARY \*\*\*/im)[0];
+      const firstFlopIndex = actionText.search(/^\*\*\* (?:FIRST |SECOND |THIRD )?FLOP \*\*\*/im);
+      const heroFoldedBeforeFlop = firstFlopIndex >= 0
+        && /^Hero:\s+folds(?:\s|$)/im.test(actionText.slice(0, firstFlopIndex));
+      handData.heroSawFlop = firstFlopIndex >= 0 && !heroFoldedBeforeFlop;
+      handData.sawShowdown = /^Hero:\s+(?:shows|mucks)(?:\s|$)/im.test(actionText);
+
 // DEDUPLIKACJA MIEJSC (PANCERNA WERSJA)
       // Szuka graczy TYLKO na początku rozdania, gdzie deklarowane są żetony (in chips)
       // Dzięki temu ignoruje fałszywe nicki i podsumowania na końcu logu.
@@ -122,7 +130,6 @@ export const parseRawHandHistory = (rawText) => {
         if (stMatch) {
           let name = stMatch[1];
           if (name === 'HOLE CARDS') name = 'PRE-FLOP';
-          if (name === 'SHOWDOWN') handData.sawShowdown = true;
 
           let cards = [];
           if (['FLOP', 'TURN', 'RIVER'].includes(name)) {
@@ -198,6 +205,9 @@ export const parseRawHandHistory = (rawText) => {
         handData.heroWinnings = 0;
       }
 
+      const reachedRiver = /^\*\*\* (?:FIRST |SECOND |THIRD )?RIVER \*\*\*/im.test(actionText);
+      handData.heroReachedRiverOrShowdown = handData.sawShowdown
+        || (handData.outcome === 'WON' && reachedRiver);
       handData.netProfit = parseFloat((handData.heroWinnings - handData.heroInvestment).toFixed(2));
 
       // PRECYZYJNA LOGIKA POZYCJI ODLICZANA OD BIG BLINDA
