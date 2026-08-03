@@ -1,5 +1,5 @@
 // src/views/ProfileViews.jsx
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Search, Filter, Trophy, Skull, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const MetricCard = ({ title, value, desc, highlight }) => (
@@ -10,8 +10,17 @@ const MetricCard = ({ title, value, desc, highlight }) => (
   </div>
 );
 
+const formatPercent = (value) => value === '—' ? value : `${value}%`;
+
 export const ProfileView = ({ heroMetrics }) => {
   if (!heroMetrics) return <div className="text-center p-12 text-gray-500 bg-white rounded-2xl border border-gray-200 max-w-6xl mx-auto">Wgraj pliki z historią rozdań, aby wyliczyć statystyki profilu.</div>;
+
+  const winrateValue = heroMetrics.winrate === '—'
+    ? '—'
+    : `${heroMetrics.winrate} ${heroMetrics.winrateUnit}`;
+  const winrateDesc = heroMetrics.winrateUnit
+    ? 'Średni wynik na każde 100 rozegranych rąk w przefiltrowanej próbce.'
+    : 'BB/100 i żetonów/100 nie można łączyć w jedną miarodajną wartość.';
 
   return (
     <div className="max-w-6xl mx-auto animate-in fade-in duration-300 flex flex-col gap-6">
@@ -26,12 +35,12 @@ export const ProfileView = ({ heroMetrics }) => {
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <MetricCard highlight title="VPIP (Voluntarily Put $ In Pot)" value={`${heroMetrics.vpip}%`} desc="Jak często dobrowolnie dokładasz żetony do puli przed flopem." />
-        <MetricCard title="PFR (Pre-Flop Raise)" value={`${heroMetrics.pfr}%`} desc="Jak często agresywnie podbijasz przed flopem." />
+        <MetricCard highlight title="VPIP (Voluntarily Put $ In Pot)" value={formatPercent(heroMetrics.vpip)} desc="Jak często dobrowolnie dokładasz żetony do puli przed flopem." />
+        <MetricCard title="PFR (Pre-Flop Raise)" value={formatPercent(heroMetrics.pfr)} desc="Jak często agresywnie podbijasz przed flopem." />
         <MetricCard title="AF (Aggression Factor)" value={heroMetrics.af} desc="Stosunek Betów i Podbić do Sprawdzeń (Post-Flop)." />
-        <MetricCard title="WTSD (Went To Showdown)" value={`${heroMetrics.wtsd}%`} desc="Jak często docierasz do ostatniego etapu i odkrywasz karty." />
-        <MetricCard title="W$SD (Won $ At Showdown)" value={`${heroMetrics.wsd}%`} desc="Skuteczność Showdownu. Jak często wygrywasz pulę." />
-        <MetricCard title="Winrate" value={`${heroMetrics.winrate} / 100`} desc="Średni zysk na każde 100 rozegranych rąk w przefiltrowanej próbce." />
+        <MetricCard title="WTSD (Went To Showdown)" value={formatPercent(heroMetrics.wtsd)} desc="Jak często docierasz do ostatniego etapu i odkrywasz karty." />
+        <MetricCard title="W$SD (Won $ At Showdown)" value={formatPercent(heroMetrics.wsd)} desc="Skuteczność Showdownu. Jak często wygrywasz pulę." />
+        <MetricCard title="Winrate" value={winrateValue} desc={winrateDesc} />
       </div>
     </div>
   );
@@ -47,11 +56,6 @@ export const OpponentsView = ({ opponentsMetrics = [] }) => {
   // Stany paginacji
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50; // Liczba graczy na jednej stronie
-
-  // Resetuj stronę na 1, gdy użytkownik zmienia filtry
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, minHands, sortBy, sortOrder, topToggle]);
 
   const processedOpponents = useMemo(() => {
     let data = [...opponentsMetrics];
@@ -89,6 +93,7 @@ export const OpponentsView = ({ opponentsMetrics = [] }) => {
 
   const handleSort = (field) => {
     if (topToggle) return; // Wyłącz ręczne sortowanie w trybie Top 25
+    setCurrentPage(1);
     if (sortBy === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
@@ -128,7 +133,10 @@ export const OpponentsView = ({ opponentsMetrics = [] }) => {
                 type="text" 
                 placeholder="Szukaj gracza..." 
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
                 disabled={topToggle !== null}
                 className="outline-none text-sm bg-transparent w-40 disabled:opacity-50"
               />
@@ -142,7 +150,10 @@ export const OpponentsView = ({ opponentsMetrics = [] }) => {
                 type="number" 
                 min="1"
                 value={minHands}
-                onChange={(e) => setMinHands(Number(e.target.value))}
+                onChange={(e) => {
+                  setMinHands(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
                 disabled={topToggle !== null}
                 className="border border-gray-300 rounded-lg px-2 py-1 w-20 text-sm outline-none disabled:opacity-50"
               />
@@ -152,14 +163,20 @@ export const OpponentsView = ({ opponentsMetrics = [] }) => {
 
             {/* Top 25 Toggles */}
             <button 
-              onClick={() => setTopToggle(topToggle === 'best' ? null : 'best')}
+              onClick={() => {
+                setTopToggle(topToggle === 'best' ? null : 'best');
+                setCurrentPage(1);
+              }}
               className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-bold transition-colors ${topToggle === 'best' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white border border-gray-300 text-emerald-700 hover:bg-emerald-50'}`}
             >
               <Trophy size={16} /> Top 25 Dawców
             </button>
 
             <button 
-              onClick={() => setTopToggle(topToggle === 'worst' ? null : 'worst')}
+              onClick={() => {
+                setTopToggle(topToggle === 'worst' ? null : 'worst');
+                setCurrentPage(1);
+              }}
               className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-bold transition-colors ${topToggle === 'worst' ? 'bg-red-600 text-white shadow-sm' : 'bg-white border border-gray-300 text-red-700 hover:bg-red-50'}`}
             >
               <Skull size={16} /> Top 25 Oprawców

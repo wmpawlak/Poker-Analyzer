@@ -14,7 +14,10 @@ export const usePokerMetrics = (gameTypeFilter = 'both') => {
     return h.filter(hand => !hand.isRebuy);
   }, [sessions, tournaments, gameTypeFilter]);
 
-  const heroMetrics = useMemo(() => calculateHeroMetrics(activeHands), [activeHands]);
+  const heroMetrics = useMemo(
+    () => calculateHeroMetrics(activeHands, gameTypeFilter),
+    [activeHands, gameTypeFilter],
+  );
 
   const opponentsMetrics = useMemo(() => {
     const oppMap = {};

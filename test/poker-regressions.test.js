@@ -69,6 +69,8 @@ Villain: shows [Ah Kh]
   assert.equal(mucked.sawShowdown, true);
   assert.equal(showed.heroReachedRiverOrShowdown, true);
   assert.equal(mucked.heroReachedRiverOrShowdown, true);
+  assert.deepEqual(summaryOnly.heroStats.showdown.wtsd, { opportunities: 0, executions: 0 });
+  assert.deepEqual(summaryOnly.heroStats.showdown.wsd, { opportunities: 0, executions: 0 });
 });
 
 test('filtr River/Showdown obejmuje river fold win, ale pomija wcześniejsze foldy i fold Hero', () => {

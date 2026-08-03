@@ -4,10 +4,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import { selectSession } from '../store/pokerSlice.js';
 import { HandCollectionTabs } from '../components/HandCollectionTabs.jsx';
 import { HandTile } from '../components/HandTile.jsx';
+import { SessionSummary } from '../components/SessionSummary.jsx';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { Filter } from 'lucide-react';
 import { getAvailableHandRanks, getFilteredSessions, getSelectedEntityId, getVisibleHands } from '../utils/handFilters.js';
 import { getAnalyzedHands, getSavedHands, sortHands } from '../utils/handCollections.js';
+import { calculateSessionMetrics } from '../utils/sessionMetrics.js';
 
 export const CashView = ({ onHandClick }) => {
   const dispatch = useDispatch();
@@ -56,6 +58,10 @@ export const CashView = ({ onHandClick }) => {
   }, [dispatch, selectedSessionId, sortedSessions]);
 
   const currentSession = sortedSessions.find(s => s.id === selectedSessionId);
+  const sessionMetrics = useMemo(
+    () => currentSession ? calculateSessionMetrics(currentSession.hands, 'cash') : null,
+    [currentSession],
+  );
 
   const visibleHands = useMemo(() => {
     if (!currentSession) return [];
@@ -146,6 +152,7 @@ export const CashView = ({ onHandClick }) => {
           </div>
         ) : currentSession ? (
           <>
+            <SessionSummary metrics={sessionMetrics}/>
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 shrink-0">
               <h3 className="text-base font-bold mb-4 text-gray-800">Wykres portfela (Stół #{currentSession.tableId})</h3>
               <div className="w-full h-80">
