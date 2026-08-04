@@ -1,0 +1,61 @@
+CoinPoker Hand #91001: NLH ($100/$200) 2026/08/02 12:00:00 UTC
+Tournament 'Golden regression' '9100' 6-max Seat #5 is the button
+Seat 1: bb (1000 in chips)
+Seat 2: utg (1000 in chips)
+Seat 3: hj (1000 in chips)
+Seat 4: Hero (1000 in chips)
+Seat 5: btn (1000 in chips)
+Seat 6: sb (1000 in chips)
+sb: posts small blind $100
+bb: posts big blind $200
+*** HOLE CARDS ***
+Dealt to bb
+Dealt to utg
+Dealt to hj
+Dealt to Hero [Ah Kh]
+Dealt to btn
+Dealt to sb
+utg: raises $400 to $600
+hj: folds
+Hero: calls $600
+btn: folds
+sb: folds
+bb: folds
+*** FLOP *** [2c 3d 4h]
+utg: bets $400
+Hero: folds
+*** SUMMARY ***
+Total pot $1600 | Rake $0
+Board [ 2c 3d 4h ]
+Seat 4: Hero folded on the Flop
+
+CoinPoker Hand #91002: NLH ($100/$200) 2026/08/02 12:01:00 UTC
+Tournament 'Golden regression' '9100' 6-max Seat #5 is the button
+Seat 1: bb (2200 in chips)
+Seat 2: utg (2200 in chips)
+Seat 3: hj (2200 in chips)
+Seat 4: Hero (2200 in chips)
+Seat 5: btn (2200 in chips)
+Seat 6: sb (2200 in chips)
+sb: posts small blind $100
+bb: posts big blind $200
+*** HOLE CARDS ***
+Dealt to bb
+Dealt to utg
+Dealt to hj
+Dealt to Hero [Ah Kh]
+Dealt to btn
+Dealt to sb
+utg: folds
+hj: folds
+Hero: raises $400 to $600
+btn: calls $600
+sb: folds
+bb: folds
+*** FLOP *** [2c 3d 4h]
+Hero: bets $400
+btn: folds
+*** SUMMARY ***
+Total pot $1600 | Rake $0
+Board [ 2c 3d 4h ]
+Seat 4: Hero showed [Ah Kh] and won ($1600) with High Card

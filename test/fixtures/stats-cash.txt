@@ -1,0 +1,196 @@
+CoinPoker Hand #90001: NLH ($0.50/$1) 2026/08/01 12:00:00 UTC
+Table 'golden-cash' 6-max Seat #5 is the button
+Seat 1: bb ($100 in chips)
+Seat 2: utg ($100 in chips)
+Seat 3: hj ($100 in chips)
+Seat 4: Hero ($100 in chips)
+Seat 5: btn ($100 in chips)
+Seat 6: sb ($100 in chips)
+sb: posts small blind $0.50
+bb: posts big blind $1
+*** HOLE CARDS ***
+Dealt to bb
+Dealt to utg
+Dealt to hj
+Dealt to Hero [Ah Kh]
+Dealt to btn
+Dealt to sb
+utg: folds
+hj: folds
+Hero: raises $2 to $3
+btn: calls $3
+sb: folds
+bb: folds
+*** FLOP *** [2c 3d 4h]
+Hero: bets $4
+btn: calls $4
+*** TURN *** [2c 3d 4h] [5s]
+Hero: checks
+btn: bets $8
+Hero: calls $8
+*** RIVER *** [2c 3d 4h 5s] [6c]
+Hero: bets $20
+btn: calls $20
+*** SHOWDOWN ***
+Hero: shows [Ah Kh] (Straight)
+btn: mucks hand
+*** SUMMARY ***
+Total pot $70 | Rake $0
+Board [ 2c 3d 4h 5s 6c ]
+Seat 4: Hero showed [Ah Kh] and won ($70) with Straight
+
+CoinPoker Hand #90002: NLH ($0.50/$1) 2026/08/01 12:01:00 UTC
+Table 'golden-cash' 6-max Seat #5 is the button
+Seat 1: bb ($100 in chips)
+Seat 2: utg ($100 in chips)
+Seat 3: hj ($100 in chips)
+Seat 4: co ($100 in chips)
+Seat 5: Hero ($100 in chips)
+Seat 6: sb ($100 in chips)
+sb: posts small blind $0.50
+bb: posts big blind $1
+*** HOLE CARDS ***
+Dealt to bb
+Dealt to utg
+Dealt to hj
+Dealt to co
+Dealt to Hero [Ah Kh]
+Dealt to sb
+utg: folds
+hj: folds
+co: folds
+Hero: raises $2 to $3
+sb: raises $7 to $10
+bb: folds
+Hero: folds
+*** SUMMARY ***
+Total pot $11 | Rake $0
+Board [ ]
+Seat 5: Hero folded before Flop
+
+CoinPoker Hand #90003: NLH ($0.50/$1) 2026/08/01 12:02:00 UTC
+Table 'golden-cash' 6-max Seat #5 is the button
+Seat 1: bb ($100 in chips)
+Seat 2: utg ($100 in chips)
+Seat 3: hj ($100 in chips)
+Seat 4: co ($100 in chips)
+Seat 5: btn ($100 in chips)
+Seat 6: Hero ($100 in chips)
+Hero: posts small blind $0.50
+bb: posts big blind $1
+*** HOLE CARDS ***
+Dealt to bb
+Dealt to utg
+Dealt to hj
+Dealt to co
+Dealt to btn
+Dealt to Hero [Ah Kh]
+utg: folds
+hj: folds
+co: folds
+btn: folds
+Hero: raises $2.50 to $3
+bb: raises $7 to $10
+Hero: raises $18 to $28
+bb: folds
+*** SUMMARY ***
+Total pot $38 | Rake $0
+Board [ ]
+Seat 6: Hero showed [Ah Kh] and won ($38) with High Card
+
+CoinPoker Hand #90004: NLH ($0.50/$1) 2026/08/01 12:03:00 UTC
+Table 'golden-cash' 6-max Seat #5 is the button
+Seat 1: Hero ($100 in chips)
+Seat 2: utg ($100 in chips)
+Seat 3: hj ($100 in chips)
+Seat 4: co ($100 in chips)
+Seat 5: btn ($100 in chips)
+Seat 6: sb ($100 in chips)
+sb: posts small blind $0.50
+Hero: posts big blind $1
+*** HOLE CARDS ***
+Dealt to Hero [Ah Kh]
+Dealt to utg
+Dealt to hj
+Dealt to co
+Dealt to btn
+Dealt to sb
+utg: calls $1
+hj: folds
+co: folds
+btn: folds
+sb: calls $0.50
+Hero: checks
+*** FLOP *** [2c 3d 4h]
+sb: checks
+Hero: bets $2
+utg: folds
+sb: folds
+*** SUMMARY ***
+Total pot $3 | Rake $0
+Board [ 2c 3d 4h ]
+Seat 1: Hero showed [Ah Kh] and won ($3) with High Card
+
+CoinPoker Hand #90005: NLH ($0.50/$1) 2026/08/01 12:04:00 UTC
+Table 'golden-cash' 6-max Seat #5 is the button
+Seat 1: bb ($100 in chips)
+Seat 2: utg ($100 in chips)
+Seat 3: hj ($100 in chips)
+Seat 4: Hero ($100 in chips)
+Seat 5: btn ($100 in chips)
+Seat 6: sb ($100 in chips)
+sb: posts small blind $0.50
+bb: posts big blind $1
+*** HOLE CARDS ***
+Dealt to bb
+Dealt to utg
+Dealt to hj
+Dealt to Hero [Ah Kh]
+Dealt to btn
+Dealt to sb
+utg: raises $2 to $3
+hj: folds
+Hero: calls $3
+btn: folds
+sb: folds
+bb: folds
+*** FLOP *** [2c 3d 4h]
+utg: bets $5
+Hero: folds
+*** SUMMARY ***
+Total pot $11 | Rake $0
+Board [ 2c 3d 4h ]
+Seat 4: Hero folded on the Flop
+
+CoinPoker Hand #90006: NLH ($0.50/$1) 2026/08/01 12:05:00 UTC
+Table 'golden-cash' 6-max Seat #5 is the button
+Seat 1: bb ($100 in chips)
+Seat 2: utg ($100 in chips)
+Seat 3: hj ($100 in chips)
+Seat 4: Hero ($100 in chips)
+Seat 5: btn ($100 in chips)
+Seat 6: sb ($100 in chips)
+sb: posts small blind $0.50
+bb: posts big blind $1
+*** HOLE CARDS ***
+Dealt to bb
+Dealt to utg
+Dealt to hj
+Dealt to Hero [Ah Kh]
+Dealt to btn
+Dealt to sb
+utg: raises $2 to $3
+hj: folds
+Hero: raises $6 to $9
+btn: folds
+sb: folds
+bb: folds
+utg: calls $6
+*** FLOP *** [2c 3d 4h]
+utg: checks
+Hero: bets $8
+utg: folds
+*** SUMMARY ***
+Total pot $27 | Rake $0
+Board [ 2c 3d 4h ]
+Seat 4: Hero showed [Ah Kh] and won ($27) with High Card

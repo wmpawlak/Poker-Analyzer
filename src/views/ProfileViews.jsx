@@ -1,47 +1,126 @@
 // src/views/ProfileViews.jsx
 import { useState, useMemo } from 'react';
-import { Search, Filter, Trophy, Skull, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  RotateCcw,
+  Search,
+  Skull,
+  Trophy,
+  Users,
+} from 'lucide-react';
+import { SessionSummary } from '../components/SessionSummary.jsx';
+import { buildProfileReport } from '../utils/profileReport.js';
 
-const MetricCard = ({ title, value, desc, highlight }) => (
-  <div className={`p-5 rounded-2xl border ${highlight ? 'bg-indigo-600 text-white border-indigo-700 shadow-lg' : 'bg-white border-gray-200 shadow-sm'}`}>
-    <div className={`text-xs font-bold uppercase tracking-wider mb-2 ${highlight ? 'text-indigo-200' : 'text-gray-500'}`}>{title}</div>
-    <div className={`text-3xl font-black mb-1 ${highlight ? 'text-white' : 'text-gray-800'}`}>{value}</div>
-    <div className={`text-xs ${highlight ? 'text-indigo-200' : 'text-gray-400'}`}>{desc}</div>
-  </div>
+const PROFILE_GAME_TYPE_LABELS = {
+  cash: 'Cash',
+  tournament: 'Turnieje',
+  both: 'Wszystko',
+};
+
+const ProfileDateField = ({ label, value, onChange, testId }) => (
+  <label className="flex min-w-[9.5rem] flex-1 flex-col gap-1 text-xs font-black uppercase tracking-wide text-slate-500">
+    <span>{label}</span>
+    <span className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold normal-case tracking-normal text-slate-700 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100">
+      <CalendarDays size={16} className="shrink-0 text-slate-400" />
+      <input
+        data-testid={testId}
+        type="date"
+        value={value}
+        onChange={onChange}
+        className="min-w-0 flex-1 bg-transparent outline-none"
+      />
+    </span>
+  </label>
 );
 
-const formatPercent = (value) => value === '—' ? value : `${value}%`;
+export const ProfileView = ({
+  cashHands = [],
+  tournamentHands = [],
+  gameTypeFilter = 'both',
+}) => {
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const report = useMemo(() => buildProfileReport({
+    cashHands,
+    tournamentHands,
+    gameType: gameTypeFilter,
+    dateFrom,
+    dateTo,
+  }), [cashHands, tournamentHands, gameTypeFilter, dateFrom, dateTo]);
 
-export const ProfileView = ({ heroMetrics }) => {
-  if (!heroMetrics) return <div className="text-center p-12 text-gray-500 bg-white rounded-2xl border border-gray-200 max-w-6xl mx-auto">Wgraj pliki z historią rozdań, aby wyliczyć statystyki profilu.</div>;
-
-  const winrateValue = heroMetrics.winrate === '—'
-    ? '—'
-    : `${heroMetrics.winrate} ${heroMetrics.winrateUnit}`;
-  const winrateDesc = heroMetrics.winrateUnit
-    ? 'Średni wynik na każde 100 rozegranych rąk w przefiltrowanej próbce.'
-    : 'BB/100 i żetonów/100 nie można łączyć w jedną miarodajną wartość.';
+  const selectedGameTypeLabel = PROFILE_GAME_TYPE_LABELS[report.gameType] || 'Wszystko';
+  const hasReportHands = report.isValid && report.metrics?.hands > 0;
+  const periodLabel = dateFrom || dateTo
+    ? `${dateFrom || 'początek historii'} — ${dateTo || 'koniec historii'}`
+    : 'cała wczytana historia';
 
   return (
-    <div className="max-w-6xl mx-auto animate-in fade-in duration-300 flex flex-col gap-6">
-      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex justify-between items-center">
-        <div>
-          <h3 className="text-xl font-black text-gray-800">Statystyki Profilu "Hero"</h3>
-          <p className="text-sm text-gray-500 mt-1">Podsumowanie Twojego stylu gry wyliczone na bazie <strong>{heroMetrics.totalHands}</strong> przefiltrowanych rozdań.</p>
+    <div data-testid="profile-view" className="mx-auto flex max-w-6xl flex-col gap-4 animate-in fade-in duration-300">
+      <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 className="text-xl font-black text-gray-800">Mój profil — Hero</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Raport okresowy dla trybu <strong>{selectedGameTypeLabel}</strong>. Początkowo obejmuje całą wczytaną historię.
+            </p>
+          </div>
+          <div className="text-right text-xs font-bold uppercase tracking-wide text-slate-400">
+            Zakres: <span className="text-slate-600">{periodLabel}</span>
+          </div>
         </div>
-        <div className="text-right">
-           <span className="text-xs font-bold text-gray-400 block mb-1">Wynik całkowity (Profit)</span>
-           <span className={`text-3xl font-black ${heroMetrics.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{heroMetrics.totalProfit >= 0 ? '+' : ''}{heroMetrics.totalProfit}</span>
+
+        <div className="mt-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-end">
+          <ProfileDateField
+            label="Od"
+            value={dateFrom}
+            onChange={(event) => setDateFrom(event.target.value)}
+            testId="profile-date-from"
+          />
+          <ProfileDateField
+            label="Do"
+            value={dateTo}
+            onChange={(event) => setDateTo(event.target.value)}
+            testId="profile-date-to"
+          />
+          <button
+            type="button"
+            data-testid="profile-clear-date-range"
+            onClick={() => {
+              setDateFrom('');
+              setDateTo('');
+            }}
+            disabled={!dateFrom && !dateTo}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <RotateCcw size={14} /> Wyczyść zakres
+          </button>
         </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <MetricCard highlight title="VPIP (Voluntarily Put $ In Pot)" value={formatPercent(heroMetrics.vpip)} desc="Jak często dobrowolnie dokładasz żetony do puli przed flopem." />
-        <MetricCard title="PFR (Pre-Flop Raise)" value={formatPercent(heroMetrics.pfr)} desc="Jak często agresywnie podbijasz przed flopem." />
-        <MetricCard title="AF (Aggression Factor)" value={heroMetrics.af} desc="Stosunek Betów i Podbić do Sprawdzeń (Post-Flop)." />
-        <MetricCard title="WTSD (Went To Showdown)" value={formatPercent(heroMetrics.wtsd)} desc="Jak często docierasz do ostatniego etapu i odkrywasz karty." />
-        <MetricCard title="W$SD (Won $ At Showdown)" value={formatPercent(heroMetrics.wsd)} desc="Skuteczność Showdownu. Jak często wygrywasz pulę." />
-        <MetricCard title="Winrate" value={winrateValue} desc={winrateDesc} />
-      </div>
+      </section>
+
+      {!report.isValid ? (
+        <div data-testid="profile-date-error" role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+          {report.error}
+          <div className="mt-1 font-normal">Raport nie zostanie wyświetlony, dopóki zakres dat nie będzie poprawny.</div>
+        </div>
+      ) : !hasReportHands ? (
+        <div data-testid="profile-empty" className="rounded-2xl border border-gray-200 bg-white p-12 text-center text-gray-500 shadow-sm">
+          Brak rozdań w wybranym zakresie dla trybu {selectedGameTypeLabel}.
+        </div>
+      ) : (
+        <SessionSummary
+          metrics={report.metrics}
+          accent="indigo"
+          title="Raport profilu Hero"
+          description={`Wspólne statystyki i styl gry z ${report.metrics.hands} rozdań w wybranym zakresie.`}
+          resultBreakdown={report.gameType === 'both' ? {
+            cash: report.cashMetrics,
+            tournament: report.tournamentMetrics,
+          } : null}
+        />
+      )}
     </div>
   );
 };

@@ -1,5 +1,4 @@
 // src/components/HandTile.jsx
-import React from 'react';
 import { CardIcon } from './CardIcon.jsx';
 
 export const HandTile = ({ hand, onClick }) => {
@@ -22,6 +21,9 @@ export const HandTile = ({ hand, onClick }) => {
 
   const safeHeroCards = hand.heroCards || [];
   const safeBoardCards = hand.boardCards || [];
+  const handRankingTooltip = hand.handRankingSource === 'VISIBLE_CARDS'
+    ? 'Układ wyliczony lokalnie na podstawie widocznych kart.'
+    : undefined;
 
   return (
     <div onClick={() => onClick(hand.id)} className={`flex items-center justify-between p-3.5 border rounded-xl cursor-pointer transition-all ${tileBg} shadow-sm active:scale-[0.99] mb-3`}>
@@ -30,7 +32,7 @@ export const HandTile = ({ hand, onClick }) => {
           <div className="flex items-center gap-0.5">{safeHeroCards.length > 0 ? safeHeroCards.map((c, i) => <CardIcon key={i} cardStr={c} />) : <span className="text-[10px] text-gray-400">Fold</span>}</div>
         </div>
         <div className="flex flex-col">
-          <span className="text-sm font-bold text-gray-800 flex items-center gap-2">{hand.handRanking}</span>
+          <span className="text-sm font-bold text-gray-800 flex items-center gap-2" title={handRankingTooltip}>{hand.handRanking}</span>
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-[10px] font-mono font-bold bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">{hand.position}</span>
             <span className="text-[10px] text-gray-400 font-mono">{hand.dateStr} {hand.timeStr}</span>

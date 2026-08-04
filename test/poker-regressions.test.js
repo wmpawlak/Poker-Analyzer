@@ -35,15 +35,17 @@ test('SUMMARY CoinPoker jest nadrzędne: Hero wygrywa fulla w #96890300082', () 
   assert.equal(parsed.handRanking, 'FULL_HOUSE');
 });
 
-test('rozróżnia przegraną, fold i brak układu z podsumowania', () => {
+test('rozróżnia przegraną oraz wylicza układ dla fold/muck z widocznych kart', () => {
   const [lost] = parseRawHandHistory(hand('Seat 2: Hero showed [Qh Qd] and lost with Pair'));
   const [folded] = parseRawHandHistory(hand('Seat 2: Hero folded before Flop'));
   const [mucked] = parseRawHandHistory(hand('Seat 2: Hero mucked [Qh Qd]'));
   assert.equal(lost.outcome, 'LOST');
   assert.equal(lost.handRanking, 'PAIR');
   assert.equal(folded.outcome, 'FOLDED');
-  assert.equal(folded.handRanking, 'NO_HAND');
-  assert.equal(mucked.handRanking, 'NO_HAND');
+  assert.equal(folded.handRanking, 'PAIR');
+  assert.equal(folded.handRankingSource, 'VISIBLE_CARDS');
+  assert.equal(mucked.handRanking, 'PAIR');
+  assert.equal(mucked.handRankingSource, 'VISIBLE_CARDS');
 });
 
 test('showdown wymaga faktycznej akcji pokazania lub muckowania kart przez Hero', () => {

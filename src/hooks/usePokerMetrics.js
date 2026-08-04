@@ -6,13 +6,20 @@ import { calculateHeroMetrics } from '../utils/heroMetrics.js';
 export const usePokerMetrics = (gameTypeFilter = 'both') => {
   const { sessions, tournaments } = useSelector((state) => state.poker);
 
+  const cashHands = useMemo(
+    () => sessions.flatMap((session) => session.hands).filter((hand) => !hand.isRebuy),
+    [sessions],
+  );
+  const tournamentHands = useMemo(
+    () => tournaments.flatMap((tournament) => tournament.hands).filter((hand) => !hand.isRebuy),
+    [tournaments],
+  );
+
   const activeHands = useMemo(() => {
-    let h = [];
-    if (gameTypeFilter === 'both') h = [...sessions, ...tournaments].flatMap(s => s.hands);
-    else if (gameTypeFilter === 'cash') h = sessions.flatMap(s => s.hands);
-    else if (gameTypeFilter === 'tournament') h = tournaments.flatMap(s => s.hands);
-    return h.filter(hand => !hand.isRebuy);
-  }, [sessions, tournaments, gameTypeFilter]);
+    if (gameTypeFilter === 'cash') return cashHands;
+    if (gameTypeFilter === 'tournament') return tournamentHands;
+    return [...cashHands, ...tournamentHands];
+  }, [cashHands, tournamentHands, gameTypeFilter]);
 
   const heroMetrics = useMemo(
     () => calculateHeroMetrics(activeHands, gameTypeFilter),
@@ -72,5 +79,11 @@ export const usePokerMetrics = (gameTypeFilter = 'both') => {
     }).sort((a, b) => b.handsPlayed - a.handsPlayed);
   }, [activeHands]);
 
-  return { activeHands, heroMetrics, opponentsMetrics };
+  return {
+    activeHands,
+    cashHands,
+    tournamentHands,
+    heroMetrics,
+    opponentsMetrics,
+  };
 };

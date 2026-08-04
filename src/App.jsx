@@ -30,7 +30,12 @@ export default function App() {
   }, [dispatch]);
 
   // Pobranie przeliczonych metryk z custom hooka
-  const { activeHands, heroMetrics, opponentsMetrics } = usePokerMetrics(gameTypeFilter);
+  const {
+    activeHands,
+    cashHands,
+    tournamentHands,
+    opponentsMetrics,
+  } = usePokerMetrics(gameTypeFilter);
 
   // Drag & Drop
   const handleDragEnter = (e) => { e.preventDefault(); e.stopPropagation(); dragCounter.current += 1; setIsDragging(true); };
@@ -109,7 +114,13 @@ export default function App() {
         )}
 
         <div className="flex-1 overflow-auto p-6 scrollbar-thin">
-          {activeTab === 'profile' && <ProfileView heroMetrics={heroMetrics} />}
+          {activeTab === 'profile' && (
+            <ProfileView
+              cashHands={cashHands}
+              tournamentHands={tournamentHands}
+              gameTypeFilter={gameTypeFilter}
+            />
+          )}
           {activeTab === 'opponents' && <OpponentsView opponentsMetrics={opponentsMetrics} />}
           {activeTab === 'cash' && <CashView onHandClick={setModalHandId} />}
           {activeTab === 'tournaments' && <TournamentsView onHandClick={setModalHandId} />}

@@ -1,0 +1,101 @@
+CoinPoker Hand #92101: NLH ($10/$20) 2026/07/04 18:00:00 UTC
+Tournament 'Profile Sample One' 'T1001' 6-max Seat #1 is the button
+Seat 1: Hero (1000 in chips)
+Seat 2: VillainA (1000 in chips)
+Seat 3: VillainB (1000 in chips)
+Hero: posts small blind $10
+VillainA: posts big blind $20
+*** HOLE CARDS ***
+Dealt to Hero [Ah Kh]
+Hero: raises $40 to $60
+VillainA: folds
+*** SUMMARY ***
+Total pot $80 | Rake $0
+Board [ ]
+Seat 1: Hero showed [Ah Kh] and won ($80) with High Card
+
+CoinPoker Hand #92102: NLH ($10/$20) 2026/07/04 18:01:00 UTC
+Tournament 'Profile Sample One' 'T1001' 6-max Seat #1 is the button
+Seat 1: Hero (1300 in chips)
+Seat 2: VillainA (1000 in chips)
+Seat 3: VillainB (1000 in chips)
+Hero: posts small blind $10
+VillainA: posts big blind $20
+*** HOLE CARDS ***
+Dealt to Hero [7c 7d]
+Hero: folds
+*** SUMMARY ***
+Total pot $30 | Rake $0
+Board [ ]
+Seat 1: Hero folded before Flop
+
+CoinPoker Hand #92103: NLH ($10/$20) 2026/07/05 18:00:00 UTC
+Tournament 'Profile Sample Two' 'T1002' 6-max Seat #2 is the button
+Seat 1: VillainA (1000 in chips)
+Seat 2: Hero (1000 in chips)
+Seat 3: VillainB (1000 in chips)
+VillainA: posts small blind $10
+Hero: posts big blind $20
+*** HOLE CARDS ***
+Dealt to Hero [Qh Qd]
+VillainB: raises $40 to $60
+Hero: calls $40
+VillainA: folds
+*** FLOP *** [2c 5d 9h]
+Hero: bets $80
+VillainB: folds
+*** SUMMARY ***
+Total pot $180 | Rake $0
+Board [ 2c 5d 9h ]
+Seat 2: Hero showed [Qh Qd] and won ($180) with One Pair
+
+CoinPoker Hand #92104: NLH ($10/$20) 2026/07/05 18:01:00 UTC
+Tournament 'Profile Sample Two' 'T1002' 6-max Seat #2 is the button
+Seat 1: VillainA (1000 in chips)
+Seat 2: Hero (1000 in chips)
+Seat 3: VillainB (1000 in chips)
+VillainA: posts small blind $10
+Hero: posts big blind $20
+*** HOLE CARDS ***
+Dealt to Hero [9c 8c]
+VillainB: raises $40 to $60
+Hero: folds
+*** SUMMARY ***
+Total pot $80 | Rake $0
+Board [ ]
+Seat 2: Hero folded before Flop
+
+CoinPoker Hand #92105: NLH ($10/$20) 2026/07/06 18:00:00 UTC
+Tournament 'Profile Sample Three' 'T1003' 6-max Seat #3 is the button
+Seat 1: VillainA (1000 in chips)
+Seat 2: VillainB (1000 in chips)
+Seat 3: Hero (1000 in chips)
+VillainA: posts small blind $10
+VillainB: posts big blind $20
+*** HOLE CARDS ***
+Dealt to Hero [As Ad]
+Hero: raises $40 to $60
+VillainA: folds
+VillainB: calls $40
+*** FLOP *** [2s 7d Jc]
+Hero: bets $80
+VillainB: folds
+*** SUMMARY ***
+Total pot $180 | Rake $0
+Board [ 2s 7d Jc ]
+Seat 3: Hero showed [As Ad] and won ($180) with One Pair
+
+CoinPoker Hand #92106: NLH ($10/$20) 2026/07/06 18:01:00 UTC
+Tournament 'Profile Sample Three' 'T1003' 6-max Seat #3 is the button
+Seat 1: VillainA (1000 in chips)
+Seat 2: VillainB (1000 in chips)
+Seat 3: Hero (1000 in chips)
+VillainA: posts small blind $10
+VillainB: posts big blind $20
+*** HOLE CARDS ***
+Dealt to Hero [Jc Tc]
+Hero: folds
+*** SUMMARY ***
+Total pot $30 | Rake $0
+Board [ ]
+Seat 3: Hero folded before Flop

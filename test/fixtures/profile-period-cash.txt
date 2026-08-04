@@ -1,0 +1,117 @@
+CoinPoker Hand #92001: NLH ($0.50/$1) 2026/07/01 12:00:00 UTC
+Table 'profile-cash-a' 6-max Seat #1 is the button
+Seat 1: Hero ($100 in chips)
+Seat 2: VillainA ($100 in chips)
+Seat 3: VillainB ($100 in chips)
+Hero: posts small blind $0.50
+VillainA: posts big blind $1
+*** HOLE CARDS ***
+Dealt to Hero [Ah Kh]
+Hero: raises $2 to $3
+VillainA: folds
+*** SUMMARY ***
+Total pot $4 | Rake $0
+Board [ ]
+Seat 1: Hero showed [Ah Kh] and won ($4) with High Card
+
+CoinPoker Hand #92002: NLH ($0.50/$1) 2026/07/01 12:01:00 UTC
+Table 'profile-cash-a' 6-max Seat #1 is the button
+Seat 1: Hero ($100 in chips)
+Seat 2: VillainA ($100 in chips)
+Seat 3: VillainB ($100 in chips)
+Hero: posts small blind $0.50
+VillainA: posts big blind $1
+*** HOLE CARDS ***
+Dealt to Hero [7c 7d]
+Hero: raises $2 to $3
+VillainA: raises $7 to $10
+Hero: folds
+*** SUMMARY ***
+Total pot $11 | Rake $0
+Board [ ]
+Seat 1: Hero folded before Flop
+
+CoinPoker Hand #92003: NLH ($0.50/$1) 2026/07/02 12:00:00 UTC
+Table 'profile-cash-b' 6-max Seat #2 is the button
+Seat 1: VillainA ($100 in chips)
+Seat 2: Hero ($100 in chips)
+Seat 3: VillainB ($100 in chips)
+VillainA: posts small blind $0.50
+Hero: posts big blind $1
+*** HOLE CARDS ***
+Dealt to Hero [Qh Qd]
+VillainB: raises $2 to $3
+Hero: calls $2
+VillainA: folds
+*** FLOP *** [2c 5d 9h]
+VillainB: checks
+Hero: bets $4
+VillainB: folds
+*** SUMMARY ***
+Total pot $10 | Rake $0
+Board [ 2c 5d 9h ]
+Seat 2: Hero showed [Qh Qd] and won ($10) with One Pair
+
+CoinPoker Hand #92004: NLH ($0.50/$1) 2026/07/02 12:01:00 UTC
+Table 'profile-cash-b' 6-max Seat #2 is the button
+Seat 1: VillainA ($100 in chips)
+Seat 2: Hero ($100 in chips)
+Seat 3: VillainB ($100 in chips)
+VillainA: posts small blind $0.50
+Hero: posts big blind $1
+*** HOLE CARDS ***
+Dealt to Hero [9c 8c]
+VillainB: raises $2 to $3
+Hero: folds
+VillainA: folds
+*** SUMMARY ***
+Total pot $4 | Rake $0
+Board [ ]
+Seat 2: Hero folded before Flop
+
+CoinPoker Hand #92005: NLH ($0.50/$1) 2026/07/03 12:00:00 UTC
+Table 'profile-cash-c' 6-max Seat #3 is the button
+Seat 1: VillainA ($100 in chips)
+Seat 2: VillainB ($100 in chips)
+Seat 3: Hero ($100 in chips)
+VillainA: posts small blind $0.50
+VillainB: posts big blind $1
+*** HOLE CARDS ***
+Dealt to Hero [As Ad]
+Hero: raises $2 to $3
+VillainA: calls $3
+VillainB: folds
+*** FLOP *** [2s 7d Jc]
+Hero: bets $4
+VillainA: calls $4
+*** TURN *** [2s 7d Jc] [4h]
+Hero: checks
+VillainA: checks
+*** RIVER *** [2s 7d Jc 4h] [9s]
+Hero: bets $8
+VillainA: folds
+*** SUMMARY ***
+Total pot $30 | Rake $0
+Board [ 2s 7d Jc 4h 9s ]
+Seat 3: Hero showed [As Ad] and won ($30) with One Pair
+
+CoinPoker Hand #92006: NLH ($0.50/$1) 2026/07/03 12:01:00 UTC
+Table 'profile-cash-c' 6-max Seat #3 is the button
+Seat 1: VillainA ($100 in chips)
+Seat 2: VillainB ($100 in chips)
+Seat 3: Hero ($100 in chips)
+VillainA: posts small blind $0.50
+VillainB: posts big blind $1
+*** HOLE CARDS ***
+Dealt to Hero [Jc Tc]
+Hero: raises $2 to $3
+VillainA: folds
+VillainB: calls $3
+*** FLOP *** [2h 5c 9d]
+Hero: checks
+VillainB: bets $4
+Hero: folds
+*** SUMMARY ***
+Total pot $10 | Rake $0
+Board [ 2h 5c 9d ]
+Seat 3: Hero folded on the Flop

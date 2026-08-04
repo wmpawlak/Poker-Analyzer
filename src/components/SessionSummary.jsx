@@ -89,6 +89,10 @@ const formatProfit = (value, gameType) => {
 
 const getPercentageSample = (metric) => `${metric?.executions ?? 0} / ${metric?.opportunities ?? 0}`;
 
+const formatWinrate = (metrics) => Number.isFinite(metrics?.winrate?.value)
+  ? `${formatNumber(metrics.winrate.value, 2)} ${metrics.winrate.unit}`
+  : '—';
+
 const MetricCard = ({ label, value, definition, formula, sample, accent }) => {
   const tooltipId = useId();
   const accentClass = accent === 'amber' ? 'text-amber-700' : 'text-indigo-700';
@@ -165,7 +169,38 @@ const AggressionCard = ({ kind, scope, scopeLabel, metric, accent }) => {
   );
 };
 
-export const SessionSummary = ({ metrics, accent = 'indigo' }) => {
+const ResultBreakdownCards = ({ label, metrics, gameType, accent }) => (
+  <>
+    <MetricCard
+      label={`${label} — wynik netto`}
+      value={formatProfit(metrics?.totalProfit, gameType)}
+      definition={`Łączny rezultat Hero w rozdaniach ${label}.`}
+      formula="suma wyniku netto ze wszystkich rozdań"
+      sample={`${metrics?.hands ?? 0} rozdań`}
+      accent={accent}
+    />
+    <MetricCard
+      label={`${label} — winrate`}
+      value={formatWinrate(metrics)}
+      definition={gameType === 'cash'
+        ? 'Wynik Cash przeliczony na duże blindy na 100 rozdań.'
+        : 'Wynik turniejowy przeliczony na żetony na 100 rozdań.'}
+      formula={gameType === 'cash'
+        ? 'suma wyniku w BB ÷ liczba rąk × 100'
+        : 'suma wyniku w żetonach ÷ liczba rąk × 100'}
+      sample={`${metrics?.winrate?.numerator ?? '—'} / ${metrics?.winrate?.denominator ?? 0}`}
+      accent={accent}
+    />
+  </>
+);
+
+export const SessionSummary = ({
+  metrics,
+  accent = 'indigo',
+  title = 'Podsumowanie sesji',
+  description = 'Statystyki Hero dla wszystkich rozdań w wybranej sesji.',
+  resultBreakdown = null,
+}) => {
   if (!metrics) return null;
 
   const profile = metrics.playerProfile;
@@ -179,9 +214,7 @@ export const SessionSummary = ({ metrics, accent = 'indigo' }) => {
   const badgeClasses = isAmber
     ? 'border-amber-200 bg-white text-amber-800'
     : 'border-indigo-200 bg-white text-indigo-800';
-  const winrate = Number.isFinite(metrics.winrate?.value)
-    ? `${formatNumber(metrics.winrate.value, 2)} ${metrics.winrate.unit}`
-    : '—';
+  const winrate = formatWinrate(metrics);
 
   return (
     <div data-testid="session-summary" className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
@@ -189,9 +222,9 @@ export const SessionSummary = ({ metrics, accent = 'indigo' }) => {
         <div>
           <div className="flex items-center gap-2">
             <TrendingUp size={18} className={isAmber ? 'text-amber-600' : 'text-indigo-600'}/>
-            <h3 className="text-base font-black text-slate-900">Podsumowanie sesji</h3>
+            <h3 className="text-base font-black text-slate-900">{title}</h3>
           </div>
-          <p className="mt-1 text-xs text-slate-500">Statystyki Hero dla wszystkich rozdań w wybranej sesji.</p>
+          <p className="mt-1 text-xs text-slate-500">{description}</p>
         </div>
         <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">
           <Layers3 size={13}/>{metrics.hands} rozdań
@@ -245,6 +278,22 @@ export const SessionSummary = ({ metrics, accent = 'indigo' }) => {
         <SummarySection title="Wynik" description="Showdown, rezultat sesji i wynik na 100 rozdań.">
           <PercentageCard metricId="wtsd" metric={metrics.showdown.wtsd} accent={accent}/>
           <PercentageCard metricId="wsd" metric={metrics.showdown.wsd} accent={accent}/>
+          {resultBreakdown ? (
+            <>
+              <ResultBreakdownCards
+                label="Cash"
+                metrics={resultBreakdown.cash}
+                gameType="cash"
+                accent={accent}
+              />
+              <ResultBreakdownCards
+                label="Turnieje"
+                metrics={resultBreakdown.tournament}
+                gameType="tournament"
+                accent={accent}
+              />
+            </>
+          ) : null}
           <MetricCard
             label="Hands"
             value={formatNumber(metrics.hands, 0)}

@@ -1,5 +1,26 @@
 // src/parser/pokerParser.js
 
+import { evaluateVisibleHand } from './handEvaluator.js';
+
+export { evaluateHoldemHand, evaluateVisibleHand } from './handEvaluator.js';
+
+export const GAME_VARIANTS = Object.freeze({
+  NLH: 'NLH',
+  NLH_BOMB_POT: 'NLH BombPot',
+  PLO_4: 'PLO 4',
+});
+
+export const detectGameVariant = (rawHand) => {
+  const headerMatch = String(rawHand || '').match(/CoinPoker Hand #\d+:\s*([^\r\n(]+)/i);
+  const gameDescription = headerMatch?.[1]?.trim() || '';
+
+  if (/\bPLO\s*4\b/i.test(gameDescription) || /\bPLO\b/i.test(gameDescription)) {
+    return GAME_VARIANTS.PLO_4;
+  }
+  if (/\bNLH\s+BombPot\b/i.test(gameDescription)) return GAME_VARIANTS.NLH_BOMB_POT;
+  return GAME_VARIANTS.NLH;
+};
+
 const parsePokerDate = (dateStr) => {
   if (!dateStr) return new Date();
   const cleanStr = dateStr.replace(/CE[S]?T|GMT|UTC/g, '').trim();
@@ -47,6 +68,49 @@ const getSummaryWinnings = (summaryLine) => {
 
   const collectedMatch = summaryLine.match(/\bcollected\s+[^\d]*([\d.,]+)/i);
   return collectedMatch ? parseChips(collectedMatch[1]) : 0;
+};
+
+const parseBoardCards = (value) => value.split(/\s+/).filter(Boolean);
+
+const getHeroCards = (rawHand) => {
+  const dealtMatch = rawHand.match(/Dealt to Hero\s+\[([^\]]+)\]/i);
+  const exposedMatch = rawHand.match(/(?:^|\n)(?:Hero:|Seat \d+:\s+Hero)\s+(?:shows?|showed|mucks?|mucked)\s+\[([^\]]+)\]/im);
+  const cardsMatch = dealtMatch || exposedMatch;
+  return cardsMatch ? cardsMatch[1].split(/\s+/).filter(Boolean) : [];
+};
+
+const getVisibleBoardSets = (rawHand, streets) => {
+  const summaryBoards = [...rawHand.matchAll(/^\s*(?:(FIRST|SECOND|THIRD)\s+)?Board\s*\[\s*([^\]]*)\s*\]/gim)]
+    .map((match) => ({
+      boardIndex: BOARD_INDEX_BY_PREFIX[match[1]?.toUpperCase() || ''] || 1,
+      cards: parseBoardCards(match[2]),
+    }))
+    .filter(({ cards }) => cards.length > 0);
+
+  if (summaryBoards.length > 0) {
+    const groupedBoards = new Map();
+    summaryBoards.forEach(({ boardIndex, cards }) => groupedBoards.set(boardIndex, cards));
+    return [...groupedBoards.entries()]
+      .sort(([left], [right]) => left - right)
+      .map(([, cards]) => cards);
+  }
+
+  const boards = new Map();
+  streets
+    .filter((street) => ['FLOP', 'TURN', 'RIVER'].includes(street.name))
+    .forEach((street) => {
+      const boardIndex = street.boardIndex || 1;
+      const currentCards = boards.get(boardIndex) || [];
+      const nextCards = street.name === 'FLOP'
+        ? [...street.cards]
+        : [...currentCards, ...street.cards.filter((card) => !currentCards.includes(card))];
+      boards.set(boardIndex, nextCards);
+    });
+
+  return [...boards.entries()]
+    .sort(([left], [right]) => left - right)
+    .map(([, cards]) => cards)
+    .filter((cards) => cards.length > 0);
 };
 
 const STREET_HEADER_PATTERN = /^\*\*\*\s+(?:(FIRST|SECOND|THIRD)\s+)?(HOLE CARDS|FLOP|TURN|RIVER|SHOWDOWN|SUMMARY)\s*\*\*\*(.*)$/i;
@@ -570,7 +634,8 @@ export const parseRawHandHistory = (rawText) => {
     try {
       const handData = {
         id: '', timestamp: null, dateStr: '', timeStr: '', blinds: '', smallBlind: 0, bigBlind: 0, ante: 0, gameType: 'NLH',
-        heroCards: [], boardCards: [], handRanking: 'NO_HAND', heroInvestment: 0,
+        gameVariant: GAME_VARIANTS.NLH, heroCards: [], boardCards: [], boardCardsByBoard: [],
+        handRanking: 'NO_HAND', handRankingSource: 'UNAVAILABLE', heroInvestment: 0,
         heroWinnings: 0, netProfit: 0, outcome: 'FOLDED', rawText: rawHand.trim(),
         position: 'UNKNOWN', streets: [], isTournament: false, heroStartingStack: 0,
         tableId: '', tourneyName: '', tourneyId: '',
@@ -583,6 +648,7 @@ export const parseRawHandHistory = (rawText) => {
       const idMatch = rawHand.match(/CoinPoker Hand #(\d+)/i);
       if (!idMatch) continue;
       handData.id = idMatch[1];
+      handData.gameVariant = detectGameVariant(rawHand);
       Object.assign(handData, parseHeaderBlinds(rawHand));
 
       const tableMatch = rawHand.match(/Table '([^']+)'/i);
@@ -610,11 +676,7 @@ export const parseRawHandHistory = (rawText) => {
         handData.timestamp = new Date().getTime();
       }
 
-      const boardMatch = rawHand.match(/Board \[\s*(.+?)\s*\]/i);
-      if (boardMatch) handData.boardCards = boardMatch[1].split(' ').filter(c => c.trim() !== '');
-
-      const cardsMatch = rawHand.match(/Dealt to Hero \[(.+?)\]/i);
-      if (cardsMatch) handData.heroCards = cardsMatch[1].split(' ');
+      handData.heroCards = getHeroCards(rawHand);
 
       const actionText = rawHand.split(/^\*\*\* SUMMARY \*\*\*/im)[0];
       const firstFlopIndex = actionText.search(/^\*\*\* (?:FIRST |SECOND |THIRD )?FLOP \*\*\*/im);
@@ -643,6 +705,8 @@ export const parseRawHandHistory = (rawText) => {
       handData.position = getHeroPosition(rawHand, activeSeats);
       const normalizedActions = normalizeHandActions(lines);
       handData.streets = buildStreetBlocks(rawHand);
+      handData.boardCardsByBoard = getVisibleBoardSets(rawHand, handData.streets);
+      handData.boardCards = handData.boardCardsByBoard[0] || [];
       handData.heroInvestment = normalizedActions.heroInvestment;
 
       const heroSummaryLines = getSummaryHeroLines(rawHand);
@@ -652,7 +716,24 @@ export const parseRawHandHistory = (rawText) => {
       const hasSummaryOutcome = isWinner || isLoser || isFolded;
       const heroSummaryLineWithRank = heroSummaryLines.find((line) => /\bwith\s+/i.test(line)) || '';
       const rankMatch = heroSummaryLineWithRank.match(/\bwith\s+(.+?)(?:\s*\([^)]*\))?\s*$/i);
-      handData.handRanking = normalizeHandRanking(rankMatch?.[1]);
+      const summaryRanking = normalizeHandRanking(rankMatch?.[1]);
+      if (summaryRanking !== 'NO_HAND') {
+        handData.handRanking = summaryRanking;
+        handData.handRankingSource = 'SUMMARY';
+      } else if (handData.gameVariant === GAME_VARIANTS.PLO_4) {
+        handData.handRanking = 'NO_HAND';
+        handData.handRankingSource = 'UNSUPPORTED_VARIANT';
+      } else {
+        const visibleRanking = evaluateVisibleHand(
+          handData.heroCards,
+          handData.gameVariant === GAME_VARIANTS.NLH_BOMB_POT
+            ? handData.boardCardsByBoard
+            : handData.boardCards,
+          handData.gameVariant,
+        );
+        handData.handRanking = visibleRanking;
+        handData.handRankingSource = visibleRanking === 'NO_HAND' ? 'UNAVAILABLE' : 'VISIBLE_CARDS';
+      }
 
       if (isWinner) {
         handData.outcome = 'WON';

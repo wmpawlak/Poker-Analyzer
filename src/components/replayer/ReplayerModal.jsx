@@ -42,6 +42,9 @@ export const ReplayerModal = ({ handId, onClose }) => {
   const canAnalyze = selectedModel?.configured === true;
   const selectedModelName = selectedModel?.name || defaultAiModel;
   const modelsAreLoading = aiModelsStatus === 'idle' || aiModelsStatus === 'loading';
+  const handRankingTooltip = modalHand?.handRankingSource === 'VISIBLE_CARDS'
+    ? 'Układ wyliczony lokalnie na podstawie widocznych kart.'
+    : undefined;
 
   if (!modalHand) return null;
 
@@ -83,7 +86,7 @@ export const ReplayerModal = ({ handId, onClose }) => {
                <div className="flex flex-col"><span className="text-xs text-slate-400 font-semibold mb-1">Karty Hero ({modalHand.position})</span><div className="flex gap-1">{(modalHand.heroCards || []).map((c,i) => <CardIcon key={i} cardStr={c} />)}</div></div>
                <div className="flex flex-col items-center"><span className="text-xs text-slate-400 font-semibold mb-1">Stół</span><div className="flex gap-1">{(modalHand.boardCards || []).length > 0 ? (modalHand.boardCards || []).map((c,i) => <CardIcon key={i} cardStr={c} />) : <span className="text-sm text-slate-500">-</span>}</div></div>
                <div className="flex flex-col text-right">
-                 <span className="text-xs text-slate-400 font-semibold mb-1">Wynik ({modalHand.handRanking})</span>
+                 <span className="text-xs text-slate-400 font-semibold mb-1" title={handRankingTooltip}>Wynik ({modalHand.handRanking})</span>
                  <span className={`text-2xl font-black ${modalHand.netProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                     {modalHand.netProfit >= 0 ? `+${modalHand.isTournament ? '' : '₮'}${Math.abs(modalHand.netProfit).toLocaleString('en-US', {maximumFractionDigits: 2})}` : `-${modalHand.isTournament ? '' : '₮'}${Math.abs(modalHand.netProfit).toLocaleString('en-US', {maximumFractionDigits: 2})}`}
                  </span>
