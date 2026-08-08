@@ -1,12 +1,14 @@
 // src/store/pokerSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { parseRawHandHistory, buildSessions, buildTourneySessions } from '../parser/pokerParser.js';
+import { buildSessionAnalysisInput } from '../ai/sessionAnalysisContract.js';
 
 export const AI_ANALYSES_CACHE_KEY = 'poker_ai_analyses_v4';
 export const LEGACY_V3_AI_ANALYSES_CACHE_KEY = 'poker_ai_analyses_v3';
 export const LEGACY_AI_ANALYSES_CACHE_KEY = 'poker_ai_analyses_v2';
 export const AI_DEFAULT_MODEL_CACHE_KEY = 'poker_ai_default_model';
 export const SAVED_HANDS_CACHE_KEY = 'poker_saved_hands_v1';
+export const SESSION_AI_ANALYSES_CACHE_KEY = 'poker_ai_session_analyses_v1';
 export const DEFAULT_AI_MODEL = 'gpt-5.6-terra';
 export const AI_MODEL_CATALOG = [
   { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
@@ -25,14 +27,25 @@ export {
   validateHandAnalysis,
 } from '../ai/handAnalysisContract.js';
 
-const getResponseError = async (response, fallbackMessage) => {
+const getResponseErrorDetails = async (response, fallbackMessage) => {
   try {
     const data = await response.json();
-    return data.error || fallbackMessage;
+    return {
+      message: typeof data?.error === 'string' && data.error.trim()
+        ? data.error
+        : fallbackMessage,
+      code: typeof data?.code === 'string' && data.code.trim()
+        ? data.code
+        : undefined,
+    };
   } catch {
-    return fallbackMessage;
+    return { message: fallbackMessage, code: undefined };
   }
 };
+
+const getResponseError = async (response, fallbackMessage) => (
+  (await getResponseErrorDetails(response, fallbackMessage)).message
+);
 
 export const getLocalSourceId = (filename) => `local:${filename}`;
 
@@ -166,6 +179,15 @@ export const loadSavedHandIds = (storage = localStorage) => {
   return [...new Set(savedIds.map(String))];
 };
 
+export const loadSessionAiAnalyses = (storage = localStorage) => {
+  const cached = parseStoredObject(storage.getItem(SESSION_AI_ANALYSES_CACHE_KEY));
+  if (!cached) return {};
+  return Object.fromEntries(Object.entries(cached).map(([sessionId, reports]) => [
+    sessionId,
+    Array.isArray(reports) ? reports.filter((report) => report && typeof report === 'object') : [],
+  ]));
+};
+
 export const fetchAiModels = createAsyncThunk(
   'poker/fetchAiModels',
   async (_, { rejectWithValue }) => {
@@ -224,6 +246,45 @@ export const analyzeHandWithAI = createAsyncThunk(
     }
   }
 );
+
+export const analyzeSessionWithAI = createAsyncThunk(
+  'poker/analyzeSession',
+  async ({ sessionId, hands, gameType }, { getState, rejectWithValue }) => {
+    try {
+      const state = getState().poker;
+      const session = buildSessionAnalysisInput({ sessionId, hands, gameType });
+      const response = await fetch('/api/ai/analyze-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modelId: state.defaultAiModel, session }),
+      });
+      if (!response.ok) {
+        return rejectWithValue(await getResponseErrorDetails(response, 'Nie udało się przeanalizować sesji.'));
+      }
+      const result = await response.json();
+      if (!result?.model?.id || !result?.model?.name || !result?.sessionId || !result?.fingerprint || !result?.analysis) {
+        throw new Error('Serwer zwrócił nieprawidłowy raport analizy sesji AI.');
+      }
+      return {
+        sessionId: result.sessionId,
+        reportId: createReportId(result.sessionId),
+        model: result.model,
+        analyzedAt: new Date().toISOString(),
+        handCount: session.hands.length,
+        fingerprint: result.fingerprint,
+        analysis: result.analysis,
+      };
+    } catch (error) {
+      return rejectWithValue({
+        message: error?.message || 'Nie udało się przeanalizować sesji.',
+        code: typeof error?.code === 'string' && error.code.trim() ? error.code : undefined,
+      });
+    }
+  },
+  {
+    condition: ({ sessionId }, { getState }) => getState().poker.sessionAnalysisStatusById[sessionId] !== 'loading',
+  },
+);
 const initialState = {
   sources: [], // Magazyn wgranych plików źródłowych
   rawHands: [], 
@@ -239,6 +300,9 @@ const initialState = {
   aiModelsStatus: 'idle',
   aiModelsError: null,
   aiAnalyses: loadAiAnalyses(),
+  sessionAiAnalyses: loadSessionAiAnalyses(),
+  sessionAnalysisStatusById: {},
+  sessionAnalysisErrorById: {},
   savedHandIds: loadSavedHandIds(),
   loadingAI: false,
   errorAI: null,
@@ -408,6 +472,8 @@ const pokerSlice = createSlice({
       state.sources = []; state.rawHands = []; state.sessions = []; state.tournaments = []; 
       state.selectedSessionId = null; state.selectedTourneyId = null; state.selectedHandId = null;
       state.aiAnalyses = {}; localStorage.removeItem(AI_ANALYSES_CACHE_KEY);
+      state.sessionAiAnalyses = {}; localStorage.removeItem(SESSION_AI_ANALYSES_CACHE_KEY);
+      state.sessionAnalysisStatusById = {}; state.sessionAnalysisErrorById = {};
       state.savedHandIds = []; localStorage.removeItem(SAVED_HANDS_CACHE_KEY);
     }
   },
@@ -430,6 +496,44 @@ const pokerSlice = createSlice({
         localStorage.setItem(AI_ANALYSES_CACHE_KEY, JSON.stringify(state.aiAnalyses));
       })
       .addCase(analyzeHandWithAI.rejected, (state, action) => { state.loadingAI = false; state.errorAI = action.payload; })
+      .addCase(analyzeSessionWithAI.pending, (state, action) => {
+        const sessionId = action.meta.arg.sessionId;
+        state.sessionAnalysisStatusById[sessionId] = 'loading';
+        delete state.sessionAnalysisErrorById[sessionId];
+      })
+      .addCase(analyzeSessionWithAI.fulfilled, (state, action) => {
+        const report = action.payload;
+        state.sessionAnalysisStatusById[report.sessionId] = 'succeeded';
+        delete state.sessionAnalysisErrorById[report.sessionId];
+        const history = Array.isArray(state.sessionAiAnalyses[report.sessionId])
+          ? state.sessionAiAnalyses[report.sessionId]
+          : [];
+        history.push({
+          reportId: report.reportId,
+          model: report.model,
+          analyzedAt: report.analyzedAt,
+          handCount: report.handCount,
+          fingerprint: report.fingerprint,
+          analysis: report.analysis,
+        });
+        state.sessionAiAnalyses[report.sessionId] = history;
+        localStorage.setItem(SESSION_AI_ANALYSES_CACHE_KEY, JSON.stringify(state.sessionAiAnalyses));
+      })
+      .addCase(analyzeSessionWithAI.rejected, (state, action) => {
+        const sessionId = action.meta.arg.sessionId;
+        state.sessionAnalysisStatusById[sessionId] = 'failed';
+        const rejectedError = action.payload;
+        const message = typeof rejectedError === 'string'
+          ? rejectedError
+          : rejectedError?.message;
+        const code = typeof rejectedError === 'object' && typeof rejectedError?.code === 'string'
+          ? rejectedError.code
+          : undefined;
+        state.sessionAnalysisErrorById[sessionId] = {
+          message: message || 'Nie udało się przeanalizować sesji.',
+          ...(code ? { code } : {}),
+        };
+      })
       .addCase(fetchAiModels.pending, (state) => {
         state.aiModelsStatus = 'loading';
         state.aiModelsError = null;

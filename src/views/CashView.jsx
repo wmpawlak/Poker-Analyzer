@@ -5,6 +5,7 @@ import { selectSession } from '../store/pokerSlice.js';
 import { HandCollectionTabs } from '../components/HandCollectionTabs.jsx';
 import { HandTile } from '../components/HandTile.jsx';
 import { SessionSummary } from '../components/SessionSummary.jsx';
+import { SessionAnalysisPanel } from '../components/SessionAnalysisPanel.jsx';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { Filter } from 'lucide-react';
 import { getAvailableHandRanks, getFilteredSessions, getSelectedEntityId, getVisibleHands } from '../utils/handFilters.js';
@@ -152,7 +153,15 @@ export const CashView = ({ onHandClick }) => {
           </div>
         ) : currentSession ? (
           <>
-            <SessionSummary metrics={sessionMetrics}/>
+            <SessionSummary
+              metrics={sessionMetrics}
+              analysisPanel={<SessionAnalysisPanel
+                sessionId={currentSession.id}
+                hands={currentSession.hands}
+                gameType="cash"
+                onHandClick={onHandClick}
+              />}
+            />
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 shrink-0">
               <h3 className="text-base font-bold mb-4 text-gray-800">Wykres portfela (Stół #{currentSession.tableId})</h3>
               <div className="w-full h-80">

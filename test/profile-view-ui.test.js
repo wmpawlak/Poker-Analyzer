@@ -32,7 +32,7 @@ test('nowy widok profilu renderuje zakres dat, pełne podsumowanie i osobne wyni
   const vite = await createServer({
     appType: 'custom',
     logLevel: 'silent',
-    server: { middlewareMode: true },
+    server: { middlewareMode: true, hmr: false },
   });
   context.after(() => vite.close());
 
@@ -58,7 +58,7 @@ test('widok profilu pokazuje pusty stan bez rozdań', async (context) => {
   const vite = await createServer({
     appType: 'custom',
     logLevel: 'silent',
-    server: { middlewareMode: true },
+    server: { middlewareMode: true, hmr: false },
   });
   context.after(() => vite.close());
 

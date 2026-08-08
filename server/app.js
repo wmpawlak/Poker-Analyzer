@@ -1,6 +1,6 @@
 import express from 'express';
 import process from 'node:process';
-import { analyzeHandWithModel } from './ai/analysisService.js';
+import { analyzeHandWithModel, analyzeSessionWithModel } from './ai/analysisService.js';
 import { getPublicAiModels } from './ai/models.js';
 import { listLocalSources, readLocalSource } from './localSources.js';
 
@@ -8,6 +8,7 @@ export const createApiApp = ({
   dataDirectory,
   environment = process.env,
   fetchImpl = globalThis.fetch,
+  logger = console,
 } = {}) => {
   const app = express();
   app.use(express.json({ limit: '2mb' }));
@@ -28,10 +29,31 @@ export const createApiApp = ({
     } catch (error) {
       const status = Number.isInteger(error.status) ? error.status : 500;
       if (status === 500) {
-        console.error('Unexpected AI analysis error:', error.message);
+        logger?.error?.('Unexpected AI analysis error:', error.message);
       }
       response.status(status).json({
         error: error.message || 'Nie udało się przeanalizować rozdania.',
+        code: error.code || 'AI_INTERNAL_ERROR',
+      });
+    }
+  });
+
+  app.post('/api/ai/analyze-session', async (request, response) => {
+    try {
+      const result = await analyzeSessionWithModel({
+        modelId: request.body?.modelId,
+        session: request.body?.session,
+        environment,
+        fetchImpl,
+        logger,
+      });
+      response.json(result);
+    } catch (error) {
+      const status = Number.isInteger(error.status) ? error.status : 500;
+      if (status === 500) logger?.error?.('Unexpected AI session analysis error:', error.message);
+      response.status(status).json({
+        error: error.message || 'Nie udało się przeanalizować sesji.',
+        code: error.code || 'AI_INTERNAL_ERROR',
       });
     }
   });

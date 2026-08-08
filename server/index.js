@@ -5,10 +5,12 @@ import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import { createApiApp } from './app.js';
 import { loadLocalEnvironment } from './env.js';
+import { configureSystemCertificates } from './systemCertificates.js';
 
 const serverDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectDirectory = path.resolve(serverDirectory, '..');
 loadLocalEnvironment(projectDirectory);
+configureSystemCertificates();
 const isProduction = process.argv.includes('--production');
 const port = Number.parseInt(process.env.PORT || '5173', 10);
 

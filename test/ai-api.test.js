@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createApiApp } from '../server/app.js';
+import { buildSessionAnalysisInput } from '../src/ai/sessionAnalysisContract.js';
 
 const parsedHand = {
   id: '96890300082',
@@ -20,6 +21,22 @@ const report = {
   summary: 'Hero wygrał rozdanie.',
 };
 
+const sessionInput = buildSessionAnalysisInput({
+  sessionId: 'cash:table-1',
+  gameType: 'cash',
+  hands: [
+    { ...parsedHand, timestamp: 1, position: 'BTN', blinds: '€0.05/€0.10', smallBlind: 0.05, bigBlind: 0.1, heroStartingStack: 10, heroCards: ['Qh', 'Qd'], boardCards: [], streets: [] },
+    { ...parsedHand, id: '96890300083', timestamp: 2, netProfit: -20, outcome: 'LOST', heroWinnings: 0, position: 'BB', blinds: '€0.05/€0.10', smallBlind: 0.05, bigBlind: 0.1, heroStartingStack: 10, heroCards: ['Ah', 'Kd'], boardCards: [], streets: [] },
+  ],
+});
+
+const sessionReport = {
+  profileStyleId: 'INSUFFICIENT',
+  sessionSummary: 'Próba jest niewielka. Wnioski trzeba traktować ostrożnie.',
+  keyMistakes: [],
+  notableHands: [{ handId: '96890300083', reason: 'Największa zmiana wyniku.' }],
+};
+
 const jsonResponse = (body, status = 200) => new Response(
   JSON.stringify(body),
   {
@@ -37,7 +54,10 @@ const openAiResponse = (analysis = report) => jsonResponse({
 });
 
 const startApi = async (t, options) => {
-  const server = createApiApp(options).listen(0);
+  const server = createApiApp({
+    logger: { info: () => {}, error: () => {} },
+    ...options,
+  }).listen(0);
   t.after(() => new Promise((resolve) => server.close(resolve)));
   await new Promise((resolve) => server.once('listening', resolve));
   return `http://127.0.0.1:${server.address().port}`;
@@ -192,4 +212,112 @@ test('regresja #96890300082: API dołącza autorytatywne dane Hero', async (t) =
     netProfit: 12.34,
     handRanking: 'FULL_HOUSE',
   });
+});
+
+test('API sesji wykonuje dokładnie jedno wywołanie, zwraca odcisk i schemat sesji', async (t) => {
+  let providerCalls = 0;
+  let requestBody;
+  const baseUrl = await startApi(t, {
+    environment: { OPENAI_API_KEY: 'test' },
+    fetchImpl: async (_url, options) => {
+      providerCalls += 1;
+      requestBody = JSON.parse(options.body);
+      return openAiResponse(sessionReport);
+    },
+  });
+  const response = await fetch(`${baseUrl}/api/ai/analyze-session`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ modelId: 'gpt-5.6-terra', session: sessionInput }),
+  });
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(providerCalls, 1);
+  assert.equal(body.sessionId, sessionInput.sessionId);
+  assert.equal(body.fingerprint, sessionInput.fingerprint);
+  assert.deepEqual(body.analysis, sessionReport);
+  assert.equal(requestBody.text.format.name, 'poker_session_analysis');
+  assert.equal(requestBody.background, true);
+  assert.equal(requestBody.store, true);
+  assert.equal(requestBody.max_output_tokens, 32_000);
+  assert.deepEqual(requestBody.reasoning, { effort: 'high' });
+});
+
+test('API sesji zwraca kod incomplete bez drugiego płatnego POST-a', async (t) => {
+  let providerCalls = 0;
+  const telemetry = [];
+  const baseUrl = await startApi(t, {
+    environment: { OPENAI_API_KEY: 'test' },
+    logger: {
+      info: (...args) => telemetry.push(args),
+      error: () => {},
+    },
+    fetchImpl: async (_url, options) => {
+      providerCalls += 1;
+      assert.equal(options.method, 'POST');
+      return jsonResponse({
+        id: 'resp_session_limit',
+        status: 'incomplete',
+        incomplete_details: { reason: 'max_output_tokens' },
+        usage: {
+          input_tokens: 12_000,
+          output_tokens: 32_000,
+          output_tokens_details: { reasoning_tokens: 22_000 },
+          total_tokens: 44_000,
+        },
+      });
+    },
+  });
+  const response = await fetch(`${baseUrl}/api/ai/analyze-session`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ modelId: 'gpt-5.6-terra', session: sessionInput }),
+  });
+  const body = await response.json();
+
+  assert.equal(response.status, 502);
+  assert.equal(body.code, 'AI_INCOMPLETE_RESPONSE');
+  assert.match(body.error, /wykorzystał cały budżet tokenów/i);
+  assert.match(body.error, /Raport nie został zapisany/i);
+  assert.doesNotMatch(body.error, /max_output_tokens/i);
+  assert.deepEqual(Object.keys(body).sort(), ['code', 'error']);
+  assert.equal(providerCalls, 1);
+  assert.deepEqual(telemetry, [[
+    {
+      responseId: 'resp_session_limit',
+      status: 'incomplete',
+      reason: 'max_output_tokens',
+      usage: {
+        inputTokens: 12_000,
+        outputTokens: 32_000,
+        reasoningTokens: 22_000,
+        totalTokens: 44_000,
+      },
+    },
+  ]]);
+});
+
+test('API sesji odrzuca wadliwy raport i zbyt dużą sesję bez ponowienia dostawcy', async (t) => {
+  let providerCalls = 0;
+  const baseUrl = await startApi(t, {
+    environment: { OPENAI_API_KEY: 'test' },
+    fetchImpl: async () => {
+      providerCalls += 1;
+      return openAiResponse({ ...sessionReport, notableHands: [{ handId: '96890300082', reason: 'Nie ten swing.' }] });
+    },
+  });
+  const invalidResponse = await fetch(`${baseUrl}/api/ai/analyze-session`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ modelId: 'gpt-5.6-terra', session: sessionInput }),
+  });
+  assert.equal(invalidResponse.status, 422);
+  assert.equal(providerCalls, 1);
+
+  const malformed = { ...sessionInput, hands: [{ ...sessionInput.hands[0], rawText: 'niedozwolone' }] };
+  const malformedResponse = await fetch(`${baseUrl}/api/ai/analyze-session`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ modelId: 'gpt-5.6-terra', session: malformed }),
+  });
+  assert.equal(malformedResponse.status, 400);
+  assert.equal(providerCalls, 1);
 });

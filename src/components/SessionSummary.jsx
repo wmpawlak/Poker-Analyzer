@@ -200,6 +200,7 @@ export const SessionSummary = ({
   title = 'Podsumowanie sesji',
   description = 'Statystyki Hero dla wszystkich rozdań w wybranej sesji.',
   resultBreakdown = null,
+  analysisPanel = null,
 }) => {
   if (!metrics) return null;
 
@@ -242,6 +243,8 @@ export const SessionSummary = ({
         <p className="mt-1.5 text-sm font-black">{profileLabel}</p>
         <p className="mt-1 text-xs leading-relaxed opacity-75">{profileDescription}</p>
       </div>
+
+      {analysisPanel ? <div className="mt-4">{analysisPanel}</div> : null}
 
       <div className="mt-5 grid grid-cols-1 gap-6">
         <SummarySection title="Preflop" description="Selekcja rąk, inicjatywa i reakcje na przebicia.">

@@ -12,6 +12,12 @@ import {
   isModelConfigured,
 } from './models.js';
 import { analyzeWithOpenAi } from './openAiAdapter.js';
+import {
+  buildSessionAnalysisPrompt,
+  sessionAnalysisResponseSchema,
+  validateSessionAnalysis,
+  validateSessionAnalysisInput,
+} from '../../src/ai/sessionAnalysisContract.js';
 
 const providerAdapters = {
   gemini: analyzeWithGemini,
@@ -82,3 +88,64 @@ export const analyzeHandWithModel = async ({
   };
 };
 
+export const analyzeSessionWithModel = async ({
+  modelId,
+  session,
+  environment,
+  fetchImpl = globalThis.fetch,
+  logger,
+}) => {
+  const definition = getAiModelDefinition(modelId);
+  if (!definition) {
+    throw new AiServiceError(`Nieznany model AI: ${modelId || 'brak'}.`, {
+      status: 400, code: 'AI_UNKNOWN_MODEL',
+    });
+  }
+
+  let validatedSession;
+  try {
+    validatedSession = validateSessionAnalysisInput(session);
+  } catch (error) {
+    throw new AiServiceError(error.message, {
+      status: error.code === 'AI_SESSION_TOO_LARGE' ? 413 : 400,
+      code: error.code || 'AI_INVALID_SESSION', cause: error,
+    });
+  }
+  if (!isModelConfigured(definition, environment)) {
+    throw new AiServiceError(`Model ${definition.name} nie jest skonfigurowany na serwerze.`, {
+      status: 503, code: 'AI_MODEL_NOT_CONFIGURED',
+    });
+  }
+
+  const adapter = providerAdapters[definition.provider];
+  const openAiSessionProfile = definition.provider === 'openai'
+    ? {
+      maxOutputTokens: 32_000,
+      reasoningEffort: 'high',
+      logger,
+    }
+    : {};
+  const analysis = await adapter({
+    modelId: definition.id,
+    apiKey: environment[definition.environmentKey],
+    prompt: buildSessionAnalysisPrompt(validatedSession),
+    schema: sessionAnalysisResponseSchema,
+    schemaName: 'poker_session_analysis',
+    fetchImpl,
+    ...openAiSessionProfile,
+  });
+  let validatedAnalysis;
+  try {
+    validatedAnalysis = validateSessionAnalysis(analysis, validatedSession);
+  } catch (error) {
+    throw new AiServiceError(error.message, {
+      status: 422, code: 'AI_INVALID_SESSION_RESPONSE', cause: error,
+    });
+  }
+  return {
+    model: getPublicAiModel(definition),
+    sessionId: validatedSession.sessionId,
+    fingerprint: validatedSession.fingerprint,
+    analysis: validatedAnalysis,
+  };
+};

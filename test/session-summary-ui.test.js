@@ -9,7 +9,7 @@ test('SessionSummary renderuje trzy grupy, profil i dostępne opisy metryk', asy
   const vite = await createServer({
     appType: 'custom',
     logLevel: 'silent',
-    server: { middlewareMode: true },
+    server: { middlewareMode: true, hmr: false },
   });
   context.after(() => vite.close());
 
@@ -33,4 +33,3 @@ test('SessionSummary renderuje trzy grupy, profil i dostępne opisy metryk', asy
   assert.match(html, /Wzór:/);
   assert.match(html, /Próba:/);
 });
-

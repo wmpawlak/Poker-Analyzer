@@ -5,6 +5,7 @@ import { selectTourney } from '../store/pokerSlice.js';
 import { HandCollectionTabs } from '../components/HandCollectionTabs.jsx';
 import { HandTile } from '../components/HandTile.jsx';
 import { SessionSummary } from '../components/SessionSummary.jsx';
+import { SessionAnalysisPanel } from '../components/SessionAnalysisPanel.jsx';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Filter } from 'lucide-react';
 import { getAvailableHandRanks, getFilteredSessions, getSelectedEntityId, getVisibleHands } from '../utils/handFilters.js';
@@ -154,7 +155,17 @@ export const TournamentsView = ({ onHandClick }) => {
           </div>
         ) : currentTourney ? (
           <>
-            <SessionSummary metrics={tourneyMetrics} accent="amber"/>
+            <SessionSummary
+              metrics={tourneyMetrics}
+              accent="amber"
+              analysisPanel={<SessionAnalysisPanel
+                sessionId={currentTourney.id}
+                hands={currentTourney.hands}
+                gameType="tournament"
+                onHandClick={onHandClick}
+                accent="amber"
+              />}
+            />
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 shrink-0">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-base font-bold text-gray-800 truncate" title={currentTourney.tourneyName}>Wykres Stacka: {currentTourney.tourneyName}</h3>
