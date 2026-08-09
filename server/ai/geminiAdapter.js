@@ -1,4 +1,5 @@
 import { AiServiceError, parseAnalysisJson, readUpstreamJson } from './errors.js';
+import { configureSystemCertificates } from '../systemCertificates.js';
 
 const GEMINI_API_ORIGIN = 'https://generativelanguage.googleapis.com';
 
@@ -12,6 +13,8 @@ export const analyzeWithGemini = async ({
   let response;
 
   try {
+    // Keep direct adapter usage safe as well as the normal server entrypoint.
+    configureSystemCertificates();
     response = await fetchImpl(
       `${GEMINI_API_ORIGIN}/v1beta/models/${encodeURIComponent(modelId)}:generateContent`,
       {
@@ -30,16 +33,20 @@ export const analyzeWithGemini = async ({
       },
     );
   } catch (error) {
+    const suffix = error.cause?.code ? ` (${error.cause.code})` : '';
     throw new AiServiceError(
-      'Nie udało się połączyć z Gemini.',
+      `Nie udało się połączyć z Gemini.${suffix}`,
       { code: 'AI_CONNECTION_ERROR', cause: error },
     );
   }
 
   const data = await readUpstreamJson(response, 'Gemini');
   if (!response.ok) {
+    const upstreamReason = typeof data?.error?.message === 'string' && data.error.message.trim()
+      ? ` ${data.error.message.trim()}`
+      : '';
     throw new AiServiceError(
-      `Gemini odrzucił żądanie (HTTP ${response.status}).`,
+      `Gemini odrzucił żądanie (HTTP ${response.status}).${upstreamReason}`,
       { code: 'AI_UPSTREAM_HTTP_ERROR' },
     );
   }
@@ -62,4 +69,3 @@ export const analyzeWithGemini = async ({
 
   return parseAnalysisJson(text, 'Gemini');
 };
-

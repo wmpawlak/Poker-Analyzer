@@ -854,39 +854,92 @@ const finalizeSession = (session) => {
 };
 
 export const buildTourneySessions = (hands) => {
-  const tourneyMap = {};
-  hands.forEach((hand) => {
+  const tourneyGroups = new Map();
+
+  hands.forEach((hand, inputIndex) => {
     if (!hand.isTournament) return;
-    const tId = hand.tourneyId ? `${hand.tourneyId}_${hand.dateStr.split(' ')[0]}` : `unknown_${hand.timestamp}`;
-    if (!tourneyMap[tId]) {
-      tourneyMap[tId] = {
-        id: `tourney_${tId}`, tourneyId: hand.tourneyId || 'Nieznane ID', tourneyName: hand.tourneyName || 'Nieznany Turniej',
-        startTime: hand.timestamp, lastTimestamp: hand.timestamp, dateStr: hand.dateStr, hands: [], 
-        totalProfit: 0, type: 'Tournament', rebuys: 0, startStack: hand.heroStartingStack
-      };
+
+    const tourneyId = hand.tourneyId == null ? '' : String(hand.tourneyId).trim();
+    // A hand without a tournament number is never grouped with another hand.
+    // The input index also keeps two malformed hands with the same timestamp
+    // from being silently joined.
+    const groupKey = tourneyId
+      ? `id:${tourneyId}`
+      : `unknown:${hand.id || hand.timestamp || inputIndex}:${inputIndex}`;
+    const dateKey = String(hand.dateStr || '').split(' ')[0] || 'unknown-date';
+    const dailySessionId = tourneyId
+      ? `tourney_${tourneyId}_${dateKey}`
+      : `tourney_unknown_${hand.id || hand.timestamp || inputIndex}`;
+
+    if (!tourneyGroups.has(groupKey)) {
+      tourneyGroups.set(groupKey, {
+        tourneyId,
+        hands: [],
+        dailyFragments: new Map(),
+      });
     }
-    const currentSession = tourneyMap[tId];
-    if (currentSession.hands.length > 0) {
-      const lastActualHands = currentSession.hands.filter(h => !h.isRebuy);
-      if (lastActualHands.length > 0) {
-        const lastHand = lastActualHands[lastActualHands.length - 1];
-        const expectedStack = lastHand.heroStartingStack + lastHand.netProfit;
-        if (hand.heroStartingStack > expectedStack + 100) {
-          currentSession.rebuys += 1;
-          const rebuyAmount = hand.heroStartingStack - expectedStack;
-          currentSession.hands.push({
-            id: `rebuy_${hand.id}`, timestamp: hand.timestamp - 1, isRebuy: true, rebuyValue: rebuyAmount,
-            isTournament: true, netProfit: 0, heroStartingStack: expectedStack, sessionHandIndex: currentSession.hands.length + 1,
-            heroCards: [], boardCards: [], opponents: []
-          });
+    const group = tourneyGroups.get(groupKey);
+    group.hands.push({ hand, inputIndex });
+    if (!group.dailyFragments.has(dailySessionId)) {
+      group.dailyFragments.set(dailySessionId, {
+        id: dailySessionId,
+        firstTimestamp: Number.isFinite(Number(hand.timestamp)) ? Number(hand.timestamp) : Number.MAX_SAFE_INTEGER,
+      });
+    }
+  });
+
+  const sessions = [...tourneyGroups.values()].map((group) => {
+    const orderedHands = [...group.hands]
+      .sort((left, right) => (
+        Number(left.hand.timestamp) - Number(right.hand.timestamp)
+        || left.inputIndex - right.inputIndex
+      ))
+      .map(({ hand }) => hand);
+    const dailyFragments = [...group.dailyFragments.values()]
+      .sort((left, right) => left.firstTimestamp - right.firstTimestamp || left.id.localeCompare(right.id));
+    const isMultiDay = dailyFragments.length > 1;
+    const firstHand = orderedHands[0];
+    const session = {
+      id: isMultiDay ? `tourney_${group.tourneyId}` : dailyFragments[0].id,
+      tourneyId: group.tourneyId || 'Nieznane ID',
+      tourneyName: firstHand.tourneyName || 'Nieznany Turniej',
+      startTime: firstHand.timestamp,
+      lastTimestamp: firstHand.timestamp,
+      dateStr: firstHand.dateStr,
+      hands: [],
+      totalProfit: 0,
+      type: 'Tournament',
+      rebuys: 0,
+      startStack: firstHand.heroStartingStack,
+      mergedFromSessionIds: isMultiDay ? dailyFragments.map((fragment) => fragment.id) : [],
+    };
+
+    orderedHands.forEach((hand) => {
+      if (session.hands.length > 0) {
+        const lastActualHands = session.hands.filter((candidate) => !candidate.isRebuy);
+        if (lastActualHands.length > 0) {
+          const lastHand = lastActualHands[lastActualHands.length - 1];
+          const expectedStack = lastHand.heroStartingStack + lastHand.netProfit;
+          if (hand.heroStartingStack > expectedStack + 100) {
+            session.rebuys += 1;
+            const rebuyAmount = hand.heroStartingStack - expectedStack;
+            session.hands.push({
+              id: `rebuy_${hand.id}`, timestamp: hand.timestamp - 1, isRebuy: true, rebuyValue: rebuyAmount,
+              isTournament: true, netProfit: 0, heroStartingStack: expectedStack, sessionHandIndex: session.hands.length + 1,
+              heroCards: [], boardCards: [], opponents: []
+            });
+          }
         }
       }
-    }
-    currentSession.hands.push({ ...hand, sessionHandIndex: currentSession.hands.length + 1 });
-    currentSession.totalProfit += hand.netProfit;
-    currentSession.lastTimestamp = Math.max(currentSession.lastTimestamp, hand.timestamp);
+      session.hands.push({ ...hand, sessionHandIndex: session.hands.length + 1 });
+      session.totalProfit += hand.netProfit;
+      session.lastTimestamp = Math.max(session.lastTimestamp, hand.timestamp);
+    });
+
+    return finalizeTourneySession(session);
   });
-  return Object.values(tourneyMap).map(finalizeTourneySession).sort((a, b) => b.startTime - a.startTime);
+
+  return sessions.sort((a, b) => b.startTime - a.startTime);
 };
 
 const finalizeTourneySession = (session) => {

@@ -18,6 +18,13 @@ import {
   validateSessionAnalysis,
   validateSessionAnalysisInput,
 } from '../../src/ai/sessionAnalysisContract.js';
+import {
+  buildSessionGroupAnalysisPrompt,
+  sessionGroupAnalysisGeminiResponseSchema,
+  sessionGroupAnalysisResponseSchema,
+  validateSessionGroupAnalysis,
+  validateSessionGroupAnalysisInput,
+} from '../../src/ai/sessionGroupAnalysisContract.js';
 
 const providerAdapters = {
   gemini: analyzeWithGemini,
@@ -146,6 +153,70 @@ export const analyzeSessionWithModel = async ({
     model: getPublicAiModel(definition),
     sessionId: validatedSession.sessionId,
     fingerprint: validatedSession.fingerprint,
+    analysis: validatedAnalysis,
+  };
+};
+
+export const analyzeSessionGroupWithModel = async ({
+  modelId,
+  group,
+  environment,
+  fetchImpl = globalThis.fetch,
+  logger,
+}) => {
+  const definition = getAiModelDefinition(modelId);
+  if (!definition) {
+    throw new AiServiceError(`Nieznany model AI: ${modelId || 'brak'}.`, {
+      status: 400, code: 'AI_UNKNOWN_MODEL',
+    });
+  }
+
+  let validatedGroup;
+  try {
+    validatedGroup = validateSessionGroupAnalysisInput(group);
+  } catch (error) {
+    throw new AiServiceError(error.message, {
+      status: error.code === 'AI_SESSION_GROUP_TOO_LARGE' ? 413 : 400,
+      code: error.code || 'AI_INVALID_SESSION_GROUP',
+      cause: error,
+    });
+  }
+  if (!isModelConfigured(definition, environment)) {
+    throw new AiServiceError(`Model ${definition.name} nie jest skonfigurowany na serwerze.`, {
+      status: 503, code: 'AI_MODEL_NOT_CONFIGURED',
+    });
+  }
+
+  const adapter = providerAdapters[definition.provider];
+  const openAiSessionProfile = definition.provider === 'openai'
+    ? {
+      maxOutputTokens: 32_000,
+      reasoningEffort: 'high',
+      logger,
+    }
+    : {};
+  const analysis = await adapter({
+    modelId: definition.id,
+    apiKey: environment[definition.environmentKey],
+    prompt: buildSessionGroupAnalysisPrompt(validatedGroup),
+    schema: definition.provider === 'gemini'
+      ? sessionGroupAnalysisGeminiResponseSchema
+      : sessionGroupAnalysisResponseSchema,
+    schemaName: 'poker_session_group_analysis',
+    fetchImpl,
+    ...openAiSessionProfile,
+  });
+  let validatedAnalysis;
+  try {
+    validatedAnalysis = validateSessionGroupAnalysis(analysis, validatedGroup);
+  } catch (error) {
+    throw new AiServiceError(error.message, {
+      status: 422, code: 'AI_INVALID_SESSION_GROUP_RESPONSE', cause: error,
+    });
+  }
+  return {
+    model: getPublicAiModel(definition),
+    fingerprint: validatedGroup.fingerprint,
     analysis: validatedAnalysis,
   };
 };

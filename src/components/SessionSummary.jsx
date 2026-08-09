@@ -216,6 +216,7 @@ export const SessionSummary = ({
     ? 'border-amber-200 bg-white text-amber-800'
     : 'border-indigo-200 bg-white text-indigo-800';
   const winrate = formatWinrate(metrics);
+  const hasSeparatedMixedResults = metrics.gameType === 'mixed' && resultBreakdown;
 
   return (
     <div data-testid="session-summary" className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
@@ -283,18 +284,18 @@ export const SessionSummary = ({
           <PercentageCard metricId="wsd" metric={metrics.showdown.wsd} accent={accent}/>
           {resultBreakdown ? (
             <>
-              <ResultBreakdownCards
+              {resultBreakdown.cash?.hands > 0 && <ResultBreakdownCards
                 label="Cash"
                 metrics={resultBreakdown.cash}
                 gameType="cash"
                 accent={accent}
-              />
-              <ResultBreakdownCards
+              />}
+              {resultBreakdown.tournament?.hands > 0 && <ResultBreakdownCards
                 label="Turnieje"
                 metrics={resultBreakdown.tournament}
                 gameType="tournament"
                 accent={accent}
-              />
+              />}
             </>
           ) : null}
           <MetricCard
@@ -305,6 +306,8 @@ export const SessionSummary = ({
             sample={`${metrics.hands} rozdań`}
             accent={accent}
           />
+          {!hasSeparatedMixedResults && (
+            <>
           <MetricCard
             label="Wynik netto"
             value={formatProfit(metrics.totalProfit, metrics.gameType)}
@@ -325,6 +328,8 @@ export const SessionSummary = ({
             sample={`${metrics.winrate?.numerator ?? '—'} / ${metrics.winrate?.denominator ?? 0}`}
             accent={accent}
           />
+            </>
+          )}
         </SummarySection>
       </div>
     </div>

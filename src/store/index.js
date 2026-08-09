@@ -1,5 +1,46 @@
-import { configureStore } from '@reduxjs/toolkit';
-import pokerReducer, { syncLocalSources, uploadHandHistory } from './pokerSlice.js';
+import { configureStore, createListenerMiddleware } from '@reduxjs/toolkit';
+import pokerReducer, {
+  analyzeHandWithAI,
+  analyzeSessionGroupWithAI,
+  analyzeSessionWithAI,
+  getMergedSessionIds,
+  removeSource,
+  syncAiAnalyses,
+  syncLocalSources,
+  toggleSource,
+  uploadHandHistory,
+} from './pokerSlice.js';
+
+const aiCacheListener = createListenerMiddleware();
+const syncSharedAiCache = async (_action, listenerApi, sessionIds = []) => {
+  await listenerApi.dispatch(syncAiAnalyses({ sessionIds }));
+};
+
+[
+  analyzeHandWithAI.fulfilled,
+  analyzeSessionWithAI.fulfilled,
+  analyzeSessionGroupWithAI.fulfilled,
+].forEach((actionCreator) => {
+  aiCacheListener.startListening({
+    actionCreator,
+    effect: syncSharedAiCache,
+  });
+});
+
+[
+  uploadHandHistory,
+  toggleSource,
+  removeSource,
+  syncLocalSources.fulfilled,
+].forEach((actionCreator) => {
+  aiCacheListener.startListening({
+    actionCreator,
+    effect: async (_action, listenerApi) => {
+      const sessionIds = getMergedSessionIds(listenerApi.getState().poker.tournaments);
+      if (sessionIds.length > 0) await syncSharedAiCache(_action, listenerApi, sessionIds);
+    },
+  });
+});
 
 export const store = configureStore({
   reducer: {
@@ -14,5 +55,5 @@ export const store = configureStore({
       // przechodzenie przez kontrolę serializowalności nie daje nam żadnej wartości.
       ignoredActions: [uploadHandHistory.type, syncLocalSources.fulfilled.type],
     },
-  }),
+  }).prepend(aiCacheListener.middleware),
 });

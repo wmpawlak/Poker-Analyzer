@@ -46,6 +46,7 @@ test('nowy widok profilu renderuje zakres dat, pełne podsumowanie i osobne wyni
   assert.match(html, /data-testid="profile-view"/);
   assert.match(html, /data-testid="profile-date-from"/);
   assert.match(html, /data-testid="profile-date-to"/);
+  assert.doesNotMatch(html, /Analiza wielu sesji/);
   assert.match(html, /Wyczyść zakres/);
   assert.match(html, /Raport profilu Hero/);
   assert.match(html, /Preflop/);

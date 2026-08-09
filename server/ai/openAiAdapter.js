@@ -1,4 +1,5 @@
 import { AiServiceError, parseAnalysisJson, readUpstreamJson } from './errors.js';
+import { configureSystemCertificates } from '../systemCertificates.js';
 
 const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses';
 const DEFAULT_POLL_INTERVAL_MS = 2_000;
@@ -118,6 +119,10 @@ const throwForTerminalStatus = (data) => {
 };
 
 const fetchOpenAiJson = async ({ url, options, fetchImpl, operation }) => {
+  // Keep direct adapter usage safe as well as the normal server entrypoint.
+  // This is important on Windows/Node installations whose default CA bundle
+  // does not include the system trust store.
+  configureSystemCertificates();
   let response;
   try {
     response = await fetchImpl(url, options);

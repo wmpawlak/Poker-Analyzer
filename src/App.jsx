@@ -1,11 +1,20 @@
 // src/App.jsx
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchAiModels, syncLocalSources, uploadHandHistory } from './store/pokerSlice.js';
+import {
+  fetchAiModels,
+  selectSession,
+  selectTourney,
+  syncAiAnalyses,
+  syncLocalSources,
+  uploadHandHistory,
+} from './store/pokerSlice.js';
 import { usePokerMetrics } from './hooks/usePokerMetrics.js';
+import { buildSessionGroupCandidates } from './utils/sessionGroupCandidates.js';
 
 import { Sidebar } from './components/Sidebar.jsx';
 import { ProfileView, OpponentsView } from './views/ProfileViews.jsx';
+import { SessionGroupAnalysisView } from './components/SessionGroupAnalysisView.jsx';
 import { CashView } from './views/CashView.jsx';
 import { TournamentsView } from './views/TournamentsView.jsx';
 import { CardsView } from './views/CardsView.jsx';
@@ -13,19 +22,46 @@ import { WalletView, SourcesView, SettingsView } from './views/MiscViews.jsx';
 import { ReplayerModal } from './components/replayer/ReplayerModal.jsx';
 import { Upload } from 'lucide-react';
 
+const TAB_LABELS = {
+  profile: 'Mój profil',
+  'session-group-analysis': 'Analiza wielu sesji',
+  opponents: 'Przeciwnicy',
+  cash: 'Gry Cash',
+  tournaments: 'Turnieje',
+  cards: 'Karty startowe',
+  wallet: 'Wykresy i zyski',
+  sources: 'Wgrane pliki',
+  settings: 'Ustawienia AI',
+};
+
 export default function App() {
   const dispatch = useDispatch();
-  const { localSourcesStatus, localSourcesError } = useSelector((state) => state.poker);
+  const {
+    localSourcesStatus,
+    localSourcesError,
+    sessions,
+    tournaments,
+    sessionAiAnalyses,
+    sessionGroupAiAnalyses,
+    sharedAiAnalysesStatus,
+    sharedAiAnalysesError,
+  } = useSelector((state) => state.poker);
   
   // Stany UI
   const [activeTab, setActiveTab] = useState('profile'); 
   const [gameTypeFilter, setGameTypeFilter] = useState('both'); 
+  const [sessionGroupGameType, setSessionGroupGameType] = useState('both');
+  const [sessionGroupDateFrom, setSessionGroupDateFrom] = useState('');
+  const [sessionGroupDateTo, setSessionGroupDateTo] = useState('');
+  const [sessionGroupSelectedSourceIds, setSessionGroupSelectedSourceIds] = useState([]);
+  const [sessionGroupSelectedReportId, setSessionGroupSelectedReportId] = useState(null);
   const [modalHandId, setModalHandId] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragCounter = useRef(0);
 
   useEffect(() => {
     dispatch(syncLocalSources());
+    dispatch(syncAiAnalyses());
     dispatch(fetchAiModels());
   }, [dispatch]);
 
@@ -36,6 +72,47 @@ export default function App() {
     tournamentHands,
     opponentsMetrics,
   } = usePokerMetrics(gameTypeFilter);
+
+  const sessionGroupCandidateIds = useMemo(() => new Set(
+    buildSessionGroupCandidates({
+      sessions,
+      tournaments,
+      sessionAiAnalyses,
+      gameType: sessionGroupGameType,
+      dateFrom: sessionGroupDateFrom,
+      dateTo: sessionGroupDateTo,
+    }).candidates.map((candidate) => candidate.sourceId),
+  ), [
+    sessions,
+    tournaments,
+    sessionAiAnalyses,
+    sessionGroupGameType,
+    sessionGroupDateFrom,
+    sessionGroupDateTo,
+  ]);
+
+  const sessionGroupReportIds = useMemo(() => new Set(
+    (Array.isArray(sessionGroupAiAnalyses) ? sessionGroupAiAnalyses : [])
+      .map((report) => report?.reportId)
+      .filter(Boolean),
+  ), [sessionGroupAiAnalyses]);
+
+  useEffect(() => {
+    // The selection mirrors the current candidate domain while remaining in App across tab changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSessionGroupSelectedSourceIds((previous) => {
+      const next = previous.filter((sourceId) => sessionGroupCandidateIds.has(sourceId));
+      return next.length === previous.length ? previous : next;
+    });
+  }, [sessionGroupCandidateIds]);
+
+  useEffect(() => {
+    // The selected report must not point at a report removed from Redux history.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSessionGroupSelectedReportId((previous) => (
+      previous && sessionGroupReportIds.has(previous) ? previous : null
+    ));
+  }, [sessionGroupReportIds]);
 
   // Drag & Drop
   const handleDragEnter = (e) => { e.preventDefault(); e.stopPropagation(); dragCounter.current += 1; setIsDragging(true); };
@@ -52,6 +129,16 @@ export default function App() {
       }));
       reader.readAsText(file);
     }
+  };
+
+  const openAnalysisSourceSession = ({ type, sessionId }) => {
+    if (type === 'tournament') {
+      dispatch(selectTourney(sessionId));
+      setActiveTab('tournaments');
+      return;
+    }
+    dispatch(selectSession(sessionId));
+    setActiveTab('cash');
   };
 
   return (
@@ -72,10 +159,10 @@ export default function App() {
 
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      <main className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 relative">
+      <main className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-slate-50">
         <header className="bg-white border-b border-gray-200 px-8 py-5 flex justify-between items-center shadow-sm z-10 shrink-0">
           <div className="flex items-center gap-6">
-            <h2 className="text-2xl font-bold text-gray-800 capitalize">Zakładka: {activeTab}</h2>
+            <h2 className="text-2xl font-bold text-gray-800">Zakładka: {TAB_LABELS[activeTab] || activeTab}</h2>
             {['profile', 'opponents', 'cards'].includes(activeTab) && (
               <div className="flex bg-slate-100 p-1 rounded-xl border border-gray-200">
                 <button onClick={() => setGameTypeFilter('both')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${gameTypeFilter === 'both' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>Wszystko</button>
@@ -112,13 +199,39 @@ export default function App() {
             Nie udało się wczytać danych lokalnych: {localSourcesError} Możesz nadal wgrywać pliki ręcznie.
           </div>
         )}
+        {sharedAiAnalysesStatus === 'failed' && (
+          <div role="alert" className="bg-amber-50 border-b border-amber-200 px-8 py-2 text-sm text-amber-900">
+            Raporty AI są zachowane lokalnie, ale nie udało się zapisać ich w repozytoryjnym cache: {sharedAiAnalysesError}
+          </div>
+        )}
 
-        <div className="flex-1 overflow-auto p-6 scrollbar-thin">
+        <div className="h-full min-h-0 flex-1 overflow-auto p-6 scrollbar-thin">
           {activeTab === 'profile' && (
             <ProfileView
               cashHands={cashHands}
               tournamentHands={tournamentHands}
               gameTypeFilter={gameTypeFilter}
+            />
+          )}
+          {activeTab === 'session-group-analysis' && (
+            <SessionGroupAnalysisView
+              gameType={sessionGroupGameType}
+              onGameTypeChange={setSessionGroupGameType}
+              dateFrom={sessionGroupDateFrom}
+              dateTo={sessionGroupDateTo}
+              onDateFromChange={setSessionGroupDateFrom}
+              onDateToChange={setSessionGroupDateTo}
+              onClearDateRange={() => {
+                setSessionGroupDateFrom('');
+                setSessionGroupDateTo('');
+              }}
+              selectedSourceIds={sessionGroupSelectedSourceIds}
+              onSelectedSourceIdsChange={setSessionGroupSelectedSourceIds}
+              selectedReportId={sessionGroupSelectedReportId}
+              onSelectedReportIdChange={setSessionGroupSelectedReportId}
+              onBack={() => setActiveTab('profile')}
+              onHandClick={setModalHandId}
+              onOpenSession={openAnalysisSourceSession}
             />
           )}
           {activeTab === 'opponents' && <OpponentsView opponentsMetrics={opponentsMetrics} />}

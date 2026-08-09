@@ -23,6 +23,8 @@ class MemoryStorage {
 const storage = new MemoryStorage();
 globalThis.localStorage = storage;
 
+const { buildSessionAnalysisInput } = await import('../src/ai/sessionAnalysisContract.js');
+
 const {
   AI_ANALYSES_CACHE_KEY,
   AI_DEFAULT_MODEL_CACHE_KEY,
@@ -31,15 +33,19 @@ const {
   LEGACY_V3_AI_ANALYSES_CACHE_KEY,
   SAVED_HANDS_CACHE_KEY,
   SESSION_AI_ANALYSES_CACHE_KEY,
+  SESSION_GROUP_AI_ANALYSES_CACHE_KEY,
   analyzeHandWithAI,
+  analyzeSessionGroupWithAI,
   analyzeSessionWithAI,
   clearData,
   default: pokerReducer,
   loadAiAnalyses,
   loadDefaultAiModel,
   loadSavedHandIds,
+  loadSessionGroupAiAnalyses,
   loadSessionAiAnalyses,
   setDefaultAiModel,
+  syncAiAnalyses,
   toggleSavedHand,
 } = await import('../src/store/pokerSlice.js');
 
@@ -56,6 +62,36 @@ const analysis = {
   turn: '',
   river: '',
   summary: 'Raport',
+};
+
+const makeGroupSource = (sessionId, startTime) => {
+  const hands = [
+    { id: `${sessionId}-1`, timestamp: startTime, netProfit: 1, outcome: 'WON', heroWinnings: 2, heroInvestment: 1, handRanking: 'PAIR', streets: [] },
+    { id: `${sessionId}-2`, timestamp: startTime + 1, netProfit: -2, outcome: 'LOST', heroWinnings: 0, heroInvestment: 2, handRanking: 'PAIR', streets: [] },
+  ];
+  const fingerprint = buildSessionAnalysisInput({ sessionId, hands, gameType: 'cash' }).fingerprint;
+  return {
+    sourceId: `cash:${sessionId}`,
+    type: 'cash',
+    sessionId,
+    startTime,
+    date: '2026-08-08 12:00:00',
+    label: `Stół ${sessionId}`,
+    hands,
+    sessionFingerprint: fingerprint,
+    report: {
+      reportId: `report-${sessionId}`,
+      fingerprint,
+      model: { id: 'gpt-5.6-terra', name: 'GPT-5.6 Terra' },
+      analyzedAt: '2026-08-08T12:00:00.000Z',
+      analysis: {
+        profileStyleId: 'INSUFFICIENT',
+        sessionSummary: 'Pierwsze zdanie. Drugie zdanie.',
+        keyMistakes: [],
+        notableHands: [{ handId: `${sessionId}-2`, reason: 'Największy swing.' }],
+      },
+    },
+  };
 };
 
 test('domyślnym modelem jest Terra, a prawidłowy wybór jest zapamiętywany', () => {
@@ -215,6 +251,81 @@ test('thunk używa aktualnego modelu domyślnego i zapisuje model z odpowiedzi',
   }
 });
 
+test('synchronizacja scala lokalne raporty z repozytoryjnym cache bez wywołania dostawcy AI', async () => {
+  const initialState = pokerReducer(undefined, { type: '@@init' });
+  const localHandReport = {
+    reportId: 'local-hand-report',
+    model: { id: 'gpt-5.6-sol', name: 'GPT-5.6 Sol' },
+    analyzedAt: '2026-08-09T10:00:00.000Z',
+    analysis: { summary: 'Lokalny raport.' },
+  };
+  const remoteHandReport = {
+    reportId: 'remote-hand-report',
+    model: { id: 'gpt-5.6-terra', name: 'GPT-5.6 Terra' },
+    analyzedAt: '2026-08-09T09:00:00.000Z',
+    analysis: { summary: 'Raport z repozytorium.' },
+  };
+  const preloadedState = {
+    poker: {
+      ...initialState,
+      aiAnalyses: { '96890300082': [localHandReport] },
+      sessionAiAnalyses: {
+        'session-local': [{
+          reportId: 'local-session-report',
+          model: { id: 'gpt-5.6-sol', name: 'GPT-5.6 Sol' },
+          analyzedAt: '2026-08-09T10:00:00.000Z',
+          fingerprint: 'local-fingerprint',
+          analysis: { summary: 'Lokalna sesja.' },
+        }],
+      },
+      sessionGroupAiAnalyses: [{
+        reportId: 'local-group-report',
+        fingerprint: 'local-group-fingerprint',
+        analysis: { summary: 'Lokalna grupa.' },
+      }],
+    },
+  };
+  const store = configureStore({
+    reducer: { poker: pokerReducer },
+    preloadedState,
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware({ serializableCheck: false }),
+  });
+  const originalFetch = globalThis.fetch;
+  const requests = [];
+  const remoteCache = {
+    version: 1,
+    updatedAt: null,
+    handAnalyses: { '96890300082': [remoteHandReport] },
+    sessionAnalyses: {},
+    sessionGroupAnalyses: [],
+  };
+  globalThis.fetch = async (url, options) => {
+    requests.push({ url, options });
+    const body = options?.body ? JSON.parse(options.body) : null;
+    const cache = url === '/api/ai-analyses' ? remoteCache : body.cache;
+    return new Response(JSON.stringify({ cache }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  };
+
+  try {
+    const result = await store.dispatch(syncAiAnalyses());
+    assert.equal(result.type, syncAiAnalyses.fulfilled.type);
+    assert.equal(requests.length, 2);
+    assert.equal(requests[0].url, '/api/ai-analyses');
+    assert.equal(requests[1].url, '/api/ai-analyses/sync');
+    const body = JSON.parse(requests[1].options.body);
+    assert.equal(body.cache.handAnalyses['96890300082'].length, 2);
+    assert.equal(store.getState().poker.aiAnalyses['96890300082'].length, 2);
+    assert.equal(store.getState().poker.sessionAiAnalyses['session-local'].length, 1);
+    assert.equal(store.getState().poker.sessionGroupAiAnalyses.length, 1);
+    assert.equal(JSON.parse(storage.getItem(AI_ANALYSES_CACHE_KEY))['96890300082'].length, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('analiza sesji zapisuje historię pod ID z odpowiedzi, mimo zmiany zaznaczenia', async () => {
   const initialState = pokerReducer(undefined, { type: '@@init' });
   const hands = [
@@ -327,11 +438,101 @@ test('błąd analizy sesji bez kodu API zachowuje komunikat dla starszego serwer
   }
 });
 
+test('analiza wielu sesji odrzuca raport z innym fingerprintem i nie zapisuje historii', async () => {
+  storage.removeItem(SESSION_GROUP_AI_ANALYSES_CACHE_KEY);
+  const initialState = pokerReducer(undefined, { type: '@@init' });
+  const sourceA = makeGroupSource('cash-a', 1);
+  const sourceB = makeGroupSource('cash-b', 3);
+  const sourceState = {
+    sessions: [sourceA, sourceB].map((source) => ({
+      id: source.sessionId,
+      tableId: source.sessionId,
+      startTime: source.startTime,
+      dateStr: source.date,
+      hands: source.hands,
+    })),
+    tournaments: [],
+    sessionAiAnalyses: Object.fromEntries([sourceA, sourceB].map((source) => [source.sessionId, [source.report]])),
+  };
+  const store = configureStore({
+    reducer: { poker: pokerReducer },
+    preloadedState: { poker: { ...initialState, ...sourceState, defaultAiModel: 'gpt-5.6-terra' } },
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware({ serializableCheck: false }),
+  });
+  const originalFetch = globalThis.fetch;
+  let fetchCalls = 0;
+  globalThis.fetch = async () => {
+    fetchCalls += 1;
+    return new Response(JSON.stringify({
+      model: { id: 'gpt-5.6-terra', name: 'GPT-5.6 Terra' },
+      fingerprint: 'other-selection',
+      analysis: { summary: 'Nie powinien zostać zapisany.' },
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+
+  try {
+    const result = await store.dispatch(analyzeSessionGroupWithAI({
+      sourceIds: [sourceA.sourceId, sourceB.sourceId],
+      activeCategory: 'cash',
+      dateRange: { from: '', to: '' },
+    }));
+    assert.equal(result.type, analyzeSessionGroupWithAI.rejected.type);
+    assert.equal(fetchCalls, 1);
+    assert.deepEqual(result.meta.arg, {
+      sourceIds: [sourceA.sourceId, sourceB.sourceId],
+      activeCategory: 'cash',
+      dateRange: { from: '', to: '' },
+    });
+    assert.equal(JSON.stringify(result.meta.arg).includes('hands'), false);
+    assert.match(result.payload.message, /innego wyboru sesji/);
+    assert.deepEqual(store.getState().poker.sessionGroupAiAnalyses, []);
+    assert.equal(storage.getItem(SESSION_GROUP_AI_ANALYSES_CACHE_KEY), null);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('thunk analizy wielu sesji odrzuca nieaktualne sourceIds przed wywołaniem API', async () => {
+  const initialState = pokerReducer(undefined, { type: '@@init' });
+  const store = configureStore({
+    reducer: { poker: pokerReducer },
+    preloadedState: { poker: { ...initialState, defaultAiModel: 'gpt-5.6-terra' } },
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware({ serializableCheck: false }),
+  });
+  const originalFetch = globalThis.fetch;
+  let fetchCalls = 0;
+  globalThis.fetch = async () => {
+    fetchCalls += 1;
+    return new Response('{}', { status: 500 });
+  };
+
+  try {
+    const result = await store.dispatch(analyzeSessionGroupWithAI({
+      sourceIds: ['cash:missing-a', 'cash:missing-b'],
+      activeCategory: 'cash',
+      dateRange: { from: '', to: '' },
+    }));
+    assert.equal(result.type, analyzeSessionGroupWithAI.rejected.type);
+    assert.equal(fetchCalls, 0);
+    assert.match(result.payload.message, /nie są już dostępne/);
+    assert.deepEqual(store.getState().poker.sessionGroupAiAnalyses, []);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('cache raportów sesji jest niezależny i clearData go usuwa', () => {
   const sessionStorage = new MemoryStorage({
     [SESSION_AI_ANALYSES_CACHE_KEY]: JSON.stringify({ session: [{ reportId: 'old-report' }] }),
   });
   assert.deepEqual(loadSessionAiAnalyses(sessionStorage), { session: [{ reportId: 'old-report' }] });
+  const legacySessionStorage = new MemoryStorage({
+    [SESSION_AI_ANALYSES_CACHE_KEY]: JSON.stringify({ session: [{ analysis: { summary: 'Stara sesja.' } }] }),
+  });
+  assert.equal(
+    loadSessionAiAnalyses(legacySessionStorage, '2026-08-09T12:00:00.000Z').session[0].reportId,
+    'legacy-session-v1-session-1',
+  );
   let state = pokerReducer(undefined, { type: '@@init' });
   state = pokerReducer(state, analyzeSessionWithAI.fulfilled({
     sessionId: 'session', reportId: 'report-1', model: { id: 'gpt-5.6-terra', name: 'GPT-5.6 Terra' },
@@ -340,4 +541,52 @@ test('cache raportów sesji jest niezależny i clearData go usuwa', () => {
   state = pokerReducer(state, clearData());
   assert.deepEqual(state.sessionAiAnalyses, {});
   assert.equal(storage.getItem(SESSION_AI_ANALYSES_CACHE_KEY), null);
+});
+
+test('historia analizy wielu sesji jest niezależna, nie zapisuje błędu i clearData ją usuwa', () => {
+  storage.removeItem(SESSION_GROUP_AI_ANALYSES_CACHE_KEY);
+  const groupStorage = new MemoryStorage({
+    [SESSION_GROUP_AI_ANALYSES_CACHE_KEY]: JSON.stringify([{ reportId: 'old-group' }]),
+  });
+  assert.deepEqual(loadSessionGroupAiAnalyses(groupStorage), [{ reportId: 'old-group' }]);
+  const legacyGroupStorage = new MemoryStorage({
+    [SESSION_GROUP_AI_ANALYSES_CACHE_KEY]: JSON.stringify([{ analysis: { summary: 'Stara grupa.' } }]),
+  });
+  assert.equal(
+    loadSessionGroupAiAnalyses(legacyGroupStorage, '2026-08-09T12:00:00.000Z')[0].reportId,
+    'legacy-session-group-v1-1',
+  );
+
+  let state = pokerReducer(undefined, { type: '@@init' });
+  state = pokerReducer(state, analyzeSessionGroupWithAI.fulfilled({
+    reportId: 'group-1',
+    model: { id: 'gpt-5.6-terra', name: 'GPT-5.6 Terra' },
+    analyzedAt: '2026-08-08T12:00:00.000Z',
+    activeCategory: 'both',
+    dateRange: { from: '', to: '' },
+    sources: [{ sourceId: 'cash:one', sessionFingerprint: 'one', reportFingerprint: 'one', reportId: 'report-one' }],
+    sessionCount: 2,
+    handCount: 20,
+    categoryBreakdown: { cash: { sessions: 2, hands: 20 }, tournament: { sessions: 0, hands: 0 } },
+    fingerprint: 'group-fingerprint',
+    analysis: { summary: 'Raport.' },
+  }, 'request-group', {}));
+
+  assert.equal(state.sessionGroupAiAnalyses.length, 1);
+  assert.equal(state.sessionGroupAnalysisStatus, 'succeeded');
+  assert.equal(JSON.parse(storage.getItem(SESSION_GROUP_AI_ANALYSES_CACHE_KEY))[0].reportId, 'group-1');
+
+  state = pokerReducer(state, {
+    type: analyzeSessionGroupWithAI.rejected.type,
+    payload: { message: 'Raport niepełny.', code: 'AI_INCOMPLETE_RESPONSE' },
+    meta: { arg: {} },
+  });
+  assert.equal(state.sessionGroupAiAnalyses.length, 1);
+  assert.deepEqual(state.sessionGroupAnalysisError, {
+    message: 'Raport niepełny.', code: 'AI_INCOMPLETE_RESPONSE',
+  });
+
+  state = pokerReducer(state, clearData());
+  assert.deepEqual(state.sessionGroupAiAnalyses, []);
+  assert.equal(storage.getItem(SESSION_GROUP_AI_ANALYSES_CACHE_KEY), null);
 });

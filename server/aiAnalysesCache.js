@@ -1,0 +1,209 @@
+import path from 'node:path';
+import process from 'node:process';
+import { Buffer } from 'node:buffer';
+import { promises as fs } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+const serverDirectory = path.dirname(fileURLToPath(import.meta.url));
+export const DEFAULT_DATA_DIRECTORY = path.resolve(serverDirectory, '..', 'data');
+export const AI_ANALYSES_CACHE_FILENAME = 'poker-ai-analyses-v1.json';
+export const AI_ANALYSES_CACHE_VERSION = 1;
+export const MAX_AI_ANALYSES_CACHE_BYTES = 10 * 1024 * 1024;
+
+const forbiddenKeys = new Set([
+  'rawtext',
+  'handhistory',
+  'hands',
+  'apikey',
+  'openaiapikey',
+  'geminiapikey',
+  'geminikey',
+  'authorization',
+  'secret',
+]);
+
+const isObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const cacheError = (message, code = 'AI_CACHE_INVALID') => {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+};
+
+const assertSafeReport = (value) => {
+  if (!isObject(value)) throw cacheError('Raport AI w cache ma nieprawidłowy format.');
+  const visit = (candidate) => {
+    if (Array.isArray(candidate)) {
+      candidate.forEach(visit);
+      return;
+    }
+    if (!isObject(candidate)) return;
+    Object.entries(candidate).forEach(([key, nestedValue]) => {
+      if (forbiddenKeys.has(key.replaceAll('_', '').toLowerCase())) {
+        throw cacheError('Cache AI nie może zawierać surowych historii ani sekretów.');
+      }
+      visit(nestedValue);
+    });
+  };
+  visit(value);
+};
+
+const clone = (value) => JSON.parse(JSON.stringify(value));
+
+const normalizeReportList = (reports, label) => {
+  if (!Array.isArray(reports)) throw cacheError(`Cache AI: pole ${label} musi być tablicą.`);
+  const seen = new Set();
+  return reports.filter((report) => {
+    assertSafeReport(report);
+    const reportId = typeof report.reportId === 'string' ? report.reportId.trim() : '';
+    if (!reportId) throw cacheError(`Cache AI: raport w polu ${label} nie ma reportId.`);
+    if (seen.has(reportId)) return false;
+    seen.add(reportId);
+    return true;
+  }).map(clone);
+};
+
+const normalizeReportMap = (reports, label) => {
+  if (!isObject(reports)) throw cacheError(`Cache AI: pole ${label} musi być obiektem.`);
+  return Object.fromEntries(Object.entries(reports).map(([key, value]) => [
+    key,
+    normalizeReportList(value, `${label}.${key}`),
+  ]));
+};
+
+export const createEmptyAiAnalysesCache = () => ({
+  version: AI_ANALYSES_CACHE_VERSION,
+  updatedAt: null,
+  handAnalyses: {},
+  sessionAnalyses: {},
+  sessionGroupAnalyses: [],
+});
+
+export const normalizeAiAnalysesCache = (value) => {
+  if (!isObject(value) || value.version !== AI_ANALYSES_CACHE_VERSION) {
+    throw cacheError('Cache AI ma nieobsługiwaną wersję formatu.');
+  }
+  if (value.updatedAt !== null && typeof value.updatedAt !== 'string') {
+    throw cacheError('Cache AI ma nieprawidłową datę aktualizacji.');
+  }
+  return {
+    version: AI_ANALYSES_CACHE_VERSION,
+    updatedAt: value.updatedAt || null,
+    handAnalyses: normalizeReportMap(value.handAnalyses, 'handAnalyses'),
+    sessionAnalyses: normalizeReportMap(value.sessionAnalyses, 'sessionAnalyses'),
+    sessionGroupAnalyses: normalizeReportList(value.sessionGroupAnalyses, 'sessionGroupAnalyses'),
+  };
+};
+
+const mergeReportLists = (left = [], right = []) => {
+  const merged = [];
+  const seen = new Set();
+  [...left, ...right].forEach((report) => {
+    const reportId = report.reportId;
+    if (seen.has(reportId)) return;
+    seen.add(reportId);
+    merged.push(clone(report));
+  });
+  return merged;
+};
+
+const mergeReportMaps = (left, right) => {
+  const keys = [...new Set([...Object.keys(left), ...Object.keys(right)])];
+  return Object.fromEntries(keys.map((key) => [
+    key,
+    mergeReportLists(left[key] || [], right[key] || []),
+  ]));
+};
+
+export const mergeAiAnalysesCaches = (left, right) => {
+  const normalizedLeft = normalizeAiAnalysesCache(left || createEmptyAiAnalysesCache());
+  const normalizedRight = normalizeAiAnalysesCache(right || createEmptyAiAnalysesCache());
+  return {
+    version: AI_ANALYSES_CACHE_VERSION,
+    updatedAt: normalizedRight.updatedAt || normalizedLeft.updatedAt || null,
+    handAnalyses: mergeReportMaps(normalizedLeft.handAnalyses, normalizedRight.handAnalyses),
+    sessionAnalyses: mergeReportMaps(normalizedLeft.sessionAnalyses, normalizedRight.sessionAnalyses),
+    sessionGroupAnalyses: mergeReportLists(
+      normalizedLeft.sessionGroupAnalyses,
+      normalizedRight.sessionGroupAnalyses,
+    ),
+  };
+};
+
+const getCachePath = (dataDirectory = DEFAULT_DATA_DIRECTORY) => {
+  const resolvedDirectory = path.resolve(dataDirectory);
+  const resolvedFile = path.resolve(resolvedDirectory, AI_ANALYSES_CACHE_FILENAME);
+  if (!resolvedFile.startsWith(`${resolvedDirectory}${path.sep}`)) {
+    throw cacheError('Plik cache znajduje się poza katalogiem danych.');
+  }
+  return resolvedFile;
+};
+
+export const readAiAnalysesCache = async (dataDirectory = DEFAULT_DATA_DIRECTORY) => {
+  const filePath = getCachePath(dataDirectory);
+  let text;
+  try {
+    const stats = await fs.stat(filePath);
+    if (stats.size > MAX_AI_ANALYSES_CACHE_BYTES) {
+      throw cacheError('Cache AI przekracza dopuszczalny rozmiar.', 'AI_CACHE_TOO_LARGE');
+    }
+    text = await fs.readFile(filePath, 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') return createEmptyAiAnalysesCache();
+    if (error.code === 'AI_CACHE_TOO_LARGE') throw error;
+    throw cacheError('Nie udało się odczytać cache analiz AI.', 'AI_CACHE_READ_FAILED');
+  }
+
+  try {
+    return normalizeAiAnalysesCache(JSON.parse(text));
+  } catch (error) {
+    if (error.code === 'AI_CACHE_INVALID') throw error;
+    throw cacheError('Cache AI nie zawiera prawidłowego JSON.', 'AI_CACHE_INVALID');
+  }
+};
+
+export const writeAiAnalysesCache = async (cache, dataDirectory = DEFAULT_DATA_DIRECTORY) => {
+  const normalized = normalizeAiAnalysesCache(cache);
+  const serialized = `${JSON.stringify(normalized, null, 2)}\n`;
+  const byteLength = Buffer.byteLength(serialized, 'utf8');
+  if (byteLength > MAX_AI_ANALYSES_CACHE_BYTES) {
+    throw cacheError('Cache AI przekracza dopuszczalny rozmiar.', 'AI_CACHE_TOO_LARGE');
+  }
+
+  const resolvedDirectory = path.resolve(dataDirectory);
+  const filePath = getCachePath(resolvedDirectory);
+  await fs.mkdir(resolvedDirectory, { recursive: true });
+  const temporaryPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  try {
+    await fs.writeFile(temporaryPath, serialized, 'utf8');
+    await fs.rename(temporaryPath, filePath);
+  } finally {
+    await fs.rm(temporaryPath, { force: true }).catch(() => {});
+  }
+  return normalized;
+};
+
+export const pruneAiAnalysesCache = (cache, sessionIds = []) => {
+  const normalized = normalizeAiAnalysesCache(cache);
+  const oldSessionIds = new Set(sessionIds.map((id) => String(id)).filter(Boolean));
+  if (oldSessionIds.size === 0) return normalized;
+
+  const referencesOldSession = (source) => {
+    const sessionId = String(source?.sessionId || '');
+    const sourceId = String(source?.sourceId || '');
+    return oldSessionIds.has(sessionId)
+      || [...oldSessionIds].some((oldId) => sourceId === oldId || sourceId.endsWith(`:${oldId}`));
+  };
+
+  return {
+    ...normalized,
+    sessionAnalyses: Object.fromEntries(
+      Object.entries(normalized.sessionAnalyses)
+        .filter(([sessionId]) => !oldSessionIds.has(sessionId)),
+    ),
+    sessionGroupAnalyses: normalized.sessionGroupAnalyses.filter((report) => ![
+      ...(Array.isArray(report?.sources) ? report.sources : []),
+      ...(Array.isArray(report?.sourceReports) ? report.sourceReports : []),
+    ].some(referencesOldSession)),
+  };
+};

@@ -52,6 +52,20 @@ Nie zapisuj prawdziwych kluczy w `.env.example`, kodzie, localStorage ani zrzuta
 
 ## Analizy i cache
 
+Raporty AI są przechowywane w dwóch warstwach. Przeglądarka zachowuje lokalną kopię zapasową, a backend synchronizuje wszystkie raporty do wersjonowanego pliku `data/poker-ai-analyses-v1.json`. Plik nie zawiera surowych historii rozdań, kluczy API ani sekretów.
+
+Przy uruchomieniu aplikacja scala raporty z `localStorage` i `data`, więc istniejące analizy są migrowane bez ponownego wywołania dostawcy AI. Nowe raporty oraz cleanup raportów scalonych sesji aktualizują plik w `data` automatycznie. Błąd synchronizacji nie usuwa lokalnej kopii i jest pokazywany w interfejsie.
+
+Plik cache jest zwykłym plikiem repozytorium. Po zakończeniu pracy należy dołączyć go do standardowego commita razem z historiami:
+
+```powershell
+git add data/poker-ai-analyses-v1.json data/*.txt
+git commit -m "Zapisz historie i raporty AI"
+git push
+```
+
+Aplikacja nie wykonuje automatycznie `git commit` ani `git push`. Jeśli dwie maszyny zmienią ten sam plik, konflikt rozwiązuje się jak zwykły konflikt Git; po rozwiązaniu uruchom aplikację i pozwól jej wykonać synchronizację cache.
+
 Przeglądarka zapisuje domyślny identyfikator modelu, historię raportów oraz ID zapisanych rąk. Nowa analiza jest dopisywana do historii danego rozdania. Cache v2 i v3 jest jednorazowo migrowany do v4; raporty z v2 są oznaczane jako wygenerowane przez Gemini 2.5 Flash.
 
 CoinPoker `SUMMARY` pozostaje źródłem prawdy dla ID rozdania, wyniku Hero, kwot i końcowego układu. Odpowiedź modelu jest odrzucana tylko wtedy, gdy błędnie podaje `WON`, `LOST` albo `FOLDED`.
@@ -63,6 +77,16 @@ W widoku Cash i Turnieje panel „Analiza AI sesji” tworzy ręcznie uruchamian
 Profile OpenAI są zależne od zakresu analizy: pojedyncze rozdanie używa `max_output_tokens: 8000` i `reasoning: high`, a cała sesja `max_output_tokens: 32000` i `reasoning: high`. Wartość `32000` jest maksymalnym budżetem generowania jednej odpowiedzi, a nie kosztem naliczanym z góry.
 
 Każde uruchomienie wykonuje najwyżej jeden potencjalnie płatny POST: aplikacja nie podejmuje automatycznych prób ponowienia, nie zmienia automatycznie modelu i nie zapisuje częściowego raportu. Gdy raport nie powstanie z powodu wyczerpania budżetu, ręczne „Spróbuj ponownie — nowe płatne żądanie” tworzy osobne, potencjalnie płatne żądanie. Długie analizy OpenAI działają w trybie background, dlatego po jednym POST-cie serwer odpytuje przez GET status tej samej odpowiedzi przez maksymalnie 15 minut. Tryb background wymaga zapisania odpowiedzi po stronie OpenAI na czas jej przetwarzania. Sesje poniżej 30 rozdań mogą być analizowane, ale panel wyraźnie ostrzega o ograniczonej wiarygodności. Wejście większe niż 1 500 000 bajtów jest odrzucane w całości — nigdy nie jest po cichu skracane ani próbkowane.
+
+### Analiza wielu sesji
+
+„Analiza wielu sesji” jest osobną zakładką sidebara o identyfikatorze `session-group-analysis`, niezależną od „Mojego profilu”. Desktopowy workspace ma lewą kolumnę filtrów, listy sesji i stałej akcji oraz prawy panel podglądu, historii i raportu; na węższym ekranie kolumny układają się pionowo, a lista ma ograniczoną wysokość. Lista pokazuje tylko sesje, dla których istnieje najnowszy raport zgodny z aktualnym odciskiem pełnych danych sesji. Wybór wymaga co najmniej dwóch różnych sesji.
+
+Typ gry, zakres dat, zaznaczone `sourceIds` i wybrany raport są przechowywane w `App`, więc przejście do sesji źródłowej albo innej zakładki nie traci pracy. Stan nie jest zapisywany po odświeżeniu strony. Zmiana filtrów lub danych usuwa wyłącznie niewidoczne identyfikatory, a usunięty raport historyczny czyści aktywny wybór.
+
+Przed uruchomieniem raportu aplikacja liczy lokalny wspólny profil stylu oraz osobne wyniki Cash i Turniejów. W próbce mieszanej nie tworzy wspólnej sumy pieniężnej ani wspólnego winrate: Cash pozostaje w walucie i BB/100, a Turnieje w żetonach i żetonach/100. Do modelu trafiają tylko aktualne raporty źródłowe, metadane sesji, lokalne metryki oraz identyfikatory rąk już cytowane przez raporty — nigdy surowe historie rozdań.
+
+Historia grupowych raportów jest zapisywana osobno jako `poker_ai_session_group_analyses_v1` i pozostaje dostępna w nagłówku prawego panelu. Każdy wpis przechowuje model, czas, kategorię, zakres dat, źródła, liczbę sesji i rąk, rozbicie Cash/Turnieje, odcisk oraz raport. Po udanej analizie nowy raport jest automatycznie wybierany. Historyczny wynik jest oznaczany jako nieaktualny, gdy bieżący wybór ma inny odcisk, źródłowa sesja lub jej aktualny raport się zmieni albo zniknie. Linki z wniosków prowadzą do dostępnych sesji i Replayera; niedostępne źródła i rozdania pozostają nieaktywne. Błąd i niepełna odpowiedź nie zmieniają historii. Ręczne uruchomienie wykonuje najwyżej jeden potencjalnie płatny POST; OpenAI używa `max_output_tokens: 32000` oraz `reasoning: high`, a ponowienie po niepełnej odpowiedzi jest wyraźnie opisane jako nowe potencjalnie płatne żądanie.
 
 ## Kontrole
 

@@ -13,9 +13,10 @@ loadLocalEnvironment(projectDirectory);
 configureSystemCertificates();
 const isProduction = process.argv.includes('--production');
 const port = Number.parseInt(process.env.PORT || '5173', 10);
+const dataDirectory = path.join(projectDirectory, 'data');
 
 const app = express();
-app.use(createApiApp());
+app.use(createApiApp({ dataDirectory }));
 
 if (isProduction) {
   const distDirectory = path.join(projectDirectory, 'dist');
@@ -32,5 +33,5 @@ if (isProduction) {
 
 app.listen(port, () => {
   console.log(`Poker Analyzer: http://localhost:${port}`);
-  console.log(`Tryb: ${isProduction ? 'production' : 'development'}, dane: ${path.join(projectDirectory, 'data')}`);
+  console.log(`Tryb: ${isProduction ? 'production' : 'development'}, dane: ${dataDirectory}`);
 });

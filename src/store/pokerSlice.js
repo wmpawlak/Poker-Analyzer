@@ -2,6 +2,17 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { parseRawHandHistory, buildSessions, buildTourneySessions } from '../parser/pokerParser.js';
 import { buildSessionAnalysisInput } from '../ai/sessionAnalysisContract.js';
+import {
+  buildSessionGroupAnalysisInput,
+  validateSessionGroupAnalysis,
+} from '../ai/sessionGroupAnalysisContract.js';
+import {
+  applyAiAnalysesCache,
+  buildAiAnalysesCache,
+  mergeAiAnalysesCaches,
+  normalizeAiAnalysesCache,
+} from '../ai/aiAnalysesCache.js';
+import { buildSessionGroupCandidates } from '../utils/sessionGroupCandidates.js';
 
 export const AI_ANALYSES_CACHE_KEY = 'poker_ai_analyses_v4';
 export const LEGACY_V3_AI_ANALYSES_CACHE_KEY = 'poker_ai_analyses_v3';
@@ -9,6 +20,7 @@ export const LEGACY_AI_ANALYSES_CACHE_KEY = 'poker_ai_analyses_v2';
 export const AI_DEFAULT_MODEL_CACHE_KEY = 'poker_ai_default_model';
 export const SAVED_HANDS_CACHE_KEY = 'poker_saved_hands_v1';
 export const SESSION_AI_ANALYSES_CACHE_KEY = 'poker_ai_session_analyses_v1';
+export const SESSION_GROUP_AI_ANALYSES_CACHE_KEY = 'poker_ai_session_group_analyses_v1';
 export const DEFAULT_AI_MODEL = 'gpt-5.6-terra';
 export const AI_MODEL_CATALOG = [
   { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
@@ -84,6 +96,62 @@ export const syncLocalSources = createAsyncThunk(
   },
   {
     condition: (_, { getState }) => getState().poker.localSourcesStatus !== 'loading',
+  },
+);
+
+const buildCurrentAiAnalysesCache = (state) => buildAiAnalysesCache({
+  aiAnalyses: state.aiAnalyses,
+  sessionAiAnalyses: state.sessionAiAnalyses,
+  sessionGroupAiAnalyses: state.sessionGroupAiAnalyses,
+});
+
+const readAiCacheResponse = async (response, fallbackMessage) => {
+  if (!response.ok) throw new Error(await getResponseError(response, fallbackMessage));
+  const body = await response.json();
+  const cache = normalizeAiAnalysesCache(body?.cache);
+  if (!cache) throw new Error('Serwer zwrócił nieprawidłowy wspólny cache analiz AI.');
+  return cache;
+};
+
+export const syncAiAnalyses = createAsyncThunk(
+  'poker/syncAiAnalyses',
+  async ({ sessionIds = [] } = {}, { getState, rejectWithValue }) => {
+    try {
+      const localCache = buildCurrentAiAnalysesCache(getState().poker);
+      const remoteResponse = await fetch('/api/ai-analyses');
+      const remoteCache = await readAiCacheResponse(
+        remoteResponse,
+        'Nie udało się odczytać wspólnego cache analiz AI.',
+      );
+      const mergedCache = mergeAiAnalysesCaches(remoteCache, localCache);
+      const syncResponse = await fetch('/api/ai-analyses/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cache: mergedCache }),
+      });
+      let cache = await readAiCacheResponse(
+        syncResponse,
+        'Nie udało się zapisać wspólnego cache analiz AI.',
+      );
+
+      const mergedSessionIds = Array.isArray(sessionIds)
+        ? sessionIds.map(String).filter(Boolean)
+        : [];
+      if (mergedSessionIds.length > 0) {
+        const pruneResponse = await fetch('/api/ai-analyses/prune', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionIds: [...new Set(mergedSessionIds)] }),
+        });
+        cache = await readAiCacheResponse(
+          pruneResponse,
+          'Nie udało się usunąć nieaktualnych raportów AI ze wspólnego cache.',
+        );
+      }
+      return cache;
+    } catch (error) {
+      return rejectWithValue(error.message || 'Nie udało się zsynchronizować raportów AI.');
+    }
   },
 );
 
@@ -182,10 +250,30 @@ export const loadSavedHandIds = (storage = localStorage) => {
 export const loadSessionAiAnalyses = (storage = localStorage) => {
   const cached = parseStoredObject(storage.getItem(SESSION_AI_ANALYSES_CACHE_KEY));
   if (!cached) return {};
-  return Object.fromEntries(Object.entries(cached).map(([sessionId, reports]) => [
+  const normalized = Object.fromEntries(Object.entries(cached).map(([sessionId, reports]) => [
     sessionId,
-    Array.isArray(reports) ? reports.filter((report) => report && typeof report === 'object') : [],
+    (Array.isArray(reports) ? reports : [])
+      .filter((report) => report && typeof report === 'object')
+      .map((report, index) => ({
+        ...report,
+        reportId: report.reportId || `legacy-session-v1-${sessionId}-${index + 1}`,
+      })),
   ]));
+  storage.setItem(SESSION_AI_ANALYSES_CACHE_KEY, JSON.stringify(normalized));
+  return normalized;
+};
+
+export const loadSessionGroupAiAnalyses = (storage = localStorage) => {
+  const cached = parseStoredArray(storage.getItem(SESSION_GROUP_AI_ANALYSES_CACHE_KEY));
+  if (!cached) return [];
+  const normalized = cached
+    .filter((report) => report && typeof report === 'object')
+    .map((report, index) => ({
+      ...report,
+      reportId: report.reportId || `legacy-session-group-v1-${index + 1}`,
+    }));
+  storage.setItem(SESSION_GROUP_AI_ANALYSES_CACHE_KEY, JSON.stringify(normalized));
+  return normalized;
 };
 
 export const fetchAiModels = createAsyncThunk(
@@ -285,6 +373,86 @@ export const analyzeSessionWithAI = createAsyncThunk(
     condition: ({ sessionId }, { getState }) => getState().poker.sessionAnalysisStatusById[sessionId] !== 'loading',
   },
 );
+
+export const analyzeSessionGroupWithAI = createAsyncThunk(
+  'poker/analyzeSessionGroup',
+  async ({ sourceIds, activeCategory, dateRange }, { getState, rejectWithValue }) => {
+    try {
+      const state = getState().poker;
+      const requestedSourceIds = Array.isArray(sourceIds) ? sourceIds.map((sourceId) => String(sourceId)) : [];
+      const uniqueSourceIds = [...new Set(requestedSourceIds)];
+      if (uniqueSourceIds.length < 2 || uniqueSourceIds.length !== requestedSourceIds.length) {
+        throw new Error('Analiza wielu sesji wymaga co najmniej dwóch różnych sesji.');
+      }
+      const candidateResult = buildSessionGroupCandidates({
+        sessions: state.sessions,
+        tournaments: state.tournaments,
+        sessionAiAnalyses: state.sessionAiAnalyses,
+        gameType: activeCategory,
+        dateFrom: dateRange?.from || '',
+        dateTo: dateRange?.to || '',
+      });
+      const requestedIdSet = new Set(uniqueSourceIds);
+      const sources = candidateResult.candidates.filter((candidate) => requestedIdSet.has(candidate.sourceId));
+      if (sources.length !== uniqueSourceIds.length) {
+        throw new Error('Wybrane sesje lub ich aktualne raporty nie są już dostępne. Odśwież wybór przed analizą.');
+      }
+      const group = buildSessionGroupAnalysisInput({
+        sources,
+        activeCategory: candidateResult.gameType,
+        dateRange: { from: dateRange?.from || '', to: dateRange?.to || '' },
+      });
+      const response = await fetch('/api/ai/analyze-session-group', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modelId: state.defaultAiModel, group }),
+      });
+      if (!response.ok) {
+        return rejectWithValue(await getResponseErrorDetails(response, 'Nie udało się przeanalizować wybranych sesji.'));
+      }
+      const result = await response.json();
+      if (!result?.model?.id || !result?.model?.name || !result?.fingerprint || !result?.analysis) {
+        throw new Error('Serwer zwrócił nieprawidłowy raport analizy wielu sesji AI.');
+      }
+      if (result.fingerprint !== group.fingerprint) {
+        throw new Error('Serwer zwrócił raport dla innego wyboru sesji.');
+      }
+      // The server validates provider output too, but the client must keep the
+      // cache safe even if a proxy, stale response, or malformed mock returns
+      // a truthy yet incomplete analysis object.
+      const validatedAnalysis = validateSessionGroupAnalysis(result.analysis, group);
+      const categoryBreakdown = group.sources.reduce((breakdown, source) => {
+        breakdown[source.type].sessions += 1;
+        breakdown[source.type].hands += source.metadata.handCount;
+        return breakdown;
+      }, {
+        cash: { sessions: 0, hands: 0 },
+        tournament: { sessions: 0, hands: 0 },
+      });
+      return {
+        reportId: createReportId(`session-group-${result.fingerprint}`),
+        model: result.model,
+        analyzedAt: new Date().toISOString(),
+        activeCategory: group.activeCategory,
+        dateRange: group.dateRange,
+        sources: group.sources,
+        sessionCount: group.sources.length,
+        handCount: group.metrics.shared.hands,
+        categoryBreakdown,
+        fingerprint: result.fingerprint,
+        analysis: validatedAnalysis,
+      };
+    } catch (error) {
+      return rejectWithValue({
+        message: error?.message || 'Nie udało się przeanalizować wybranych sesji.',
+        code: typeof error?.code === 'string' && error.code.trim() ? error.code : undefined,
+      });
+    }
+  },
+  {
+    condition: (_, { getState }) => getState().poker.sessionGroupAnalysisStatus !== 'loading',
+  },
+);
 const initialState = {
   sources: [], // Magazyn wgranych plików źródłowych
   rawHands: [], 
@@ -303,11 +471,16 @@ const initialState = {
   sessionAiAnalyses: loadSessionAiAnalyses(),
   sessionAnalysisStatusById: {},
   sessionAnalysisErrorById: {},
+  sessionGroupAiAnalyses: loadSessionGroupAiAnalyses(),
+  sessionGroupAnalysisStatus: 'idle',
+  sessionGroupAnalysisError: null,
   savedHandIds: loadSavedHandIds(),
   loadingAI: false,
   errorAI: null,
   localSourcesStatus: 'idle',
   localSourcesError: null,
+  sharedAiAnalysesStatus: 'idle',
+  sharedAiAnalysesError: null,
 };
 
 export const getUniqueHandsFromSources = (sources) => {
@@ -332,6 +505,66 @@ export const getUniqueHandsFromSources = (sources) => {
 };
 
 // Funkcja pomocnicza do przeliczania rozdań na podstawie TYLKO aktywnych plików
+const sourceReferencesAnySessionId = (source, sessionIds) => {
+  const sessionId = String(source?.sessionId || '');
+  const sourceId = String(source?.sourceId || '');
+  return sessionIds.has(sessionId)
+    || [...sessionIds].some((oldSessionId) => sourceId === oldSessionId || sourceId.endsWith(`:${oldSessionId}`));
+};
+
+export const getMergedSessionIds = (tournaments) => {
+  const mergedSessionIds = new Set();
+  (Array.isArray(tournaments) ? tournaments : []).forEach((session) => {
+    const mergedFromSessionIds = Array.isArray(session?.mergedFromSessionIds)
+      ? session.mergedFromSessionIds.map(String).filter(Boolean)
+      : [];
+    mergedFromSessionIds.forEach((oldSessionId) => {
+      if (oldSessionId !== session.id) mergedSessionIds.add(oldSessionId);
+    });
+  });
+  return [...mergedSessionIds];
+};
+
+export const cleanupMergedSessionAnalyses = (state, tournaments) => {
+  const sessionMigrations = new Map();
+  (Array.isArray(tournaments) ? tournaments : []).forEach((session) => {
+    const mergedFromSessionIds = Array.isArray(session?.mergedFromSessionIds)
+      ? session.mergedFromSessionIds.map(String).filter(Boolean)
+      : [];
+    mergedFromSessionIds.forEach((oldSessionId) => {
+      if (oldSessionId !== session.id) sessionMigrations.set(oldSessionId, session.id);
+    });
+  });
+
+  if (sessionMigrations.size === 0) return;
+
+  const mergedSessionIds = new Set(sessionMigrations.keys());
+  state.sessionAiAnalyses = Object.fromEntries(
+    Object.entries(state.sessionAiAnalyses || {})
+      .filter(([sessionId]) => !mergedSessionIds.has(sessionId)),
+  );
+  Object.keys(state.sessionAnalysisStatusById || {}).forEach((sessionId) => {
+    if (mergedSessionIds.has(sessionId)) delete state.sessionAnalysisStatusById[sessionId];
+  });
+  Object.keys(state.sessionAnalysisErrorById || {}).forEach((sessionId) => {
+    if (mergedSessionIds.has(sessionId)) delete state.sessionAnalysisErrorById[sessionId];
+  });
+  state.sessionGroupAiAnalyses = (Array.isArray(state.sessionGroupAiAnalyses)
+    ? state.sessionGroupAiAnalyses
+    : []).filter((report) => ![
+    ...(Array.isArray(report?.sources) ? report.sources : []),
+    ...(Array.isArray(report?.sourceReports) ? report.sourceReports : []),
+  ].some((source) => sourceReferencesAnySessionId(source, mergedSessionIds)));
+
+  const selectedTourneyId = String(state.selectedTourneyId || '');
+  if (mergedSessionIds.has(selectedTourneyId)) {
+    state.selectedTourneyId = sessionMigrations.get(selectedTourneyId);
+  }
+
+  localStorage.setItem(SESSION_AI_ANALYSES_CACHE_KEY, JSON.stringify(state.sessionAiAnalyses));
+  localStorage.setItem(SESSION_GROUP_AI_ANALYSES_CACHE_KEY, JSON.stringify(state.sessionGroupAiAnalyses));
+};
+
 const recalculateAllHands = (state) => {
   const allHands = getUniqueHandsFromSources(state.sources);
   state.rawHands = allHands;
@@ -341,6 +574,7 @@ const recalculateAllHands = (state) => {
   
   state.sessions = buildSessions(cashHands);
   state.tournaments = buildTourneySessions(tourneyHands, 20);
+  cleanupMergedSessionAnalyses(state, state.tournaments);
 
   // Aggregating Metrics
   const heroStats = {
@@ -474,6 +708,8 @@ const pokerSlice = createSlice({
       state.aiAnalyses = {}; localStorage.removeItem(AI_ANALYSES_CACHE_KEY);
       state.sessionAiAnalyses = {}; localStorage.removeItem(SESSION_AI_ANALYSES_CACHE_KEY);
       state.sessionAnalysisStatusById = {}; state.sessionAnalysisErrorById = {};
+      state.sessionGroupAiAnalyses = []; localStorage.removeItem(SESSION_GROUP_AI_ANALYSES_CACHE_KEY);
+      state.sessionGroupAnalysisStatus = 'idle'; state.sessionGroupAnalysisError = null;
       state.savedHandIds = []; localStorage.removeItem(SAVED_HANDS_CACHE_KEY);
     }
   },
@@ -534,6 +770,33 @@ const pokerSlice = createSlice({
           ...(code ? { code } : {}),
         };
       })
+      .addCase(analyzeSessionGroupWithAI.pending, (state) => {
+        state.sessionGroupAnalysisStatus = 'loading';
+        state.sessionGroupAnalysisError = null;
+      })
+      .addCase(analyzeSessionGroupWithAI.fulfilled, (state, action) => {
+        state.sessionGroupAnalysisStatus = 'succeeded';
+        state.sessionGroupAnalysisError = null;
+        state.sessionGroupAiAnalyses.push(action.payload);
+        localStorage.setItem(
+          SESSION_GROUP_AI_ANALYSES_CACHE_KEY,
+          JSON.stringify(state.sessionGroupAiAnalyses),
+        );
+      })
+      .addCase(analyzeSessionGroupWithAI.rejected, (state, action) => {
+        state.sessionGroupAnalysisStatus = 'failed';
+        const rejectedError = action.payload;
+        const message = typeof rejectedError === 'string'
+          ? rejectedError
+          : rejectedError?.message;
+        const code = typeof rejectedError === 'object' && typeof rejectedError?.code === 'string'
+          ? rejectedError.code
+          : undefined;
+        state.sessionGroupAnalysisError = {
+          message: message || 'Nie udało się przeanalizować wybranych sesji.',
+          ...(code ? { code } : {}),
+        };
+      })
       .addCase(fetchAiModels.pending, (state) => {
         state.aiModelsStatus = 'loading';
         state.aiModelsError = null;
@@ -570,6 +833,28 @@ const pokerSlice = createSlice({
       .addCase(syncLocalSources.rejected, (state, action) => {
         state.localSourcesStatus = 'failed';
         state.localSourcesError = action.payload || 'Nie udało się zsynchronizować lokalnych plików.';
+      })
+      .addCase(syncAiAnalyses.pending, (state) => {
+        state.sharedAiAnalysesStatus = 'loading';
+        state.sharedAiAnalysesError = null;
+      })
+      .addCase(syncAiAnalyses.fulfilled, (state, action) => {
+        const normalized = applyAiAnalysesCache({
+          cache: action.payload,
+          storage: localStorage,
+          handCacheKey: AI_ANALYSES_CACHE_KEY,
+          sessionCacheKey: SESSION_AI_ANALYSES_CACHE_KEY,
+          sessionGroupCacheKey: SESSION_GROUP_AI_ANALYSES_CACHE_KEY,
+        });
+        state.aiAnalyses = normalized.handAnalyses;
+        state.sessionAiAnalyses = normalized.sessionAnalyses;
+        state.sessionGroupAiAnalyses = normalized.sessionGroupAnalyses;
+        state.sharedAiAnalysesStatus = 'succeeded';
+        state.sharedAiAnalysesError = null;
+      })
+      .addCase(syncAiAnalyses.rejected, (state, action) => {
+        state.sharedAiAnalysesStatus = 'failed';
+        state.sharedAiAnalysesError = action.payload || 'Nie udało się zsynchronizować raportów AI.';
       });
   }
 });
