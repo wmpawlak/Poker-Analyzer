@@ -9,6 +9,7 @@ import { getPublicAiModels } from './ai/models.js';
 import {
   DEFAULT_DATA_DIRECTORY as DEFAULT_AI_CACHE_DATA_DIRECTORY,
   mergeAiAnalysesCaches,
+  migrateLocalStorageAiAnalyses,
   normalizeAiAnalysesCache,
   pruneAiAnalysesCache,
   readAiAnalysesCache,
@@ -134,6 +135,22 @@ export const createApiApp = ({
         }
         const existing = await readAiAnalysesCache(cacheDataDirectory);
         const merged = mergeAiAnalysesCaches(existing, incoming);
+        return cachesEqual(existing, merged)
+          ? existing
+          : writeAiAnalysesCache({ ...merged, updatedAt: new Date().toISOString() }, cacheDataDirectory);
+      });
+      response.json({ cache });
+    } catch (error) {
+      sendCacheError(response, error);
+    }
+  });
+
+  app.post('/api/ai-analyses/import-local-storage', async (request, response) => {
+    try {
+      const cache = await withCacheLock(async () => {
+        const imported = migrateLocalStorageAiAnalyses(request.body);
+        const existing = await readAiAnalysesCache(cacheDataDirectory);
+        const merged = mergeAiAnalysesCaches(existing, imported);
         return cachesEqual(existing, merged)
           ? existing
           : writeAiAnalysesCache({ ...merged, updatedAt: new Date().toISOString() }, cacheDataDirectory);

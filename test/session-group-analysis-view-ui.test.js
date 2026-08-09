@@ -89,7 +89,10 @@ test('widok analizy wielu sesji pokazuje kandydatów obu typów, blokadę i hist
         { title: 'Priorytet 2', description: 'Opis.', sourceRefs: [{ sourceId: 'cash:cash-a', reportId: cash.report.reportId, handIds: [] }] },
         { title: 'Priorytet 3', description: 'Opis.', sourceRefs: [{ sourceId: 'cash:cash-a', reportId: cash.report.reportId, handIds: [] }] },
       ],
-      categoryInsights: [],
+      categoryInsights: [
+        { category: 'cash', summary: 'Wnioski Cash.', sourceRefs: [], tendencies: [], recommendations: [] },
+        { category: 'tournament', summary: 'Wnioski turniejowe.', sourceRefs: [], tendencies: [], recommendations: [] },
+      ],
     },
   };
   const store = configureStore({
@@ -111,7 +114,7 @@ test('widok analizy wielu sesji pokazuje kandydatów obu typów, blokadę i hist
   });
   const { SessionGroupAnalysisView } = await vite.ssrLoadModule('/src/components/SessionGroupAnalysisView.jsx');
   const html = renderToStaticMarkup(createElement(Provider, { store }, createElement(SessionGroupAnalysisView, {
-    gameTypeFilter: 'both', onBack: () => {}, onHandClick: () => {}, onOpenSession: () => {},
+    gameTypeFilter: 'both', onHandClick: () => {}, onOpenSession: () => {},
   })));
 
   const selectedHtml = renderToStaticMarkup(createElement(Provider, { store }, createElement(SessionGroupAnalysisView, {
@@ -119,7 +122,6 @@ test('widok analizy wielu sesji pokazuje kandydatów obu typów, blokadę i hist
     selectedSourceIds: ['cash:cash-a', 'tournament:tourney-b'],
     onSelectedSourceIdsChange: () => {},
     onSelectedReportIdChange: () => {},
-    onBack: () => {},
     onHandClick: () => {},
     onOpenSession: () => {},
   })));
@@ -140,7 +142,19 @@ test('widok analizy wielu sesji pokazuje kandydatów obu typów, blokadę i hist
   assert.match(html, /data-testid="session-group-date-from"/);
   assert.match(html, /data-testid="session-group-date-to"/);
   assert.match(html, /Zaznacz widoczne/);
-  assert.match(html, /Wybierz co najmniej dwie różne sesje/);
+  assert.match(html, /aria-label="Wyczyść zakres dat"/);
+  assert.match(selectedHtml, /data-testid="session-group-analyze-selected"/);
+  assert.equal((selectedHtml.match(/data-testid="session-group-analyze-selected"/g) || []).length, 1);
+  assert.match(selectedHtml, /aria-label="Zaznacz widoczne sesje"/);
+  assert.match(selectedHtml, /aria-label="Wyczyść wybór sesji"/);
+  assert.doesNotMatch(selectedHtml, /max-h-\[50vh\]/);
+  assert.doesNotMatch(selectedHtml, /overflow-y-auto/);
+  assert.match(selectedHtml, /Wnioski Cash/);
+  assert.match(selectedHtml, /Wnioski turniejowe/);
+  assert.doesNotMatch(selectedHtml, /lg:grid-cols-2/);
+  assert.doesNotMatch(html, /Wybierz co najmniej dwie różne sesje/);
+  assert.doesNotMatch(html, /Dostępne:/);
+  assert.doesNotMatch(html, /Wróć do profilu/);
   assert.match(html, /Historia raportów \(1\)/);
   assert.match(html, /Trzy priorytety treningowe/);
   assert.match(html, /Wiarygodność lokalnego profilu: INSUFFICIENT/);

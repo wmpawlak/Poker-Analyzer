@@ -156,6 +156,25 @@ test('pojedynczy raport v3 jest zachowywany jako pierwszy wpis historii v4', () 
   assert.equal(migrationStorage.getItem(LEGACY_V3_AI_ANALYSES_CACHE_KEY), null);
 });
 
+test('stary pojedynczy wpis v4 jest przepisywany w localStorage jako historia z reportId', () => {
+  const migrationStorage = new MemoryStorage({
+    [AI_ANALYSES_CACHE_KEY]: JSON.stringify({
+      96890300082: {
+        model: { id: 'gpt-5.6-terra', name: 'GPT-5.6 Terra' },
+        analyzedAt: '2026-08-09T10:00:00.000Z',
+        analysis,
+      },
+    }),
+  });
+  const migrated = loadAiAnalyses({ storage: migrationStorage });
+
+  assert.equal(migrated['96890300082'][0].reportId, 'legacy-v4-96890300082-1');
+  assert.deepEqual(
+    JSON.parse(migrationStorage.getItem(AI_ANALYSES_CACHE_KEY)),
+    migrated,
+  );
+});
+
 test('nowa analiza jest dopisywana do historii niezależnie od modelu', () => {
   let state = pokerReducer(undefined, { type: '@@init' });
   state = pokerReducer(
@@ -323,6 +342,76 @@ test('synchronizacja scala lokalne raporty z repozytoryjnym cache bez wywołania
     assert.equal(JSON.parse(storage.getItem(AI_ANALYSES_CACHE_KEY))['96890300082'].length, 2);
   } finally {
     globalThis.fetch = originalFetch;
+  }
+});
+
+test('synchronizacja po 503 importuje tolerancyjnie surowy stary localStorage', async () => {
+  const originalFetch = globalThis.fetch;
+  const originalHandCache = storage.getItem(AI_ANALYSES_CACHE_KEY);
+  const originalSessionCache = storage.getItem(SESSION_AI_ANALYSES_CACHE_KEY);
+  const originalGroupCache = storage.getItem(SESSION_GROUP_AI_ANALYSES_CACHE_KEY);
+  storage.setItem(AI_ANALYSES_CACHE_KEY, JSON.stringify({
+    'legacy-hand': { summary: 'Stary raport bez wrappera.' },
+  }));
+  storage.setItem(SESSION_AI_ANALYSES_CACHE_KEY, '{}');
+  storage.setItem(SESSION_GROUP_AI_ANALYSES_CACHE_KEY, '[]');
+  const initialState = pokerReducer(undefined, { type: '@@init' });
+  const store = configureStore({
+    reducer: { poker: pokerReducer },
+    preloadedState: { poker: { ...initialState, aiAnalyses: {} } },
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware({ serializableCheck: false }),
+  });
+  const requests = [];
+  const importedReport = {
+    reportId: 'legacy-import-hand-legacy-hand-1',
+    analyzedAt: '2026-08-09T12:00:00.000Z',
+    model: { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
+    analysis: { summary: 'Stary raport bez wrappera.' },
+  };
+  globalThis.fetch = async (url, options) => {
+    requests.push({ url, options });
+    if (url === '/api/ai-analyses') {
+      return new Response(JSON.stringify({
+        cache: { version: 1, updatedAt: null, handAnalyses: {}, sessionAnalyses: {}, sessionGroupAnalyses: [] },
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    if (url === '/api/ai-analyses/sync') {
+      return new Response(JSON.stringify({ error: 'Stary format.', code: 'AI_CACHE_INVALID' }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    assert.equal(url, '/api/ai-analyses/import-local-storage');
+    const rawImport = JSON.parse(options.body);
+    assert.deepEqual(rawImport.handAnalyses['legacy-hand'], { summary: 'Stary raport bez wrappera.' });
+    return new Response(JSON.stringify({
+      cache: {
+        version: 1,
+        updatedAt: '2026-08-09T12:00:00.000Z',
+        handAnalyses: { 'legacy-hand': [importedReport] },
+        sessionAnalyses: {},
+        sessionGroupAnalyses: [],
+      },
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+
+  try {
+    const result = await store.dispatch(syncAiAnalyses());
+    assert.equal(result.type, syncAiAnalyses.fulfilled.type);
+    assert.deepEqual(requests.map(({ url }) => url), [
+      '/api/ai-analyses',
+      '/api/ai-analyses/sync',
+      '/api/ai-analyses/import-local-storage',
+    ]);
+    assert.equal(store.getState().poker.aiAnalyses['legacy-hand'][0].reportId, importedReport.reportId);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalHandCache === null) storage.removeItem(AI_ANALYSES_CACHE_KEY);
+    else storage.setItem(AI_ANALYSES_CACHE_KEY, originalHandCache);
+    if (originalSessionCache === null) storage.removeItem(SESSION_AI_ANALYSES_CACHE_KEY);
+    else storage.setItem(SESSION_AI_ANALYSES_CACHE_KEY, originalSessionCache);
+    if (originalGroupCache === null) storage.removeItem(SESSION_GROUP_AI_ANALYSES_CACHE_KEY);
+    else storage.setItem(SESSION_GROUP_AI_ANALYSES_CACHE_KEY, originalGroupCache);
   }
 });
 

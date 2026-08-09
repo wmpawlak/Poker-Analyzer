@@ -205,7 +205,7 @@ export default function App() {
           </div>
         )}
 
-        <div className="h-full min-h-0 flex-1 overflow-auto p-6 scrollbar-thin">
+        <div className="min-h-0 flex-1 overflow-auto p-6 scrollbar-thin">
           {activeTab === 'profile' && (
             <ProfileView
               cashHands={cashHands}
@@ -229,7 +229,6 @@ export default function App() {
               onSelectedSourceIdsChange={setSessionGroupSelectedSourceIds}
               selectedReportId={sessionGroupSelectedReportId}
               onSelectedReportIdChange={setSessionGroupSelectedReportId}
-              onBack={() => setActiveTab('profile')}
               onHandClick={setModalHandId}
               onOpenSession={openAnalysisSourceSession}
             />

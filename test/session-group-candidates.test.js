@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { buildSessionAnalysisInput } from '../src/ai/sessionAnalysisContract.js';
 import {
   buildSessionGroupCandidates,
+  buildVisibleSessionGroupCandidates,
   buildSessionGroupSourceAvailability,
   isSessionGroupReportCurrent,
 } from '../src/utils/sessionGroupCandidates.js';
@@ -25,6 +26,43 @@ const makeHand = (id, handTimestamp, extra = {}) => ({
   handRanking: 'PAIR',
   streets: [],
   ...extra,
+});
+
+test('visible sessions retain missing and stale reports but group builder excludes them', () => {
+  const current = makeSession({ id: 'cash-current', day: 1 });
+  const missing = makeSession({ id: 'cash-missing', day: 2 });
+  const stale = makeSession({ id: 'tournament-stale', day: 3, tournament: true });
+  const sessionAiAnalyses = {
+    [current.id]: [currentReportFor(current, 'cash')],
+    [stale.id]: [{ ...currentReportFor(stale, 'tournament'), fingerprint: 'previous-data' }],
+  };
+
+  const visible = buildVisibleSessionGroupCandidates({
+    sessions: [current, missing],
+    tournaments: [stale],
+    sessionAiAnalyses,
+    gameType: 'both',
+    dateFrom: '2026-08-01',
+    dateTo: '2026-08-03',
+  });
+
+  assert.deepEqual(visible.candidates.map(({ sourceId, status }) => ({ sourceId, status })), [
+    { sourceId: 'tournament:tournament-stale', status: 'stale' },
+    { sourceId: 'cash:cash-missing', status: 'missing' },
+    { sourceId: 'cash:cash-current', status: 'current' },
+  ]);
+  assert.deepEqual(buildVisibleSessionGroupCandidates({
+    sessions: [current, missing],
+    tournaments: [stale],
+    sessionAiAnalyses,
+    gameType: 'cash',
+    dateFrom: '2026-08-02',
+  }).candidates.map((candidate) => candidate.sourceId), ['cash:cash-missing']);
+  assert.deepEqual(buildSessionGroupCandidates({
+    sessions: [current, missing],
+    tournaments: [stale],
+    sessionAiAnalyses,
+  }).candidates.map((candidate) => candidate.sourceId), ['cash:cash-current']);
 });
 
 const makeSession = ({ id, day, tournament = false }) => ({

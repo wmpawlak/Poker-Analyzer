@@ -153,6 +153,42 @@ test('błędny wspólny cache nie nadpisuje poprawnego pliku', async (t) => {
   assert.equal(unchanged.cache.handAnalyses['hand-1'].length, 1);
 });
 
+test('import localStorage mapuje stare singletony i usuwa surowe dane przed zapisem', async (t) => {
+  const dataDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'poker-analyzer-ai-import-'));
+  t.after(() => fs.rm(dataDirectory, { recursive: true, force: true }));
+  const baseUrl = await startApi(t, dataDirectory);
+  const response = await fetch(`${baseUrl}/api/ai-analyses/import-local-storage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      handAnalyses: {
+        'hand-old': { summary: 'Stary raport ręki.', rawText: 'CoinPoker Hand #1' },
+      },
+      sessionAnalyses: {
+        'session-old': {
+          analysis: { sessionSummary: 'Stary raport sesji.' },
+          hands: [{ id: '1', rawText: 'CoinPoker Hand #1' }],
+        },
+      },
+      sessionGroupAnalyses: [{
+        analysis: { summary: 'Stary raport grupowy.' },
+        sources: [{ sourceId: 'cash:session-old', sessionId: 'session-old' }],
+        apiKey: 'sekret',
+      }],
+    }),
+  });
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.match(body.cache.handAnalyses['hand-old'][0].reportId, /^legacy-import-hand-/);
+  assert.match(body.cache.sessionAnalyses['session-old'][0].reportId, /^legacy-import-session-/);
+  assert.match(body.cache.sessionGroupAnalyses[0].reportId, /^legacy-import-session-group-/);
+  const serialized = JSON.stringify(body.cache);
+  assert.equal(serialized.includes('rawText'), false);
+  assert.equal(serialized.includes('CoinPoker Hand'), false);
+  assert.equal(serialized.includes('sekret'), false);
+});
+
 test('normalizacja cache frontendu odrzuca nieprawidłową wersję zamiast usuwać lokalne raporty', () => {
   assert.equal(normalizeAiAnalysesCache({ version: 99 }), null);
   assert.throws(() => normalizeServerAiAnalysesCache({ version: 99 }), /nieobsługiwaną wersję/);

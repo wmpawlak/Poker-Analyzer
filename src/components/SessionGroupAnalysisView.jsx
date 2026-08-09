@@ -2,20 +2,21 @@ import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   AlertTriangle,
-  ArrowLeft,
   Brain,
   CalendarDays,
   CheckSquare,
   Clock3,
   History,
+  LoaderCircle,
   Play,
   RotateCcw,
   Square,
 } from 'lucide-react';
-import { analyzeSessionGroupWithAI } from '../store/pokerSlice.js';
+import { analyzeSessionGroupWithAI, analyzeSessionWithAI } from '../store/pokerSlice.js';
 import { buildSessionGroupAnalysisInput } from '../ai/sessionGroupAnalysisContract.js';
 import {
   buildSessionGroupCandidates,
+  buildVisibleSessionGroupCandidates,
   buildSessionGroupSourceAvailability,
   isSessionGroupReportCurrent,
 } from '../utils/sessionGroupCandidates.js';
@@ -160,7 +161,7 @@ const FindingList = ({ title, findings = [], report, currentSourceMap, onHandCli
 const CategoryInsights = ({ insights = [], report, currentSourceMap, onHandClick, onOpenSession }) => {
   if (!Array.isArray(insights) || insights.length === 0) return null;
   return (
-    <div className="grid gap-3 lg:grid-cols-2">
+    <div className="space-y-3">
       {insights.map((insight) => {
         const isTournament = insight.category === 'tournament';
         const accent = isTournament ? 'amber' : 'indigo';
@@ -237,7 +238,6 @@ export const SessionGroupAnalysisView = ({
   onDateFromChange,
   onDateToChange,
   onClearDateRange,
-  onBack,
   onHandClick,
   onOpenSession,
   selectedSourceIds = [],
@@ -251,6 +251,8 @@ export const SessionGroupAnalysisView = ({
     sessions,
     tournaments,
     sessionAiAnalyses,
+    sessionAnalysisStatusById,
+    sessionAnalysisErrorById,
     sessionGroupAiAnalyses,
     sessionGroupAnalysisStatus,
     sessionGroupAnalysisError,
@@ -272,7 +274,16 @@ export const SessionGroupAnalysisView = ({
     sessionAiAnalyses,
     gameType: 'both',
   }), [sessions, tournaments, sessionAiAnalyses]);
+  const visibleCandidateResult = useMemo(() => buildVisibleSessionGroupCandidates({
+    sessions,
+    tournaments,
+    sessionAiAnalyses,
+    gameType,
+    dateFrom,
+    dateTo,
+  }), [sessions, tournaments, sessionAiAnalyses, gameType, dateFrom, dateTo]);
   const candidates = candidateResult.candidates;
+  const visibleCandidates = visibleCandidateResult.candidates;
   const deferredSelectedSourceIds = useDeferredValue(selectedSourceIds);
   const currentSourceMap = useMemo(
     () => buildSessionGroupSourceAvailability({ sessions, tournaments }),
@@ -346,11 +357,6 @@ export const SessionGroupAnalysisView = ({
     ? sessionGroupAnalysisError
     : sessionGroupAnalysisError?.message;
   const errorCode = typeof sessionGroupAnalysisError === 'object' ? sessionGroupAnalysisError?.code : undefined;
-  const visibleCounts = candidates.reduce((counts, candidate) => {
-    counts.all += 1;
-    counts[candidate.type] += 1;
-    return counts;
-  }, { all: 0, cash: 0, tournament: 0 });
   const deferredCashCount = deferredSelectedCandidates.filter((candidate) => candidate.type === 'cash').length;
   const deferredTournamentCount = deferredSelectedCandidates.filter((candidate) => candidate.type === 'tournament').length;
 
@@ -371,28 +377,22 @@ export const SessionGroupAnalysisView = ({
       dateRange: groupPreview.group.dateRange,
     }));
   };
+  const triggerSessionAnalysis = (candidate) => {
+    dispatch(analyzeSessionWithAI({
+      sessionId: candidate.sessionId,
+      hands: candidate.hands,
+      gameType: candidate.type,
+    }));
+  };
 
   return (
-    <div data-testid="session-group-analysis-view" className="mx-auto h-auto min-h-0 w-full max-w-7xl overflow-visible animate-in fade-in duration-300 lg:h-full lg:overflow-hidden">
-      <div data-testid="session-group-analysis-workspace" className="grid gap-4 lg:h-full lg:min-h-0 lg:grid-cols-[minmax(20rem,0.85fr)_minmax(0,1.35fr)]">
-        <div data-testid="session-group-analysis-selector" className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm lg:h-full">
+    <div data-testid="session-group-analysis-view" className="mx-auto w-full max-w-7xl animate-in fade-in duration-300">
+      <div data-testid="session-group-analysis-workspace" className="grid items-start gap-4 lg:grid-cols-[minmax(20rem,0.85fr)_minmax(0,1.35fr)]">
+        <div data-testid="session-group-analysis-selector" className="rounded-2xl border border-gray-200 bg-white shadow-sm">
       <section className="shrink-0 border-b border-gray-200 bg-white p-4 sm:p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <Brain size={19} className="text-indigo-600"/>
-              <h3 className="text-xl font-black text-slate-800">Analiza wielu sesji</h3>
-            </div>
-            <p className="mt-1 text-sm text-slate-500">Wybierz co najmniej dwie sesje z aktualnym raportem AI. Cash i Turnieje zachowują osobne jednostki wyniku.</p>
-          </div>
-          <button type="button" onClick={onBack} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-50"><ArrowLeft size={15}/> Wróć do profilu</button>
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-600">
-          <span className="rounded-full bg-slate-100 px-2.5 py-1">Dostępne: {visibleCounts.all}</span>
-          <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-indigo-700">Cash: {visibleCounts.cash}</span>
-          <span className="rounded-full bg-amber-50 px-2.5 py-1 text-amber-800">Turnieje: {visibleCounts.tournament}</span>
-          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-800">Zaznaczone: {selectedCandidates.length}</span>
+        <div className="flex items-center gap-2">
+          <Brain size={19} className="text-indigo-600"/>
+          <h3 className="text-xl font-black text-slate-800">Analiza wielu sesji</h3>
         </div>
         <div data-testid="session-group-game-type" className="mt-4 flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1 sm:w-fit">
           {[
@@ -425,63 +425,113 @@ export const SessionGroupAnalysisView = ({
               <input data-testid="session-group-date-to" type="date" value={dateTo} onChange={(event) => onDateToChange?.(event.target.value)} className="min-w-0 flex-1 bg-transparent outline-none"/>
             </span>
           </label>
-          <button type="button" disabled={!dateFrom && !dateTo} onClick={onClearDateRange} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"><RotateCcw size={14}/> Wyczyść zakres</button>
+          <button type="button" aria-label="Wyczyść zakres dat" title="Wyczyść zakres dat" disabled={!dateFrom && !dateTo} onClick={onClearDateRange} className="inline-flex size-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"><RotateCcw size={14}/></button>
         </div>
         {!candidateResult.dateRange.valid && <div role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{candidateResult.dateRange.error}</div>}
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button type="button" disabled={candidates.length === 0} onClick={selectVisible} className="inline-flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-black text-indigo-700 disabled:cursor-not-allowed disabled:opacity-40"><CheckSquare size={15}/> Zaznacz widoczne</button>
-          <button type="button" disabled={selectedCandidates.length === 0} onClick={clearSelection} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"><RotateCcw size={15}/> Wyczyść wybór</button>
-        </div>
       </section>
 
-      <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-500">Sesje z najnowszym aktualnym raportem</div>
-        {candidates.length === 0 ? (
-          <div className="p-8 text-center text-sm text-slate-500">Brak aktualnych raportów sesji w bieżącej kategorii i zakresie dat. Wygeneruj najpierw raport w widoku Cash lub Turnieje.</div>
+      <section data-testid="session-group-analysis-action" className="border-b border-indigo-100 bg-indigo-50 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            data-testid="session-group-analyze-selected"
+            disabled={!canAnalyze}
+            onClick={triggerAnalysis}
+            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-black text-white shadow-sm disabled:cursor-not-allowed disabled:bg-slate-300"
+          >
+            {sessionGroupAnalysisStatus === 'loading' ? (
+              <><LoaderCircle size={15} className="animate-spin"/> Generowanie raportu…</>
+            ) : (
+              <><Brain size={15}/>{errorMessage ? (errorCode === 'AI_INCOMPLETE_RESPONSE' ? 'Spróbuj ponownie — nowe płatne żądanie' : 'Spróbuj ponownie') : 'Analizuj wybrane sesje'}</>
+            )}
+          </button>
+          {selectedCandidates.length > 0 && <span className="text-[11px] font-bold text-indigo-800">Wybrano: {selectedCandidates.length}</span>}
+        </div>
+        {groupPreview.error && <p role="alert" className="mt-2 text-xs font-semibold text-red-700">{groupPreview.error}</p>}
+        {!canUseModel && <p className="mt-2 text-xs font-semibold text-amber-800">{aiModelsStatus === 'idle' || aiModelsStatus === 'loading' ? 'Sprawdzanie konfiguracji modeli…' : `Model ${selectedModel?.name || defaultAiModel} nie ma skonfigurowanego klucza.`}</p>}
+        {errorMessage && <p role="alert" className="mt-2 text-xs font-semibold text-red-700">{errorMessage}</p>}
+      </section>
+
+      <section>
+        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2.5">
+          <span className="text-xs font-black uppercase tracking-wide text-slate-500">Sesje</span>
+          <span className="flex items-center gap-1">
+            <button type="button" aria-label="Zaznacz widoczne sesje" title="Zaznacz widoczne sesje" disabled={candidates.length === 0} onClick={selectVisible} className="inline-flex size-7 items-center justify-center rounded-md text-indigo-700 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-40"><CheckSquare size={16}/></button>
+            <button type="button" aria-label="Wyczyść wybór sesji" title="Wyczyść wybór sesji" disabled={selectedCandidates.length === 0} onClick={clearSelection} className="inline-flex size-7 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"><RotateCcw size={15}/></button>
+          </span>
+        </div>
+        {visibleCandidates.length === 0 ? (
+          <div className="flex min-h-[10rem] items-center justify-center p-8 text-center text-sm text-slate-500">Brak sesji z prawdziwymi rozdaniami w bieżącej kategorii i zakresie dat.</div>
         ) : (
-          <div data-testid="session-group-analysis-session-list" className="min-h-[8rem] max-h-[22rem] flex-1 divide-y divide-slate-100 overflow-y-auto overscroll-contain custom-scrollbar lg:min-h-0 lg:max-h-none">
-            {candidates.map((candidate) => {
+          <div data-testid="session-group-analysis-session-list" className="divide-y divide-slate-100">
+            {visibleCandidates.map((candidate) => {
               const isSelected = selectedSourceIds.includes(candidate.sourceId);
               const isTournament = candidate.type === 'tournament';
-              return (
-                <label key={candidate.sourceId} className="flex cursor-pointer items-start gap-3 px-4 py-3 hover:bg-slate-50">
-                  <input type="checkbox" checked={isSelected} onChange={() => toggleSource(candidate.sourceId)} className="sr-only"/>
-                  <span className={`mt-0.5 ${isSelected ? (isTournament ? 'text-amber-600' : 'text-indigo-600') : 'text-slate-400'}`}>{isSelected ? <CheckSquare size={19}/> : <Square size={19}/>}</span>
+              const sessionAnalysisStatus = sessionAnalysisStatusById[candidate.sessionId] || 'idle';
+              const sessionAnalysisError = sessionAnalysisErrorById[candidate.sessionId];
+              const sessionAnalysisErrorMessage = typeof sessionAnalysisError === 'string' ? sessionAnalysisError : sessionAnalysisError?.message;
+              const sessionAnalysisErrorCode = typeof sessionAnalysisError === 'object' ? sessionAnalysisError?.code : undefined;
+              return candidate.status === 'current' ? (
+                <div key={candidate.sourceId} className="flex items-start gap-2.5 px-3 py-2 hover:bg-slate-50">
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={isSelected}
+                    aria-label={`${isSelected ? 'Odznacz' : 'Zaznacz'} ${candidate.label}`}
+                    onClick={() => toggleSource(candidate.sourceId)}
+                    className={`mt-0.5 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${isSelected ? (isTournament ? 'text-amber-600' : 'text-indigo-600') : 'text-slate-400'}`}
+                  >
+                    {isSelected ? <CheckSquare size={17}/> : <Square size={17}/>}
+                  </button>
                   <span className="min-w-0 flex-1">
                     <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="font-black text-slate-800">{candidate.label}</span>
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide ${isTournament ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-700'}`}>{isTournament ? 'Turniej' : 'Cash'}</span>
+                      <span className="text-xs font-black text-slate-800">{candidate.label}</span>
+                      <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide ${isTournament ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-700'}`}>{isTournament ? 'Turniej' : 'Cash'}</span>
+                      <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-black text-emerald-800">Raport aktualny</span>
                     </span>
-                    <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                    <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-slate-500">
                       <span>{formatSessionDate(candidate)}</span><span>{candidate.handCount} rozdań</span><span>{candidate.reportModel?.name || 'Nieznany model'}</span><span className="inline-flex items-center gap-1"><Clock3 size={12}/>{formatDate(candidate.reportAnalyzedAt)}</span>
                     </span>
                   </span>
-                </label>
+                </div>
+              ) : (
+                <div key={candidate.sourceId} data-testid={`session-group-row-${candidate.status}`} className="flex items-start gap-2.5 px-3 py-2">
+                  <span className="mt-0.5 text-slate-300"><Square size={17}/></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="text-xs font-black text-slate-800">{candidate.label}</span>
+                      <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide ${isTournament ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-700'}`}>{isTournament ? 'Turniej' : 'Cash'}</span>
+                      <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-black ${candidate.status === 'stale' ? 'bg-amber-100 text-amber-900' : 'bg-slate-100 text-slate-600'}`}>{candidate.status === 'stale' ? 'Analiza nieaktualna' : 'Brak raportu'}</span>
+                    </span>
+                    <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-slate-500">
+                      <span>{formatSessionDate(candidate)}</span><span>{candidate.handCount} rozdań</span>
+                    </span>
+                    {sessionAnalysisErrorMessage ? <span role="alert" className="mt-1 block text-[11px] font-semibold text-red-700">{sessionAnalysisErrorMessage}</span> : null}
+                  </span>
+                  {sessionAnalysisStatus === 'loading' ? (
+                    <span data-testid="session-group-row-loading" className="mt-0.5 inline-flex size-6 shrink-0 items-center justify-center text-indigo-700" title="Analizowanie…"><LoaderCircle size={15} className="animate-spin"/></span>
+                  ) : (
+                    <button
+                      type="button"
+                      aria-label={`${candidate.status === 'stale' ? 'Analizuj ponownie' : 'Analizuj sesję'}: ${candidate.label}${sessionAnalysisErrorCode === 'AI_INCOMPLETE_RESPONSE' ? ' — nowe płatne żądanie' : ''}`}
+                      title={candidate.status === 'stale' ? 'Analizuj ponownie' : 'Analizuj sesję'}
+                      disabled={!canUseModel}
+                      onClick={() => triggerSessionAnalysis(candidate)}
+                      className="mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <Brain size={14}/>
+                    </button>
+                  )}
+                </div>
               );
             })}
           </div>
         )}
       </section>
 
-      <section data-testid="session-group-analysis-action" className="shrink-0 rounded-2xl border border-indigo-200 bg-indigo-50 p-4 shadow-sm">
-        {selectedCandidates.length < 2 && <p className="text-sm font-semibold text-indigo-900">Wybierz co najmniej dwie różne sesje, aby uruchomić analizę.</p>}
-        {groupPreview.error && <p role="alert" className="text-sm font-semibold text-red-700">{groupPreview.error}</p>}
-        {!canUseModel && <p className="text-sm font-semibold text-amber-800">{aiModelsStatus === 'idle' || aiModelsStatus === 'loading' ? 'Sprawdzanie konfiguracji modeli…' : `Model ${selectedModel?.name || defaultAiModel} nie ma skonfigurowanego klucza.`}</p>}
-        {sessionGroupAnalysisStatus === 'loading' ? (
-          <div className="flex items-center gap-3 text-sm font-bold text-indigo-950"><span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent"/> Generowanie jednego raportu wielu sesji…</div>
-        ) : errorMessage ? (
-          <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            <p>{errorMessage}</p>
-            <button type="button" disabled={!canAnalyze} onClick={triggerAnalysis} className="mt-3 rounded-lg bg-red-600 px-3 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300">{errorCode === 'AI_INCOMPLETE_RESPONSE' ? 'Spróbuj ponownie — nowe płatne żądanie' : 'Spróbuj ponownie'}</button>
-          </div>
-        ) : (
-          <button type="button" disabled={!canAnalyze} onClick={triggerAnalysis} className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-black text-white shadow-sm disabled:cursor-not-allowed disabled:bg-slate-300"><Brain size={15}/> Analizuj wybrane sesje</button>
-        )}
-        <p className="mt-2 text-[11px] text-indigo-800">Ręczne uruchomienie wykonuje najwyżej jedno potencjalnie płatne żądanie. Niepełny raport nie jest zapisywany.</p>
-      </section>
         </div>
 
-        <section data-testid="session-group-analysis-preview" className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm lg:h-full">
+        <section data-testid="session-group-analysis-preview" className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
           <div className="shrink-0 border-b border-slate-100 px-4 py-3 sm:px-5">
             <h3 className="text-sm font-black text-slate-800">Podgląd i raport analizy</h3>
             <p className="mt-0.5 text-xs text-slate-500">Lokalne metryki są oddzielone od raportu AI i nie wysyłają historii rozdań.</p>
@@ -496,7 +546,7 @@ export const SessionGroupAnalysisView = ({
               </div>
             )}
           </div>
-          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4 overscroll-contain custom-scrollbar sm:p-5">
+          <div className="space-y-3 p-4 sm:p-5">
       {selectedCandidates.length < 2 && (
         <div data-testid="session-group-analysis-empty-preview" className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
           <p className="text-sm font-black text-slate-700">Wybierz co najmniej dwie sesje</p>

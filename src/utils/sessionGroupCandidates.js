@@ -37,7 +37,12 @@ const createCandidate = ({ session, type, sessionAiAnalyses }) => {
     hands,
     gameType: type,
   });
-  const report = getCurrentReport(sessionAiAnalyses?.[session?.id], sessionInput);
+  const history = Array.isArray(sessionAiAnalyses?.[session?.id])
+    ? sessionAiAnalyses[session.id]
+    : [];
+  const report = getCurrentReport(history, sessionInput);
+  const latestReport = history.at(-1) || null;
+  const status = report ? 'current' : (latestReport ? 'stale' : 'missing');
   const isCash = type === SESSION_GROUP_SOURCE_TYPES.CASH;
 
   return {
@@ -54,16 +59,17 @@ const createCandidate = ({ session, type, sessionAiAnalyses }) => {
     tournamentName: isCash ? undefined : session?.tourneyName || '',
     hands,
     handCount: hands.length,
+    status,
     sessionFingerprint: sessionInput.fingerprint,
     report,
     reportId: report?.reportId || '',
     reportFingerprint: report?.fingerprint || '',
-    reportModel: report?.model || null,
-    reportAnalyzedAt: report?.analyzedAt || '',
+    reportModel: report?.model || latestReport?.model || null,
+    reportAnalyzedAt: report?.analyzedAt || latestReport?.analyzedAt || '',
   };
 };
 
-export const buildSessionGroupCandidates = ({
+export const buildVisibleSessionGroupCandidates = ({
   sessions = [],
   tournaments = [],
   sessionAiAnalyses = {},
@@ -77,7 +83,7 @@ export const buildSessionGroupCandidates = ({
     return { candidates: [], dateRange, gameType: normalizedGameType };
   }
 
-  const allCandidates = [
+  const candidates = [
     ...(Array.isArray(sessions) ? sessions : []).map((session) => createCandidate({
       session,
       type: SESSION_GROUP_SOURCE_TYPES.CASH,
@@ -88,10 +94,8 @@ export const buildSessionGroupCandidates = ({
       type: SESSION_GROUP_SOURCE_TYPES.TOURNAMENT,
       sessionAiAnalyses,
     })),
-  ];
-
-  const candidates = allCandidates
-    .filter((candidate) => candidate.sessionId && candidate.hands.length > 0 && candidate.report)
+  ]
+    .filter((candidate) => candidate.sessionId && candidate.hands.length > 0)
     .filter((candidate) => (
       normalizedGameType === 'both' || candidate.type === normalizedGameType
     ))
@@ -103,6 +107,28 @@ export const buildSessionGroupCandidates = ({
     ));
 
   return { candidates, dateRange, gameType: normalizedGameType };
+};
+
+export const buildSessionGroupCandidates = ({
+  sessions = [],
+  tournaments = [],
+  sessionAiAnalyses = {},
+  gameType = 'both',
+  dateFrom = '',
+  dateTo = '',
+} = {}) => {
+  const visible = buildVisibleSessionGroupCandidates({
+    sessions,
+    tournaments,
+    sessionAiAnalyses,
+    gameType,
+    dateFrom,
+    dateTo,
+  });
+  return {
+    ...visible,
+    candidates: visible.candidates.filter((candidate) => candidate.status === 'current'),
+  };
 };
 
 export const getCurrentGroupSourceMap = (candidates = []) => new Map(

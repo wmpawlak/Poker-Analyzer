@@ -105,6 +105,21 @@ const buildCurrentAiAnalysesCache = (state) => buildAiAnalysesCache({
   sessionGroupAiAnalyses: state.sessionGroupAiAnalyses,
 });
 
+const readLocalStorageJson = (storage, key, fallback) => {
+  try {
+    const parsed = JSON.parse(storage.getItem(key));
+    return parsed ?? fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const buildRawLocalStorageAiAnalyses = (storage = localStorage) => ({
+  handAnalyses: readLocalStorageJson(storage, AI_ANALYSES_CACHE_KEY, {}),
+  sessionAnalyses: readLocalStorageJson(storage, SESSION_AI_ANALYSES_CACHE_KEY, {}),
+  sessionGroupAnalyses: readLocalStorageJson(storage, SESSION_GROUP_AI_ANALYSES_CACHE_KEY, []),
+});
+
 const readAiCacheResponse = async (response, fallbackMessage) => {
   if (!response.ok) throw new Error(await getResponseError(response, fallbackMessage));
   const body = await response.json();
@@ -129,10 +144,23 @@ export const syncAiAnalyses = createAsyncThunk(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cache: mergedCache }),
       });
-      let cache = await readAiCacheResponse(
-        syncResponse,
-        'Nie udało się zapisać wspólnego cache analiz AI.',
-      );
+      let cache;
+      if (syncResponse.ok) {
+        cache = await readAiCacheResponse(
+          syncResponse,
+          'Nie udało się zapisać wspólnego cache analiz AI.',
+        );
+      } else {
+        const importResponse = await fetch('/api/ai-analyses/import-local-storage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(buildRawLocalStorageAiAnalyses()),
+        });
+        cache = await readAiCacheResponse(
+          importResponse,
+          'Nie udało się zaimportować starego lokalnego cache analiz AI.',
+        );
+      }
 
       const mergedSessionIds = Array.isArray(sessionIds)
         ? sessionIds.map(String).filter(Boolean)
@@ -205,12 +233,14 @@ export const loadAiAnalyses = ({
   if (cachedV4) {
     storage.removeItem(LEGACY_V3_AI_ANALYSES_CACHE_KEY);
     storage.removeItem(LEGACY_AI_ANALYSES_CACHE_KEY);
-    return Object.fromEntries(
+    const normalized = Object.fromEntries(
       Object.entries(cachedV4).map(([handId, entry]) => [
         handId,
         normalizeHistory(entry, handId, analyzedAt, 'v4'),
       ]),
     );
+    storage.setItem(AI_ANALYSES_CACHE_KEY, JSON.stringify(normalized));
+    return normalized;
   }
 
   const cachedV3 = parseStoredObject(storage.getItem(LEGACY_V3_AI_ANALYSES_CACHE_KEY));

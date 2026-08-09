@@ -50,6 +50,81 @@ const assertSafeReport = (value) => {
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
+const sanitizeImportedValue = (value) => {
+  if (Array.isArray(value)) return value.map(sanitizeImportedValue);
+  if (!isObject(value)) return value;
+  return Object.fromEntries(Object.entries(value)
+    .filter(([key]) => !forbiddenKeys.has(key.replaceAll('_', '').toLowerCase()))
+    .map(([key, nestedValue]) => [key, sanitizeImportedValue(nestedValue)]));
+};
+
+const safeReportIdPart = (value) => String(value ?? '')
+  .replace(/[^a-zA-Z0-9_-]+/g, '_')
+  .replace(/^_+|_+$/g, '')
+  .slice(0, 120) || 'unknown';
+
+const migrateLegacyReportList = ({ entry, type, ownerId, importedAt }) => {
+  const candidates = Array.isArray(entry) ? entry : [entry];
+  return candidates
+    .filter(isObject)
+    .map((candidate, index) => {
+      const report = Object.hasOwn(candidate, 'analysis')
+        ? candidate
+        : { analysis: candidate };
+      const sanitized = sanitizeImportedValue(report);
+      return {
+        ...sanitized,
+        reportId: typeof sanitized.reportId === 'string' && sanitized.reportId.trim()
+          ? sanitized.reportId
+          : `legacy-import-${type}-${safeReportIdPart(ownerId)}-${index + 1}`,
+        analyzedAt: typeof sanitized.analyzedAt === 'string' && sanitized.analyzedAt.trim()
+          ? sanitized.analyzedAt
+          : importedAt,
+        ...(type === 'hand' && !isObject(sanitized.model)
+          ? { model: { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' } }
+          : {}),
+      };
+    });
+};
+
+const migrateLegacyReportMap = ({ value, type, importedAt }) => (
+  isObject(value)
+    ? Object.fromEntries(Object.entries(value).map(([ownerId, entry]) => [
+      ownerId,
+      migrateLegacyReportList({ entry, type, ownerId, importedAt }),
+    ]))
+    : {}
+);
+
+export const migrateLocalStorageAiAnalyses = (value, importedAt = new Date().toISOString()) => {
+  const source = isObject(value?.cache) ? value.cache : value;
+  const groupEntries = Array.isArray(source?.sessionGroupAnalyses)
+    ? source.sessionGroupAnalyses
+    : isObject(source?.sessionGroupAnalyses)
+      ? Object.values(source.sessionGroupAnalyses)
+      : [];
+  return normalizeAiAnalysesCache({
+    version: AI_ANALYSES_CACHE_VERSION,
+    updatedAt: null,
+    handAnalyses: migrateLegacyReportMap({
+      value: source?.handAnalyses,
+      type: 'hand',
+      importedAt,
+    }),
+    sessionAnalyses: migrateLegacyReportMap({
+      value: source?.sessionAnalyses,
+      type: 'session',
+      importedAt,
+    }),
+    sessionGroupAnalyses: migrateLegacyReportList({
+      entry: groupEntries,
+      type: 'session-group',
+      ownerId: 'group',
+      importedAt,
+    }),
+  });
+};
+
 const normalizeReportList = (reports, label) => {
   if (!Array.isArray(reports)) throw cacheError(`Cache AI: pole ${label} musi być tablicą.`);
   const seen = new Set();

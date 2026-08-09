@@ -8,4 +8,15 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    watch: {
+      // Raport AI jest zapisywany przez backend po każdej zakończonej analizie.
+      // Nie jest kodem źródłowym — obserwowanie go powodowało pełny reload Vite
+      // i utratę bieżącego wyboru sesji w widoku analizy zbiorczej.
+      ignored: [
+        '**/data/poker-ai-analyses-v1.json',
+        '**/data/poker-ai-analyses-v1.json.*.tmp',
+      ],
+    },
+  },
 })

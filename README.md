@@ -80,7 +80,7 @@ Każde uruchomienie wykonuje najwyżej jeden potencjalnie płatny POST: aplikacj
 
 ### Analiza wielu sesji
 
-„Analiza wielu sesji” jest osobną zakładką sidebara o identyfikatorze `session-group-analysis`, niezależną od „Mojego profilu”. Desktopowy workspace ma lewą kolumnę filtrów, listy sesji i stałej akcji oraz prawy panel podglądu, historii i raportu; na węższym ekranie kolumny układają się pionowo, a lista ma ograniczoną wysokość. Lista pokazuje tylko sesje, dla których istnieje najnowszy raport zgodny z aktualnym odciskiem pełnych danych sesji. Wybór wymaga co najmniej dwóch różnych sesji.
+„Analiza wielu sesji” jest osobną zakładką sidebara o identyfikatorze `session-group-analysis`, niezależną od „Mojego profilu”. Desktopowy workspace ma lewą kolumnę filtrów, przewijanej listy sesji i stałej akcji oraz prawy panel podglądu, historii i raportu; na węższym ekranie kolumny układają się pionowo, a lista ma ograniczoną wysokość. Lista pokazuje wszystkie sesje z prawdziwymi rozdaniami w bieżących filtrach. Do wspólnej analizy można zaznaczyć wyłącznie sesje z aktualnym raportem zgodnym z odciskiem danych; dla brakującego lub nieaktualnego raportu można bezpośrednio uruchomić analizę z wiersza. Kilka analiz pojedynczych sesji może działać równolegle, a wybór do raportu grupowego nadal wymaga co najmniej dwóch różnych sesji.
 
 Typ gry, zakres dat, zaznaczone `sourceIds` i wybrany raport są przechowywane w `App`, więc przejście do sesji źródłowej albo innej zakładki nie traci pracy. Stan nie jest zapisywany po odświeżeniu strony. Zmiana filtrów lub danych usuwa wyłącznie niewidoczne identyfikatory, a usunięty raport historyczny czyści aktywny wybór.
 
