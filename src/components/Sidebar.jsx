@@ -1,7 +1,5 @@
 // src/components/Sidebar.jsx
-import { useDispatch, useSelector } from 'react-redux';
-import { clearData } from '../store/pokerSlice';
-import { LayoutDashboard, WalletCards, Settings, BarChart2, Trophy, Database, User, Users, Trash2, Brain } from 'lucide-react';
+import { LayoutDashboard, WalletCards, Settings, BarChart2, Trophy, Database, User, Users, Brain } from 'lucide-react';
 
 const NavButton = ({ id, icon: Icon, label, activeTab, setActiveTab }) => (
   <button data-testid={`nav-${id}`} onClick={() => setActiveTab(id)} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all ${activeTab === id ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white'}`}>
@@ -10,9 +8,6 @@ const NavButton = ({ id, icon: Icon, label, activeTab, setActiveTab }) => (
 );
 
 export const Sidebar = ({ activeTab, setActiveTab }) => {
-  const dispatch = useDispatch();
-  const sources = useSelector(state => state.poker.sources);
-
   return (
     <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-2xl z-10 shrink-0 relative">
       <div className="p-6 border-b border-slate-800">
@@ -31,11 +26,6 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
         <NavButton id="sources" icon={Database} label="Wgrane Pliki" activeTab={activeTab} setActiveTab={setActiveTab} />
         <NavButton id="settings" icon={Settings} label="Ustawienia AI" activeTab={activeTab} setActiveTab={setActiveTab} />
       </nav>
-      {sources.length > 0 && (
-        <div className="p-4 border-t border-slate-800">
-          <button onClick={() => dispatch(clearData())} className="w-full bg-red-900/50 hover:bg-red-600 text-red-200 hover:text-white px-3 py-2 rounded-lg text-sm flex justify-center items-center gap-2 font-bold transition-all border border-red-800/50"><Trash2 size={16} /> Wyczyść dane</button>
-        </div>
-      )}
     </aside>
   );
 };

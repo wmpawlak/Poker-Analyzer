@@ -47,11 +47,11 @@ const createStartingHandsMap = () => {
   return handsMap;
 };
 
-const getStartingHandKey = (heroCards) => {
+export const getStartingHandKey = (heroCards) => {
   if (!Array.isArray(heroCards) || heroCards.length !== 2) return null;
 
   const [firstCard, secondCard] = heroCards;
-  if (typeof firstCard !== 'string' || typeof secondCard !== 'string' || firstCard.length < 2 || secondCard.length < 2) {
+  if (typeof firstCard !== 'string' || typeof secondCard !== 'string' || !/^[2-9TJQKA][cdhs]$/i.test(firstCard) || !/^[2-9TJQKA][cdhs]$/i.test(secondCard)) {
     return null;
   }
 
@@ -59,7 +59,8 @@ const getStartingHandKey = (heroCards) => {
   const secondRank = secondCard[0].toUpperCase();
   const firstSuit = firstCard[1].toLowerCase();
   const secondSuit = secondCard[1].toLowerCase();
-  if (!RANK_ORDER.includes(firstRank) || !RANK_ORDER.includes(secondRank)) return null;
+  if (!RANK_ORDER.includes(firstRank) || !RANK_ORDER.includes(secondRank) || !'cdhs'.includes(firstSuit) || !'cdhs'.includes(secondSuit)) return null;
+  if (`${firstRank}${firstSuit}` === `${secondRank}${secondSuit}`) return null;
 
   if (firstRank === secondRank) return firstRank + secondRank;
 

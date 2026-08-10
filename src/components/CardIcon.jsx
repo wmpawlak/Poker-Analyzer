@@ -1,5 +1,3 @@
-import React from 'react';
-
 export const CardIcon = ({ cardStr }) => {
   if (!cardStr || cardStr.length < 2) return null;
   

@@ -1,18 +1,10 @@
-// src/store/pokerSlice.js
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { parseRawHandHistory, buildSessions, buildTourneySessions } from '../parser/pokerParser.js';
-import { buildSessionAnalysisInput } from '../ai/sessionAnalysisContract.js';
-import {
-  buildSessionGroupAnalysisInput,
-  validateSessionGroupAnalysis,
-} from '../ai/sessionGroupAnalysisContract.js';
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import {
   applyAiAnalysesCache,
   buildAiAnalysesCache,
   mergeAiAnalysesCaches,
   normalizeAiAnalysesCache,
 } from '../ai/aiAnalysesCache.js';
-import { buildSessionGroupCandidates } from '../utils/sessionGroupCandidates.js';
 
 export const AI_ANALYSES_CACHE_KEY = 'poker_ai_analyses_v4';
 export const LEGACY_V3_AI_ANALYSES_CACHE_KEY = 'poker_ai_analyses_v3';
@@ -22,17 +14,15 @@ export const SAVED_HANDS_CACHE_KEY = 'poker_saved_hands_v1';
 export const SESSION_AI_ANALYSES_CACHE_KEY = 'poker_ai_session_analyses_v1';
 export const SESSION_GROUP_AI_ANALYSES_CACHE_KEY = 'poker_ai_session_group_analyses_v1';
 export const DEFAULT_AI_MODEL = 'gpt-5.6-terra';
+export const OPEN_HAND_CACHE_LIMIT = 8;
 export const AI_MODEL_CATALOG = [
   { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
   { id: 'gpt-5.6-terra', name: 'GPT-5.6 Terra' },
   { id: 'gpt-5.6-sol', name: 'GPT-5.6 Sol' },
 ];
 export const AI_MODEL_IDS = AI_MODEL_CATALOG.map(({ id }) => id);
-const LEGACY_GEMINI_MODEL = {
-  ...AI_MODEL_CATALOG[0],
-};
-export const LOCAL_SOURCE_ORIGIN = 'local';
-export const UPLOAD_SOURCE_ORIGIN = 'upload';
+const LEGACY_GEMINI_MODEL = { ...AI_MODEL_CATALOG[0] };
+
 export {
   analysisResponseSchema,
   buildHandAnalysisPrompt,
@@ -43,67 +33,18 @@ const getResponseErrorDetails = async (response, fallbackMessage) => {
   try {
     const data = await response.json();
     return {
-      message: typeof data?.error === 'string' && data.error.trim()
-        ? data.error
-        : fallbackMessage,
-      code: typeof data?.code === 'string' && data.code.trim()
-        ? data.code
-        : undefined,
+      message: typeof data?.error === 'string' && data.error.trim() ? data.error : fallbackMessage,
+      code: typeof data?.code === 'string' && data.code.trim() ? data.code : undefined,
+      status: response.status,
     };
   } catch {
-    return { message: fallbackMessage, code: undefined };
+    return { message: fallbackMessage, code: undefined, status: response.status };
   }
 };
 
 const getResponseError = async (response, fallbackMessage) => (
   (await getResponseErrorDetails(response, fallbackMessage)).message
 );
-
-export const getLocalSourceId = (filename) => `local:${filename}`;
-
-export const syncLocalSources = createAsyncThunk(
-  'poker/syncLocalSources',
-  async (_, { rejectWithValue }) => {
-    try {
-      const listResponse = await fetch('/api/local-sources');
-      if (!listResponse.ok) {
-        throw new Error(await getResponseError(listResponse, 'Nie udało się pobrać listy lokalnych plików.'));
-      }
-
-      const { sources = [] } = await listResponse.json();
-      return await Promise.all(sources.map(async (metadata) => {
-        const contentResponse = await fetch(`/api/local-sources/${encodeURIComponent(metadata.filename)}/content`);
-        if (!contentResponse.ok) {
-          throw new Error(await getResponseError(contentResponse, `Nie udało się odczytać pliku ${metadata.filename}.`));
-        }
-
-        const content = await contentResponse.text();
-        return {
-          id: getLocalSourceId(metadata.filename),
-          filename: metadata.filename,
-          content,
-          type: /Tournament '/i.test(content) ? 'Tournament' : 'Cash',
-          origin: LOCAL_SOURCE_ORIGIN,
-          enabled: true,
-          size: metadata.size,
-          modifiedAt: metadata.modifiedAt,
-          dateAdded: metadata.modifiedAt,
-        };
-      }));
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  },
-  {
-    condition: (_, { getState }) => getState().poker.localSourcesStatus !== 'loading',
-  },
-);
-
-const buildCurrentAiAnalysesCache = (state) => buildAiAnalysesCache({
-  aiAnalyses: state.aiAnalyses,
-  sessionAiAnalyses: state.sessionAiAnalyses,
-  sessionGroupAiAnalyses: state.sessionGroupAiAnalyses,
-});
 
 const readLocalStorageJson = (storage, key, fallback) => {
   try {
@@ -113,75 +54,6 @@ const readLocalStorageJson = (storage, key, fallback) => {
     return fallback;
   }
 };
-
-const buildRawLocalStorageAiAnalyses = (storage = localStorage) => ({
-  handAnalyses: readLocalStorageJson(storage, AI_ANALYSES_CACHE_KEY, {}),
-  sessionAnalyses: readLocalStorageJson(storage, SESSION_AI_ANALYSES_CACHE_KEY, {}),
-  sessionGroupAnalyses: readLocalStorageJson(storage, SESSION_GROUP_AI_ANALYSES_CACHE_KEY, []),
-});
-
-const readAiCacheResponse = async (response, fallbackMessage) => {
-  if (!response.ok) throw new Error(await getResponseError(response, fallbackMessage));
-  const body = await response.json();
-  const cache = normalizeAiAnalysesCache(body?.cache);
-  if (!cache) throw new Error('Serwer zwrócił nieprawidłowy wspólny cache analiz AI.');
-  return cache;
-};
-
-export const syncAiAnalyses = createAsyncThunk(
-  'poker/syncAiAnalyses',
-  async ({ sessionIds = [] } = {}, { getState, rejectWithValue }) => {
-    try {
-      const localCache = buildCurrentAiAnalysesCache(getState().poker);
-      const remoteResponse = await fetch('/api/ai-analyses');
-      const remoteCache = await readAiCacheResponse(
-        remoteResponse,
-        'Nie udało się odczytać wspólnego cache analiz AI.',
-      );
-      const mergedCache = mergeAiAnalysesCaches(remoteCache, localCache);
-      const syncResponse = await fetch('/api/ai-analyses/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cache: mergedCache }),
-      });
-      let cache;
-      if (syncResponse.ok) {
-        cache = await readAiCacheResponse(
-          syncResponse,
-          'Nie udało się zapisać wspólnego cache analiz AI.',
-        );
-      } else {
-        const importResponse = await fetch('/api/ai-analyses/import-local-storage', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(buildRawLocalStorageAiAnalyses()),
-        });
-        cache = await readAiCacheResponse(
-          importResponse,
-          'Nie udało się zaimportować starego lokalnego cache analiz AI.',
-        );
-      }
-
-      const mergedSessionIds = Array.isArray(sessionIds)
-        ? sessionIds.map(String).filter(Boolean)
-        : [];
-      if (mergedSessionIds.length > 0) {
-        const pruneResponse = await fetch('/api/ai-analyses/prune', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionIds: [...new Set(mergedSessionIds)] }),
-        });
-        cache = await readAiCacheResponse(
-          pruneResponse,
-          'Nie udało się usunąć nieaktualnych raportów AI ze wspólnego cache.',
-        );
-      }
-      return cache;
-    } catch (error) {
-      return rejectWithValue(error.message || 'Nie udało się zsynchronizować raportów AI.');
-    }
-  },
-);
 
 const parseStoredObject = (value) => {
   if (!value) return null;
@@ -203,9 +75,17 @@ const parseStoredArray = (value) => {
   }
 };
 
-const createReportId = (handId) => (
+const EMPTY_STORAGE = Object.freeze({
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+});
+
+const getBrowserStorage = () => globalThis.localStorage || EMPTY_STORAGE;
+
+const createReportId = (scope) => (
   globalThis.crypto?.randomUUID?.()
-  || `${handId}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+  || `${scope}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 );
 
 const normalizeHistory = (entry, handId, analyzedAt, sourceVersion) => {
@@ -217,13 +97,13 @@ const normalizeHistory = (entry, handId, analyzedAt, sourceVersion) => {
   }));
 };
 
-export const loadDefaultAiModel = (storage = localStorage) => {
+export const loadDefaultAiModel = (storage = getBrowserStorage()) => {
   const storedModel = storage.getItem(AI_DEFAULT_MODEL_CACHE_KEY);
   return AI_MODEL_IDS.includes(storedModel) ? storedModel : DEFAULT_AI_MODEL;
 };
 
 export const loadAiAnalyses = ({
-  storage = localStorage,
+  storage = getBrowserStorage(),
   analyzedAt = new Date().toISOString(),
 } = {}) => {
   storage.removeItem('poker_ai_analyses');
@@ -249,22 +129,15 @@ export const loadAiAnalyses = ({
   if (!source) return {};
 
   const migrated = Object.fromEntries(
-    Object.entries(source).map(([handId, entry]) => {
-      if (cachedV3) {
-        return [
-          handId,
-          normalizeHistory(entry, handId, analyzedAt, 'v3'),
-        ];
-      }
-      return [
-        handId,
-        normalizeHistory({
+    Object.entries(source).map(([handId, entry]) => (
+      cachedV3
+        ? [handId, normalizeHistory(entry, handId, analyzedAt, 'v3')]
+        : [handId, normalizeHistory({
           model: { ...LEGACY_GEMINI_MODEL },
           analyzedAt,
           analysis: entry,
-        }, handId, analyzedAt, 'v2'),
-      ];
-    }),
+        }, handId, analyzedAt, 'v2')]
+    )),
   );
   storage.setItem(AI_ANALYSES_CACHE_KEY, JSON.stringify(migrated));
   storage.removeItem(LEGACY_V3_AI_ANALYSES_CACHE_KEY);
@@ -272,12 +145,12 @@ export const loadAiAnalyses = ({
   return migrated;
 };
 
-export const loadSavedHandIds = (storage = localStorage) => {
+export const loadSavedHandIds = (storage = getBrowserStorage()) => {
   const savedIds = parseStoredArray(storage.getItem(SAVED_HANDS_CACHE_KEY)) || [];
   return [...new Set(savedIds.map(String))];
 };
 
-export const loadSessionAiAnalyses = (storage = localStorage) => {
+export const loadSessionAiAnalyses = (storage = getBrowserStorage()) => {
   const cached = parseStoredObject(storage.getItem(SESSION_AI_ANALYSES_CACHE_KEY));
   if (!cached) return {};
   const normalized = Object.fromEntries(Object.entries(cached).map(([sessionId, reports]) => [
@@ -293,7 +166,7 @@ export const loadSessionAiAnalyses = (storage = localStorage) => {
   return normalized;
 };
 
-export const loadSessionGroupAiAnalyses = (storage = localStorage) => {
+export const loadSessionGroupAiAnalyses = (storage = getBrowserStorage()) => {
   const cached = parseStoredArray(storage.getItem(SESSION_GROUP_AI_ANALYSES_CACHE_KEY));
   if (!cached) return [];
   const normalized = cached
@@ -306,193 +179,658 @@ export const loadSessionGroupAiAnalyses = (storage = localStorage) => {
   return normalized;
 };
 
+const buildCurrentAiAnalysesCache = (state) => buildAiAnalysesCache({
+  aiAnalyses: state.aiAnalyses,
+  sessionAiAnalyses: state.sessionAiAnalyses,
+  sessionGroupAiAnalyses: state.sessionGroupAiAnalyses,
+});
+
+const buildRawLocalStorageAiAnalyses = (storage = getBrowserStorage()) => ({
+  handAnalyses: readLocalStorageJson(storage, AI_ANALYSES_CACHE_KEY, {}),
+  sessionAnalyses: readLocalStorageJson(storage, SESSION_AI_ANALYSES_CACHE_KEY, {}),
+  sessionGroupAnalyses: readLocalStorageJson(storage, SESSION_GROUP_AI_ANALYSES_CACHE_KEY, []),
+});
+
+const readAiCacheResponse = async (response, fallbackMessage) => {
+  if (!response.ok) throw new Error(await getResponseError(response, fallbackMessage));
+  const body = await response.json();
+  const cache = normalizeAiAnalysesCache(body?.cache);
+  if (!cache) throw new Error('Serwer zwrócił nieprawidłowy wspólny cache analiz AI.');
+  return cache;
+};
+
+const requireRevision = (state) => {
+  const revision = String(state.dataset.datasetRevision || '').trim();
+  if (!revision) throw new Error('Dataset nie jest jeszcze gotowy. Odśwież dane i spróbuj ponownie.');
+  return revision;
+};
+
+const rejectAiResponse = async ({ response, dispatch, rejectWithValue, fallbackMessage }) => {
+  const details = await getResponseErrorDetails(response, fallbackMessage);
+  if (response.status === 409 && details.code === 'DATASET_REVISION_MISMATCH') {
+    // Tylko odświeżamy metadane. Nie ponawiamy automatycznie odpłatnego żądania AI.
+    void dispatch(refreshDataset());
+  }
+  return rejectWithValue(details);
+};
+
+const readJsonResponse = async (response, fallbackMessage) => {
+  if (!response.ok) throw new Error(await getResponseError(response, fallbackMessage));
+  return response.json();
+};
+
+export const refreshDataset = createAsyncThunk(
+  'poker/refreshDataset',
+  async (_, { rejectWithValue }) => {
+    try {
+      return await readJsonResponse(await fetch('/api/dataset'), 'Nie udało się pobrać informacji o datasecie.');
+    } catch (error) {
+      return rejectWithValue(error.message || 'Nie udało się pobrać informacji o datasecie.');
+    }
+  },
+  { condition: (_, { getState }) => getState().poker.dataset.status !== 'loading' },
+);
+
+export const refreshDataStatus = createAsyncThunk(
+  'poker/refreshDataStatus',
+  async (_, { rejectWithValue }) => {
+    try {
+      return await readJsonResponse(await fetch('/api/data/status'), 'Nie udało się pobrać statusu danych.');
+    } catch (error) {
+      return rejectWithValue(error.message || 'Nie udało się pobrać statusu danych.');
+    }
+  },
+);
+
+export const refreshImportCenter = createAsyncThunk(
+  'poker/refreshImportCenter',
+  async (_, { rejectWithValue }) => {
+    try {
+      const [dataStatus, imports] = await Promise.all([
+        readJsonResponse(await fetch('/api/data/status'), 'Nie udało się pobrać statusu danych.'),
+        readJsonResponse(await fetch('/api/imports'), 'Nie udało się pobrać historii importów.'),
+      ]);
+      return { dataStatus, imports };
+    } catch (error) {
+      return rejectWithValue(error.message || 'Nie udało się pobrać centrum importu.');
+    }
+  },
+);
+
+export const scanInbox = createAsyncThunk(
+  'poker/scanInbox',
+  async (_, { dispatch, rejectWithValue }) => {
+    try {
+      const result = await readJsonResponse(
+        await fetch('/api/data/refresh', { method: 'POST' }),
+        'Nie udało się sprawdzić katalogu inbox.',
+      );
+      void dispatch(refreshImportCenter());
+      return result;
+    } catch (error) {
+      return rejectWithValue(error.message || 'Nie udało się sprawdzić katalogu inbox.');
+    }
+  },
+  { condition: (_, { getState }) => getState().poker.importCenter.actionStatus !== 'loading' },
+);
+
+export const uploadImport = createAsyncThunk(
+  'poker/uploadImport',
+  async ({ file }, { dispatch, rejectWithValue }) => {
+    try {
+      if (typeof File === 'undefined' || !(file instanceof File) || !/\.txt$/i.test(file.name)) {
+        throw new Error('Wybierz pojedynczy plik TXT do importu.');
+      }
+      const formData = new FormData();
+      formData.append('file', file, file.name);
+      const result = await readJsonResponse(
+        await fetch('/api/imports', { method: 'POST', body: formData }),
+        'Nie udało się przesłać pliku TXT.',
+      );
+      void dispatch(refreshImportCenter());
+      return result;
+    } catch (error) {
+      return rejectWithValue(error.message || 'Nie udało się przesłać pliku TXT.');
+    }
+  },
+  { condition: (_, { getState }) => getState().poker.importCenter.actionStatus !== 'loading' },
+);
+
+export const fetchOpenedHand = createAsyncThunk(
+  'poker/fetchOpenedHand',
+  async ({ handId }, { rejectWithValue }) => {
+    try {
+      if (!String(handId || '').trim()) throw new Error('Brakuje identyfikatora rozdania.');
+      return await readJsonResponse(await fetch(`/api/hands/${encodeURIComponent(handId)}`), 'Nie udało się pobrać rozdania.');
+    } catch (error) {
+      return rejectWithValue(error.message || 'Nie udało się pobrać rozdania.');
+    }
+  },
+);
+
+const createQueryUrl = (pathname, params = {}) => {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') search.set(key, String(value));
+  });
+  const query = search.toString();
+  return query ? `${pathname}?${query}` : pathname;
+};
+
+const createAggregateQueryKey = ({ gameType = 'both', dateFrom = '', dateTo = '', onlyFlop = false, riverOrShowdownOnly = false } = {}) => (
+  JSON.stringify({ gameType, dateFrom, dateTo, onlyFlop: Boolean(onlyFlop), riverOrShowdownOnly: Boolean(riverOrShowdownOnly) })
+);
+
+const normalizeCollectionHandIds = (ids) => (
+  [...new Set((Array.isArray(ids) ? ids : []).map((id) => String(id || '').trim()).filter(Boolean))].sort()
+);
+
+const createSessionsQueryKey = ({ gameType = '', handRanking = '' } = {}) => (
+  JSON.stringify({ gameType, handRanking })
+);
+
+const createSessionHandsQueryKey = ({ sessionId, handRanking = '', sortBy = 'date', sortOrder = 'desc' } = {}) => (
+  JSON.stringify({ sessionId: String(sessionId || ''), handRanking, sortBy, sortOrder })
+);
+
+const createHandCollectionQueryKey = ({
+  datasetRevision = '',
+  gameType = '',
+  mode = '',
+  analyzedHandIds = [],
+  savedHandIds = [],
+  handRanking = '',
+  sortBy = 'date',
+  sortOrder = 'desc',
+} = {}) => JSON.stringify({
+  datasetRevision,
+  gameType,
+  mode,
+  analyzedHandIds: normalizeCollectionHandIds(analyzedHandIds),
+  savedHandIds: normalizeCollectionHandIds(savedHandIds),
+  handRanking,
+  sortBy,
+  sortOrder,
+});
+
+const createSessionGroupPreviewQueryKey = ({ sessionIds = [], datasetRevision = '' } = {}) => (
+  JSON.stringify({
+    datasetRevision,
+    sessionIds: [...new Set((Array.isArray(sessionIds) ? sessionIds : []).map(String).filter(Boolean))].sort(),
+  })
+);
+
+const createEmptyHandCollectionPage = () => ({
+  items: [],
+  nextCursor: null,
+  total: 0,
+  collectionCounts: { analyzed: 0, saved: 0 },
+  status: 'idle',
+  error: null,
+  datasetRevision: null,
+  queryKey: null,
+});
+
+const createEmptySessionGroupPreview = () => ({
+  data: null,
+  status: 'idle',
+  error: null,
+  datasetRevision: null,
+  queryKey: null,
+});
+
+const readAggregate = async (pathname, params, fallbackMessage) => (
+  readJsonResponse(await fetch(createQueryUrl(pathname, params)), fallbackMessage)
+);
+
+export const fetchProfile = createAsyncThunk(
+  'poker/fetchProfile',
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const normalized = {
+        gameType: params.gameType || 'both',
+        dateFrom: params.dateFrom || '',
+        dateTo: params.dateTo || '',
+      };
+      const result = await readAggregate('/api/profile', normalized, 'Nie udało się pobrać raportu profilu.');
+      return { ...result, queryKey: createAggregateQueryKey(normalized) };
+    } catch (error) {
+      return rejectWithValue(error.message || 'Nie udało się pobrać raportu profilu.');
+    }
+  },
+);
+
+export const fetchOpponents = createAsyncThunk(
+  'poker/fetchOpponents',
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const normalized = {
+        gameType: params.gameType || 'both',
+        dateFrom: params.dateFrom || '',
+        dateTo: params.dateTo || '',
+      };
+      const cursor = params.cursor || null;
+      const result = await readAggregate(
+        '/api/opponents',
+        { ...normalized, cursor, limit: 100 },
+        'Nie udało się pobrać listy przeciwników.',
+      );
+      return { ...result, cursor, queryKey: createAggregateQueryKey(normalized) };
+    } catch (error) {
+      return rejectWithValue(error.message || 'Nie udało się pobrać listy przeciwników.');
+    }
+  },
+  {
+    condition: (params = {}, { getState }) => {
+      const opponents = getState().poker.aggregates.opponents;
+      return opponents.status !== 'loading'
+        || createAggregateQueryKey(params) !== opponents.queryKey;
+    },
+  },
+);
+
+export const fetchCards = createAsyncThunk(
+  'poker/fetchCards',
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const normalized = {
+        gameType: params.gameType || 'both',
+        dateFrom: params.dateFrom || '',
+        dateTo: params.dateTo || '',
+        riverOrShowdownOnly: Boolean(params.riverOrShowdownOnly),
+      };
+      const result = await readAggregate('/api/cards', normalized, 'Nie udało się pobrać statystyk kart startowych.');
+      return { ...result, queryKey: createAggregateQueryKey(normalized) };
+    } catch (error) {
+      return rejectWithValue(error.message || 'Nie udało się pobrać statystyk kart startowych.');
+    }
+  },
+);
+
+export const fetchWallet = createAsyncThunk(
+  'poker/fetchWallet',
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const normalized = {
+        dateFrom: params.dateFrom || '',
+        dateTo: params.dateTo || '',
+        onlyFlop: Boolean(params.onlyFlop),
+      };
+      const result = await readAggregate('/api/wallet', normalized, 'Nie udało się pobrać danych portfela.');
+      return { ...result, queryKey: createAggregateQueryKey({ gameType: 'cash', ...normalized }) };
+    } catch (error) {
+      return rejectWithValue(error.message || 'Nie udało się pobrać danych portfela.');
+    }
+  },
+);
+
+export const fetchSessions = createAsyncThunk(
+  'poker/fetchSessions',
+  async ({ gameType, handRanking = '' }, { rejectWithValue }) => {
+    try {
+      if (!['cash', 'tournament'].includes(gameType)) throw new Error('Nieprawidłowy typ sesji.');
+      const result = await readJsonResponse(
+        await fetch(createQueryUrl('/api/sessions', { gameType, handRanking })),
+        'Nie udało się pobrać listy sesji.',
+      );
+      return { ...result, queryKey: createSessionsQueryKey({ gameType, handRanking }) };
+    } catch (error) {
+      return rejectWithValue(error.message || 'Nie udało się pobrać listy sesji.');
+    }
+  },
+  {
+    condition: ({ gameType, handRanking = '' }, { getState }) => {
+      if (!['cash', 'tournament'].includes(gameType)) return false;
+      const page = getState().poker.currentPages[gameType];
+      return page.status !== 'loading' || page.queryKey !== createSessionsQueryKey({ gameType, handRanking });
+    },
+  },
+);
+
+export const fetchSessionDetail = createAsyncThunk(
+  'poker/fetchSessionDetail',
+  async ({ sessionId }, { rejectWithValue }) => {
+    try {
+      if (!String(sessionId || '').trim()) throw new Error('Brakuje identyfikatora sesji.');
+      return await readJsonResponse(
+        await fetch(`/api/sessions/${encodeURIComponent(sessionId)}`),
+        'Nie udało się pobrać podsumowania sesji.',
+      );
+    } catch (error) {
+      return rejectWithValue(error.message || 'Nie udało się pobrać podsumowania sesji.');
+    }
+  },
+  {
+    condition: ({ sessionId }, { getState }) => {
+      const state = getState().poker;
+      const detail = state.sessionDetailsById[String(sessionId)];
+      return detail?.status !== 'loading'
+        && !(detail?.status === 'succeeded' && detail.datasetRevision === state.dataset.datasetRevision);
+    },
+  },
+);
+
+export const fetchSessionHands = createAsyncThunk(
+  'poker/fetchSessionHands',
+  async ({ sessionId, handRanking = '', sortBy = 'date', sortOrder = 'desc', cursor = null }, { rejectWithValue }) => {
+    try {
+      if (!String(sessionId || '').trim()) throw new Error('Brakuje identyfikatora sesji.');
+      const query = { sessionId, handRanking, sortBy, sortOrder };
+      const result = await readJsonResponse(
+        await fetch(createQueryUrl(`/api/sessions/${encodeURIComponent(sessionId)}/hands`, {
+          handRanking,
+          sortBy,
+          sortOrder,
+          cursor,
+          limit: 100,
+        })),
+        'Nie udało się pobrać rąk sesji.',
+      );
+      return { ...result, queryKey: createSessionHandsQueryKey(query) };
+    } catch (error) {
+      return rejectWithValue(error.message || 'Nie udało się pobrać rąk sesji.');
+    }
+  },
+  {
+    condition: ({ sessionId, handRanking = '', sortBy = 'date', sortOrder = 'desc', cursor = null }, { getState }) => {
+      const state = getState().poker;
+      const page = state.sessionHandsById[String(sessionId)];
+      const queryKey = createSessionHandsQueryKey({ sessionId, handRanking, sortBy, sortOrder });
+      if (page?.status === 'loading' && page.queryKey === queryKey) return false;
+      if (!cursor) {
+        return !(page?.status === 'succeeded'
+          && page.datasetRevision === state.dataset.datasetRevision
+          && page.queryKey === queryKey);
+      }
+      return page?.queryKey === queryKey && Boolean(page?.nextCursor);
+    },
+  },
+);
+
+export const fetchHandCollection = createAsyncThunk(
+  'poker/fetchHandCollection',
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const normalized = {
+        datasetRevision: String(params.datasetRevision || '').trim(),
+        gameType: params.gameType,
+        mode: params.mode,
+        analyzedHandIds: normalizeCollectionHandIds(params.analyzedHandIds),
+        savedHandIds: normalizeCollectionHandIds(params.savedHandIds),
+        handRanking: params.handRanking || '',
+        sortBy: params.sortBy || 'date',
+        sortOrder: params.sortOrder || 'desc',
+      };
+      if (!normalized.datasetRevision) throw new Error('Dataset is not ready yet.');
+      if (!['cash', 'tournament'].includes(normalized.gameType)) throw new Error('Invalid hand collection game type.');
+      if (!['analyzed', 'saved'].includes(normalized.mode)) throw new Error('Invalid hand collection mode.');
+      const cursor = params.cursor || null;
+      const result = await readJsonResponse(await fetch('/api/hand-collections/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...normalized, cursor, limit: 100 }),
+      }), 'Unable to load the hand collection.');
+      return { ...result, queryKey: createHandCollectionQueryKey(normalized) };
+    } catch (error) {
+      return rejectWithValue(error.message || 'Unable to load the hand collection.');
+    }
+  },
+  {
+    condition: (params = {}, { getState }) => {
+      const { gameType, mode } = params;
+      if (!['cash', 'tournament'].includes(gameType) || !['analyzed', 'saved'].includes(mode)) return false;
+      const page = getState().poker.handCollections[gameType][mode];
+      const queryKey = createHandCollectionQueryKey(params);
+      if (page.status === 'loading' && page.queryKey === queryKey) return false;
+      if (!params.cursor) return !(page.status === 'succeeded' && page.queryKey === queryKey);
+      return page.queryKey === queryKey && Boolean(page.nextCursor);
+    },
+  },
+);
+
 export const fetchAiModels = createAsyncThunk(
   'poker/fetchAiModels',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch('/api/ai/models');
-      if (!response.ok) {
-        throw new Error(await getResponseError(response, 'Nie udało się pobrać konfiguracji modeli AI.'));
-      }
-      const { models } = await response.json();
+      const { models } = await readJsonResponse(await fetch('/api/ai/models'), 'Nie udało się pobrać konfiguracji modeli AI.');
       if (!Array.isArray(models)) throw new Error('Serwer zwrócił nieprawidłową listę modeli AI.');
       return models;
     } catch (error) {
       return rejectWithValue(error.message);
     }
   },
-  {
-    condition: (_, { getState }) => getState().poker.aiModelsStatus !== 'loading',
+  { condition: (_, { getState }) => getState().poker.aiModelsStatus !== 'loading' },
+);
+
+export const syncAiAnalyses = createAsyncThunk(
+  'poker/syncAiAnalyses',
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      const localCache = buildCurrentAiAnalysesCache(getState().poker);
+      const remoteCache = await readAiCacheResponse(await fetch('/api/ai-analyses'), 'Nie udało się odczytać wspólnego cache analiz AI.');
+      const mergedCache = mergeAiAnalysesCaches(remoteCache, localCache);
+      const syncResponse = await fetch('/api/ai-analyses/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cache: mergedCache }),
+      });
+      if (syncResponse.ok) return await readAiCacheResponse(syncResponse, 'Nie udało się zapisać wspólnego cache analiz AI.');
+      const importResponse = await fetch('/api/ai-analyses/import-local-storage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildRawLocalStorageAiAnalyses()),
+      });
+      return await readAiCacheResponse(importResponse, 'Nie udało się zaimportować starego lokalnego cache analiz AI.');
+    } catch (error) {
+      return rejectWithValue(error.message || 'Nie udało się zsynchronizować raportów AI.');
+    }
   },
 );
 
 export const analyzeHandWithAI = createAsyncThunk(
   'poker/analyzeHand',
-  async ({ handId, modelId }, { getState, rejectWithValue }) => {
+  async ({ handId, modelId }, { dispatch, getState, rejectWithValue }) => {
     try {
-      const { rawHands, defaultAiModel } = getState().poker;
-      const hand = rawHands.find((candidate) => candidate.id === handId);
-      if (!hand?.id || !hand.rawText) throw new Error('Brakuje danych rozdania do analizy AI.');
-      const selectedModelId = modelId || defaultAiModel;
-
+      const state = getState().poker;
       const response = await fetch('/api/ai/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          modelId: selectedModelId,
-          hand,
+          modelId: modelId || state.defaultAiModel,
+          handId,
+          datasetRevision: requireRevision(state),
         }),
       });
-
-      if (!response.ok) {
-        throw new Error(await getResponseError(response, 'Nie udało się przeanalizować rozdania.'));
-      }
-
-      const { model, analysis } = await response.json();
-      if (!model?.id || !model?.name || !analysis) {
-        throw new Error('Serwer zwrócił nieprawidłowy raport analizy AI.');
-      }
+      if (!response.ok) return rejectAiResponse({ response, dispatch, rejectWithValue, fallbackMessage: 'Nie udało się przeanalizować rozdania.' });
+      const result = await response.json();
+      if (!result?.model?.id || !result?.model?.name || !result?.analysis) throw new Error('Serwer zwrócił nieprawidłowy raport analizy AI.');
       return {
-        handId: hand.id,
-        reportId: createReportId(hand.id),
-        model,
+        handId: String(handId),
+        reportId: createReportId(handId),
+        model: result.model,
         analyzedAt: new Date().toISOString(),
-        analysis,
+        datasetRevision: result.datasetRevision,
+        analysis: result.analysis,
       };
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue({ message: error.message || 'Nie udało się przeanalizować rozdania.' });
     }
-  }
+  },
 );
 
 export const analyzeSessionWithAI = createAsyncThunk(
   'poker/analyzeSession',
-  async ({ sessionId, hands, gameType }, { getState, rejectWithValue }) => {
+  async ({ sessionId, modelId }, { dispatch, getState, rejectWithValue }) => {
     try {
       const state = getState().poker;
-      const session = buildSessionAnalysisInput({ sessionId, hands, gameType });
       const response = await fetch('/api/ai/analyze-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ modelId: state.defaultAiModel, session }),
+        body: JSON.stringify({
+          modelId: modelId || state.defaultAiModel,
+          sessionId,
+          datasetRevision: requireRevision(state),
+        }),
       });
-      if (!response.ok) {
-        return rejectWithValue(await getResponseErrorDetails(response, 'Nie udało się przeanalizować sesji.'));
-      }
+      if (!response.ok) return rejectAiResponse({ response, dispatch, rejectWithValue, fallbackMessage: 'Nie udało się przeanalizować sesji.' });
       const result = await response.json();
-      if (!result?.model?.id || !result?.model?.name || !result?.sessionId || !result?.fingerprint || !result?.analysis) {
-        throw new Error('Serwer zwrócił nieprawidłowy raport analizy sesji AI.');
-      }
+      if (!result?.model?.id || !result?.model?.name || !result?.sessionId || !result?.fingerprint || !result?.analysis) throw new Error('Serwer zwrócił nieprawidłowy raport analizy sesji AI.');
       return {
         sessionId: result.sessionId,
         reportId: createReportId(result.sessionId),
         model: result.model,
         analyzedAt: new Date().toISOString(),
-        handCount: session.hands.length,
         fingerprint: result.fingerprint,
+        datasetRevision: result.datasetRevision,
         analysis: result.analysis,
       };
     } catch (error) {
-      return rejectWithValue({
-        message: error?.message || 'Nie udało się przeanalizować sesji.',
-        code: typeof error?.code === 'string' && error.code.trim() ? error.code : undefined,
+      return rejectWithValue({ message: error?.message || 'Nie udało się przeanalizować sesji.' });
+    }
+  },
+  { condition: ({ sessionId }, { getState }) => getState().poker.sessionAnalysisStatusById[sessionId] !== 'loading' },
+);
+
+export const fetchSessionGroupPreview = createAsyncThunk(
+  'poker/fetchSessionGroupPreview',
+  async ({ sessionIds = [] } = {}, { dispatch, getState, rejectWithValue, signal }) => {
+    try {
+      const normalizedSessionIds = [...new Set((Array.isArray(sessionIds) ? sessionIds : []).map(String).filter(Boolean))];
+      if (normalizedSessionIds.length === 0) throw new Error('Podgląd analizy wielu sesji wymaga co najmniej jednej sesji.');
+      const state = getState().poker;
+      const datasetRevision = requireRevision(state);
+      const response = await fetch('/api/session-groups/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionIds: normalizedSessionIds, datasetRevision }),
+        signal,
       });
+      if (!response.ok) return rejectAiResponse({ response, dispatch, rejectWithValue, fallbackMessage: 'Nie udało się pobrać podglądu wybranych sesji.' });
+      const result = await response.json();
+      if (!result?.datasetRevision || !Array.isArray(result.sources) || !result?.metrics?.shared) {
+        throw new Error('Serwer zwrócił nieprawidłowy podgląd analizy wielu sesji.');
+      }
+      return {
+        ...result,
+        queryKey: createSessionGroupPreviewQueryKey({ sessionIds: normalizedSessionIds, datasetRevision }),
+      };
+    } catch (error) {
+      if (error?.name === 'AbortError') throw error;
+      return rejectWithValue({ message: error?.message || 'Nie udało się pobrać podglądu wybranych sesji.' });
     }
   },
   {
-    condition: ({ sessionId }, { getState }) => getState().poker.sessionAnalysisStatusById[sessionId] !== 'loading',
+    condition: ({ sessionIds = [] } = {}, { getState }) => {
+      const state = getState().poker;
+      const queryKey = createSessionGroupPreviewQueryKey({
+        sessionIds,
+        datasetRevision: state.dataset.datasetRevision || '',
+      });
+      return state.sessionGroupPreview.status !== 'loading' || state.sessionGroupPreview.queryKey !== queryKey;
+    },
   },
 );
 
 export const analyzeSessionGroupWithAI = createAsyncThunk(
   'poker/analyzeSessionGroup',
-  async ({ sourceIds, activeCategory, dateRange }, { getState, rejectWithValue }) => {
+  async ({ sessionIds, sourceIds, modelId }, { dispatch, getState, rejectWithValue }) => {
     try {
+      const uniqueSessionIds = [...new Set((sessionIds || sourceIds || []).map(String).filter(Boolean))];
+      if (uniqueSessionIds.length < 2) throw new Error('Analiza wielu sesji wymaga co najmniej dwóch różnych sesji.');
       const state = getState().poker;
-      const requestedSourceIds = Array.isArray(sourceIds) ? sourceIds.map((sourceId) => String(sourceId)) : [];
-      const uniqueSourceIds = [...new Set(requestedSourceIds)];
-      if (uniqueSourceIds.length < 2 || uniqueSourceIds.length !== requestedSourceIds.length) {
-        throw new Error('Analiza wielu sesji wymaga co najmniej dwóch różnych sesji.');
-      }
-      const candidateResult = buildSessionGroupCandidates({
-        sessions: state.sessions,
-        tournaments: state.tournaments,
-        sessionAiAnalyses: state.sessionAiAnalyses,
-        gameType: activeCategory,
-        dateFrom: dateRange?.from || '',
-        dateTo: dateRange?.to || '',
-      });
-      const requestedIdSet = new Set(uniqueSourceIds);
-      const sources = candidateResult.candidates.filter((candidate) => requestedIdSet.has(candidate.sourceId));
-      if (sources.length !== uniqueSourceIds.length) {
-        throw new Error('Wybrane sesje lub ich aktualne raporty nie są już dostępne. Odśwież wybór przed analizą.');
-      }
-      const group = buildSessionGroupAnalysisInput({
-        sources,
-        activeCategory: candidateResult.gameType,
-        dateRange: { from: dateRange?.from || '', to: dateRange?.to || '' },
-      });
       const response = await fetch('/api/ai/analyze-session-group', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ modelId: state.defaultAiModel, group }),
+        body: JSON.stringify({
+          modelId: modelId || state.defaultAiModel,
+          sessionIds: uniqueSessionIds,
+          datasetRevision: requireRevision(state),
+        }),
       });
-      if (!response.ok) {
-        return rejectWithValue(await getResponseErrorDetails(response, 'Nie udało się przeanalizować wybranych sesji.'));
-      }
+      if (!response.ok) return rejectAiResponse({ response, dispatch, rejectWithValue, fallbackMessage: 'Nie udało się przeanalizować wybranych sesji.' });
       const result = await response.json();
-      if (!result?.model?.id || !result?.model?.name || !result?.fingerprint || !result?.analysis) {
-        throw new Error('Serwer zwrócił nieprawidłowy raport analizy wielu sesji AI.');
-      }
-      if (result.fingerprint !== group.fingerprint) {
-        throw new Error('Serwer zwrócił raport dla innego wyboru sesji.');
-      }
-      // The server validates provider output too, but the client must keep the
-      // cache safe even if a proxy, stale response, or malformed mock returns
-      // a truthy yet incomplete analysis object.
-      const validatedAnalysis = validateSessionGroupAnalysis(result.analysis, group);
-      const categoryBreakdown = group.sources.reduce((breakdown, source) => {
-        breakdown[source.type].sessions += 1;
-        breakdown[source.type].hands += source.metadata.handCount;
-        return breakdown;
-      }, {
-        cash: { sessions: 0, hands: 0 },
-        tournament: { sessions: 0, hands: 0 },
-      });
+      if (!result?.model?.id || !result?.model?.name || !result?.fingerprint || !result?.analysis) throw new Error('Serwer zwrócił nieprawidłowy raport analizy wielu sesji AI.');
       return {
         reportId: createReportId(`session-group-${result.fingerprint}`),
         model: result.model,
         analyzedAt: new Date().toISOString(),
-        activeCategory: group.activeCategory,
-        dateRange: group.dateRange,
-        sources: group.sources,
-        sessionCount: group.sources.length,
-        handCount: group.metrics.shared.hands,
-        categoryBreakdown,
+        sessionIds: Array.isArray(result.sources) ? result.sources.map((source) => source.sessionId) : uniqueSessionIds,
+        sessionCount: Number(result.sessionCount) || uniqueSessionIds.length,
         fingerprint: result.fingerprint,
-        analysis: validatedAnalysis,
+        datasetRevision: result.datasetRevision,
+        activeCategory: result.activeCategory,
+        dateRange: result.dateRange,
+        sources: result.sources,
+        handCount: Number(result.handCount) || 0,
+        categoryBreakdown: result.categoryBreakdown,
+        analysis: result.analysis,
       };
     } catch (error) {
-      return rejectWithValue({
-        message: error?.message || 'Nie udało się przeanalizować wybranych sesji.',
-        code: typeof error?.code === 'string' && error.code.trim() ? error.code : undefined,
-      });
+      return rejectWithValue({ message: error?.message || 'Nie udało się przeanalizować wybranych sesji.' });
     }
   },
-  {
-    condition: (_, { getState }) => getState().poker.sessionGroupAnalysisStatus !== 'loading',
-  },
+  { condition: (_, { getState }) => getState().poker.sessionGroupAnalysisStatus !== 'loading' },
 );
+
 const initialState = {
-  sources: [], // Magazyn wgranych plików źródłowych
-  rawHands: [], 
-  sessions: [], 
-  tournaments: [],
-  heroMetrics: null,
-  opponentsMetrics: [],
+  dataset: {
+    datasetRevision: null,
+    status: 'idle',
+    error: null,
+    builtAt: null,
+    handCount: 0,
+    cashSessionCount: 0,
+    tournamentSessionCount: 0,
+  },
+  importCenter: {
+    status: 'idle',
+    error: null,
+    actionStatus: 'idle',
+    phase: 'ready',
+    activeImportIds: [],
+    imports: [],
+  },
+  filters: {
+    gameType: 'both',
+    dateFrom: '',
+    dateTo: '',
+    cardsDateFrom: '',
+    cardsDateTo: '',
+    sessionGroupGameType: 'both',
+    sessionGroupDateFrom: '',
+    sessionGroupDateTo: '',
+  },
+  aggregates: {
+    profile: { data: null, status: 'idle', error: null, datasetRevision: null, queryKey: null },
+    opponents: {
+      items: [], nextCursor: null, total: 0, status: 'idle', error: null, datasetRevision: null, queryKey: null,
+    },
+    cards: { data: null, status: 'idle', error: null, datasetRevision: null, queryKey: null },
+    wallet: { data: null, status: 'idle', error: null, datasetRevision: null, queryKey: null },
+  },
+  currentPages: {
+    cash: { cursor: null, items: [], availableRanks: [], handRanking: '', status: 'idle', error: null, datasetRevision: null, queryKey: null },
+    tournament: { cursor: null, items: [], availableRanks: [], handRanking: '', status: 'idle', error: null, datasetRevision: null, queryKey: null },
+  },
+  sessionDetailsById: {},
+  sessionHandsById: {},
+  sessionHandPageOrder: [],
+  handCollections: {
+    cash: { analyzed: createEmptyHandCollectionPage(), saved: createEmptyHandCollectionPage() },
+    tournament: { analyzed: createEmptyHandCollectionPage(), saved: createEmptyHandCollectionPage() },
+  },
+  openedHandsById: {},
+  openedHandOrder: [],
+  openedHandStatusById: {},
+  openedHandErrorById: {},
   selectedSessionId: null,
   selectedTourneyId: null,
   selectedHandId: null,
+  sessionGroupSelection: {
+    sourceIds: [],
+    reportId: null,
+  },
+  datasetRefreshNotice: null,
   defaultAiModel: loadDefaultAiModel(),
   aiModels: AI_MODEL_CATALOG.map((model) => ({ ...model, configured: false })),
   aiModelsStatus: 'idle',
@@ -502,224 +840,117 @@ const initialState = {
   sessionAnalysisStatusById: {},
   sessionAnalysisErrorById: {},
   sessionGroupAiAnalyses: loadSessionGroupAiAnalyses(),
+  sessionGroupPreview: createEmptySessionGroupPreview(),
   sessionGroupAnalysisStatus: 'idle',
   sessionGroupAnalysisError: null,
   savedHandIds: loadSavedHandIds(),
   loadingAI: false,
   errorAI: null,
-  localSourcesStatus: 'idle',
-  localSourcesError: null,
   sharedAiAnalysesStatus: 'idle',
   sharedAiAnalysesError: null,
 };
 
-export const getUniqueHandsFromSources = (sources) => {
-  const orderedSources = sources
-    .filter((source) => source.enabled)
-    .map((source, index) => ({ source, index }))
-    .sort((a, b) => {
-      const priorityA = a.source.origin === LOCAL_SOURCE_ORIGIN ? 0 : 1;
-      const priorityB = b.source.origin === LOCAL_SOURCE_ORIGIN ? 0 : 1;
-      return priorityA - priorityB || a.index - b.index;
-    })
-    .map(({ source }) => source);
-
-  const handsById = new Map();
-  orderedSources.forEach((source) => {
-    parseRawHandHistory(source.content).forEach((hand) => {
-      if (!handsById.has(hand.id)) handsById.set(hand.id, hand);
-    });
-  });
-
-  return [...handsById.values()].sort((a, b) => a.timestamp - b.timestamp);
-};
-
-// Funkcja pomocnicza do przeliczania rozdań na podstawie TYLKO aktywnych plików
-const sourceReferencesAnySessionId = (source, sessionIds) => {
-  const sessionId = String(source?.sessionId || '');
-  const sourceId = String(source?.sourceId || '');
-  return sessionIds.has(sessionId)
-    || [...sessionIds].some((oldSessionId) => sourceId === oldSessionId || sourceId.endsWith(`:${oldSessionId}`));
-};
-
-export const getMergedSessionIds = (tournaments) => {
-  const mergedSessionIds = new Set();
-  (Array.isArray(tournaments) ? tournaments : []).forEach((session) => {
-    const mergedFromSessionIds = Array.isArray(session?.mergedFromSessionIds)
-      ? session.mergedFromSessionIds.map(String).filter(Boolean)
-      : [];
-    mergedFromSessionIds.forEach((oldSessionId) => {
-      if (oldSessionId !== session.id) mergedSessionIds.add(oldSessionId);
-    });
-  });
-  return [...mergedSessionIds];
-};
-
-export const cleanupMergedSessionAnalyses = (state, tournaments) => {
-  const sessionMigrations = new Map();
-  (Array.isArray(tournaments) ? tournaments : []).forEach((session) => {
-    const mergedFromSessionIds = Array.isArray(session?.mergedFromSessionIds)
-      ? session.mergedFromSessionIds.map(String).filter(Boolean)
-      : [];
-    mergedFromSessionIds.forEach((oldSessionId) => {
-      if (oldSessionId !== session.id) sessionMigrations.set(oldSessionId, session.id);
-    });
-  });
-
-  if (sessionMigrations.size === 0) return;
-
-  const mergedSessionIds = new Set(sessionMigrations.keys());
-  state.sessionAiAnalyses = Object.fromEntries(
-    Object.entries(state.sessionAiAnalyses || {})
-      .filter(([sessionId]) => !mergedSessionIds.has(sessionId)),
-  );
-  Object.keys(state.sessionAnalysisStatusById || {}).forEach((sessionId) => {
-    if (mergedSessionIds.has(sessionId)) delete state.sessionAnalysisStatusById[sessionId];
-  });
-  Object.keys(state.sessionAnalysisErrorById || {}).forEach((sessionId) => {
-    if (mergedSessionIds.has(sessionId)) delete state.sessionAnalysisErrorById[sessionId];
-  });
-  state.sessionGroupAiAnalyses = (Array.isArray(state.sessionGroupAiAnalyses)
-    ? state.sessionGroupAiAnalyses
-    : []).filter((report) => ![
-    ...(Array.isArray(report?.sources) ? report.sources : []),
-    ...(Array.isArray(report?.sourceReports) ? report.sourceReports : []),
-  ].some((source) => sourceReferencesAnySessionId(source, mergedSessionIds)));
-
-  const selectedTourneyId = String(state.selectedTourneyId || '');
-  if (mergedSessionIds.has(selectedTourneyId)) {
-    state.selectedTourneyId = sessionMigrations.get(selectedTourneyId);
+const saveHandInBoundedCache = (state, hand) => {
+  const handId = String(hand.id);
+  state.openedHandsById[handId] = hand;
+  state.openedHandOrder = [
+    handId,
+    ...state.openedHandOrder.filter((id) => id !== handId),
+  ];
+  while (state.openedHandOrder.length > OPEN_HAND_CACHE_LIMIT) {
+    const evictedId = state.openedHandOrder.pop();
+    delete state.openedHandsById[evictedId];
+    delete state.openedHandStatusById[evictedId];
+    delete state.openedHandErrorById[evictedId];
   }
-
-  localStorage.setItem(SESSION_AI_ANALYSES_CACHE_KEY, JSON.stringify(state.sessionAiAnalyses));
-  localStorage.setItem(SESSION_GROUP_AI_ANALYSES_CACHE_KEY, JSON.stringify(state.sessionGroupAiAnalyses));
 };
 
-const recalculateAllHands = (state) => {
-  const allHands = getUniqueHandsFromSources(state.sources);
-  state.rawHands = allHands;
-  
-  const cashHands = allHands.filter(h => !h.isTournament);
-  const tourneyHands = allHands.filter(h => h.isTournament);
-  
-  state.sessions = buildSessions(cashHands);
-  state.tournaments = buildTourneySessions(tourneyHands, 20);
-  cleanupMergedSessionAnalyses(state, state.tournaments);
-
-  // Aggregating Metrics
-  const heroStats = {
-    vpipCount: 0,
-    pfrCount: 0,
-    totalHands: allHands.length,
-    wtsdCount: 0,
-    wsdCount: 0,
-    totalProfit: 0,
-    totalBets: 0,
-    totalRaises: 0,
-    totalCalls: 0
+const resetBrowsableDatasetData = (state) => {
+  state.currentPages.cash = { cursor: null, items: [], availableRanks: [], handRanking: '', status: 'idle', error: null, datasetRevision: null, queryKey: null };
+  state.currentPages.tournament = { cursor: null, items: [], availableRanks: [], handRanking: '', status: 'idle', error: null, datasetRevision: null, queryKey: null };
+  state.sessionDetailsById = {};
+  state.sessionHandsById = {};
+  state.sessionHandPageOrder = [];
+  state.handCollections = {
+    cash: { analyzed: createEmptyHandCollectionPage(), saved: createEmptyHandCollectionPage() },
+    tournament: { analyzed: createEmptyHandCollectionPage(), saved: createEmptyHandCollectionPage() },
   };
-
-  const opponents = {};
-
-  allHands.forEach(hand => {
-    const players = hand.players || {};
-    
-    // Hero Stats
-    const hero = players['Hero'];
-    if (hero) {
-      if (hero.vpip) heroStats.vpipCount++;
-      if (hero.pfr) heroStats.pfrCount++;
-      if (hero.reachedShowdown) heroStats.wtsdCount++;
-      if (hero.wonShowdown) heroStats.wsdCount++;
-      heroStats.totalProfit += hero.netProfit;
-      heroStats.totalBets += hero.bets;
-      heroStats.totalRaises += hero.raises;
-      heroStats.totalCalls += hero.calls;
-    }
-
-    // Opponent Stats
-    Object.keys(players).forEach(name => {
-      if (name === 'Hero') return;
-      if (!opponents[name]) {
-        opponents[name] = {
-          name,
-          hands: 0,
-          showdowns: 0,
-          wins: 0,
-          losses: 0,
-          netProfit: 0,
-          sessions: new Set()
-        };
-      }
-      const opp = opponents[name];
-      opp.hands++;
-      if (players[name].reachedShowdown) opp.showdowns++;
-      if (players[name].wonHand) opp.wins++;
-      else if (players[name].investment > 0) opp.losses++;
-      opp.netProfit += players[name].netProfit;
-      
-      const sId = hand.isTournament ? hand.tourneyId : hand.tableId;
-      if (sId) opp.sessions.add(sId);
-    });
-  });
-
-  // Finalize Hero Stats
-  state.heroMetrics = {
-    vpip: heroStats.totalHands > 0 ? (heroStats.vpipCount / heroStats.totalHands) * 100 : 0,
-    pfr: heroStats.totalHands > 0 ? (heroStats.pfrCount / heroStats.totalHands) * 100 : 0,
-    af: heroStats.totalCalls > 0 ? (heroStats.totalBets + heroStats.totalRaises) / heroStats.totalCalls : (heroStats.totalBets + heroStats.totalRaises > 0 ? 100 : 0),
-    wtsd: heroStats.totalHands > 0 ? (heroStats.wtsdCount / heroStats.totalHands) * 100 : 0,
-    wsd: heroStats.wtsdCount > 0 ? (heroStats.wsdCount / heroStats.wtsdCount) * 100 : 0,
-    winrate: heroStats.totalHands > 0 ? (heroStats.totalProfit / heroStats.totalHands) : 0,
-    totalProfit: heroStats.totalProfit,
-    totalHands: heroStats.totalHands
+  state.sessionGroupPreview = createEmptySessionGroupPreview();
+  state.openedHandsById = {};
+  state.openedHandOrder = [];
+  state.openedHandStatusById = {};
+  state.openedHandErrorById = {};
+  state.aggregates.profile = { data: null, status: 'idle', error: null, datasetRevision: null, queryKey: null };
+  state.aggregates.opponents = {
+    items: [], nextCursor: null, total: 0, status: 'idle', error: null, datasetRevision: null, queryKey: null,
   };
+  state.aggregates.cards = { data: null, status: 'idle', error: null, datasetRevision: null, queryKey: null };
+  state.aggregates.wallet = { data: null, status: 'idle', error: null, datasetRevision: null, queryKey: null };
+};
 
-  // Finalize Opponent Stats
-  state.opponentsMetrics = Object.values(opponents).map(opp => ({
-    ...opp,
-    sessionCount: opp.sessions.size,
-    netProfit: parseFloat(opp.netProfit.toFixed(2))
-  })).sort((a, b) => b.hands - a.hands);
+const touchSessionHandPage = (state, sessionId) => {
+  const normalizedId = String(sessionId);
+  state.sessionHandPageOrder = [
+    normalizedId,
+    ...state.sessionHandPageOrder.filter((id) => id !== normalizedId),
+  ];
+  while (state.sessionHandPageOrder.length > 3) {
+    const evictedId = state.sessionHandPageOrder.pop();
+    delete state.sessionHandsById[evictedId];
+  }
+};
+
+const setDatasetMetadata = (state, payload) => {
+  const nextRevision = payload?.datasetRevision || state.dataset.datasetRevision;
+  if (nextRevision && state.dataset.datasetRevision && nextRevision !== state.dataset.datasetRevision) {
+    resetBrowsableDatasetData(state);
+  }
+  state.dataset.datasetRevision = nextRevision;
+  state.dataset.builtAt = payload?.builtAt || state.dataset.builtAt;
+  state.dataset.handCount = Number(payload?.handCount) || 0;
+  state.dataset.cashSessionCount = Number(payload?.cashSessionCount) || 0;
+  state.dataset.tournamentSessionCount = Number(payload?.tournamentSessionCount) || 0;
+};
+
+const updateImportStatus = (state, status) => {
+  state.importCenter.phase = status?.import?.phase || status?.phase || state.importCenter.phase;
+  state.importCenter.activeImportIds = status?.import?.activeImportIds || status?.activeImportIds || [];
+  if (status?.datasetRevision && !state.dataset.datasetRevision) state.dataset.datasetRevision = status.datasetRevision;
 };
 
 const pokerSlice = createSlice({
   name: 'poker',
   initialState,
   reducers: {
-    uploadHandHistory: (state, action) => {
-      const { filename, content, modifiedAt } = action.payload;
-      const isTourney = /Tournament '/i.test(content);
-      const now = new Date().toISOString();
-      
-      state.sources.push({
-        id: `src_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        filename,
-        content,
-        type: isTourney ? 'Tournament' : 'Cash',
-        origin: UPLOAD_SOURCE_ORIGIN,
-        enabled: true,
-        size: new TextEncoder().encode(content).length,
-        modifiedAt: modifiedAt || now,
-        dateAdded: now,
-      });
-      
-      recalculateAllHands(state);
+    selectSession: (state, action) => {
+      state.selectedSessionId = action.payload || null;
+      state.selectedHandId = null;
     },
-    toggleSource: (state, action) => {
-      const src = state.sources.find(s => s.id === action.payload);
-      if (src) {
-        src.enabled = !src.enabled;
-        recalculateAllHands(state);
-      }
+    selectTourney: (state, action) => {
+      state.selectedTourneyId = action.payload || null;
+      state.selectedHandId = null;
     },
-    removeSource: (state, action) => {
-      state.sources = state.sources.filter(s => s.id !== action.payload || s.origin === LOCAL_SOURCE_ORIGIN);
-      recalculateAllHands(state);
+    selectHand: (state, action) => { state.selectedHandId = action.payload || null; },
+    setDataFilters: (state, action) => {
+      state.filters = { ...state.filters, ...(action.payload || {}) };
     },
-    selectSession: (state, action) => { state.selectedSessionId = action.payload; state.selectedHandId = null; },
-    selectTourney: (state, action) => { state.selectedTourneyId = action.payload; state.selectedHandId = null; },
-    selectHand: (state, action) => { state.selectedHandId = action.payload; },
+    setCardsDateRange: (state, action) => {
+      const range = action.payload || {};
+      state.filters.cardsDateFrom = String(range.dateFrom || '');
+      state.filters.cardsDateTo = String(range.dateTo || '');
+    },
+    setSessionGroupSelection: (state, action) => {
+      const sourceIds = Array.isArray(action.payload)
+        ? [...new Set(action.payload.map(String).filter(Boolean))]
+        : [];
+      state.sessionGroupSelection.sourceIds = sourceIds;
+    },
+    clearSessionGroupPreview: (state) => {
+      state.sessionGroupPreview = createEmptySessionGroupPreview();
+    },
+    setSessionGroupReportSelection: (state, action) => {
+      state.sessionGroupSelection.reportId = action.payload ? String(action.payload) : null;
+    },
     setDefaultAiModel: (state, action) => {
       if (!AI_MODEL_IDS.includes(action.payload)) return;
       state.defaultAiModel = action.payload;
@@ -732,36 +963,351 @@ const pokerSlice = createSlice({
       else state.savedHandIds.push(handId);
       localStorage.setItem(SAVED_HANDS_CACHE_KEY, JSON.stringify(state.savedHandIds));
     },
-    clearData: (state) => {
-      state.sources = []; state.rawHands = []; state.sessions = []; state.tournaments = []; 
-      state.selectedSessionId = null; state.selectedTourneyId = null; state.selectedHandId = null;
-      state.aiAnalyses = {}; localStorage.removeItem(AI_ANALYSES_CACHE_KEY);
-      state.sessionAiAnalyses = {}; localStorage.removeItem(SESSION_AI_ANALYSES_CACHE_KEY);
-      state.sessionAnalysisStatusById = {}; state.sessionAnalysisErrorById = {};
-      state.sessionGroupAiAnalyses = []; localStorage.removeItem(SESSION_GROUP_AI_ANALYSES_CACHE_KEY);
-      state.sessionGroupAnalysisStatus = 'idle'; state.sessionGroupAnalysisError = null;
-      state.savedHandIds = []; localStorage.removeItem(SAVED_HANDS_CACHE_KEY);
-    }
+    clearDatasetRefreshNotice: (state) => { state.datasetRefreshNotice = null; },
+    closeOpenedHand: (state, action) => {
+      const handId = String(action.payload || state.selectedHandId || '');
+      state.selectedHandId = null;
+      if (!handId) return;
+      delete state.openedHandsById[handId];
+      delete state.openedHandStatusById[handId];
+      delete state.openedHandErrorById[handId];
+      state.openedHandOrder = state.openedHandOrder.filter((id) => id !== handId);
+    },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(analyzeHandWithAI.pending, (state) => { state.loadingAI = true; state.errorAI = null; })
+      .addCase(refreshDataset.pending, (state) => {
+        state.dataset.status = 'loading';
+        state.dataset.error = null;
+      })
+      .addCase(refreshDataset.fulfilled, (state, action) => {
+        state.dataset.status = 'succeeded';
+        state.dataset.error = null;
+        setDatasetMetadata(state, action.payload);
+      })
+      .addCase(refreshDataset.rejected, (state, action) => {
+        state.dataset.status = 'failed';
+        state.dataset.error = action.payload || 'Nie udało się pobrać informacji o datasecie.';
+      })
+      .addCase(refreshDataStatus.fulfilled, (state, action) => updateImportStatus(state, action.payload))
+      .addCase(refreshImportCenter.pending, (state) => {
+        state.importCenter.status = 'loading';
+        state.importCenter.error = null;
+      })
+      .addCase(refreshImportCenter.fulfilled, (state, action) => {
+        state.importCenter.status = 'succeeded';
+        state.importCenter.error = null;
+        state.importCenter.imports = Array.isArray(action.payload.imports?.imports) ? action.payload.imports.imports : [];
+        updateImportStatus(state, action.payload.dataStatus);
+        updateImportStatus(state, action.payload.imports?.status);
+      })
+      .addCase(refreshImportCenter.rejected, (state, action) => {
+        state.importCenter.status = 'failed';
+        state.importCenter.error = action.payload || 'Nie udało się pobrać centrum importu.';
+      })
+      .addCase(scanInbox.pending, (state) => {
+        state.importCenter.actionStatus = 'loading';
+        state.importCenter.error = null;
+      })
+      .addCase(scanInbox.fulfilled, (state, action) => {
+        state.importCenter.actionStatus = 'succeeded';
+        updateImportStatus(state, action.payload?.status);
+      })
+      .addCase(scanInbox.rejected, (state, action) => {
+        state.importCenter.actionStatus = 'failed';
+        state.importCenter.error = action.payload || 'Nie udało się sprawdzić katalogu inbox.';
+      })
+      .addCase(uploadImport.pending, (state) => {
+        state.importCenter.actionStatus = 'loading';
+        state.importCenter.error = null;
+      })
+      .addCase(uploadImport.fulfilled, (state, action) => {
+        state.importCenter.actionStatus = 'succeeded';
+        const importId = action.payload?.importId;
+        if (importId && !state.importCenter.imports.some((item) => item.importId === importId)) {
+          state.importCenter.imports.unshift({ importId, phase: 'scanning', outcome: null });
+        }
+        updateImportStatus(state, action.payload?.status);
+      })
+      .addCase(uploadImport.rejected, (state, action) => {
+        state.importCenter.actionStatus = 'failed';
+        state.importCenter.error = action.payload || 'Nie udało się przesłać pliku TXT.';
+      })
+      .addCase(fetchOpenedHand.pending, (state, action) => {
+        const handId = String(action.meta.arg.handId);
+        state.openedHandStatusById[handId] = 'loading';
+        delete state.openedHandErrorById[handId];
+      })
+      .addCase(fetchOpenedHand.fulfilled, (state, action) => {
+        if (!action.payload?.hand?.id) return;
+        setDatasetMetadata(state, action.payload);
+        saveHandInBoundedCache(state, action.payload.hand);
+        const handId = String(action.payload.hand.id);
+        state.selectedHandId = handId;
+        state.openedHandStatusById[handId] = 'succeeded';
+        delete state.openedHandErrorById[handId];
+      })
+      .addCase(fetchOpenedHand.rejected, (state, action) => {
+        const handId = String(action.meta.arg.handId);
+        state.openedHandStatusById[handId] = 'failed';
+        state.openedHandErrorById[handId] = action.payload || 'Nie udało się pobrać rozdania.';
+      })
+      .addCase(fetchSessions.pending, (state, action) => {
+        const page = state.currentPages[action.meta.arg.gameType];
+        page.status = 'loading';
+        page.error = null;
+        page.handRanking = action.meta.arg.handRanking || '';
+        page.queryKey = createSessionsQueryKey(action.meta.arg);
+      })
+      .addCase(fetchSessions.fulfilled, (state, action) => {
+        const gameType = action.meta.arg.gameType;
+        if (state.currentPages[gameType].queryKey !== action.payload.queryKey) return;
+        setDatasetMetadata(state, action.payload);
+        state.currentPages[gameType] = {
+          cursor: null,
+          items: Array.isArray(action.payload.sessions) ? action.payload.sessions : [],
+          availableRanks: Array.isArray(action.payload.availableRanks) ? action.payload.availableRanks : [],
+          handRanking: action.payload.handRanking || '',
+          status: 'succeeded',
+          error: null,
+          datasetRevision: action.payload.datasetRevision || state.dataset.datasetRevision,
+          queryKey: action.payload.queryKey,
+        };
+      })
+      .addCase(fetchSessions.rejected, (state, action) => {
+        const page = state.currentPages[action.meta.arg.gameType];
+        if (page.queryKey !== createSessionsQueryKey(action.meta.arg)) return;
+        page.status = 'failed';
+        page.error = action.payload || 'Nie udało się pobrać listy sesji.';
+      })
+      .addCase(fetchSessionDetail.pending, (state, action) => {
+        const sessionId = String(action.meta.arg.sessionId);
+        const existing = state.sessionDetailsById[sessionId] || {};
+        state.sessionDetailsById[sessionId] = { ...existing, status: 'loading', error: null };
+      })
+      .addCase(fetchSessionDetail.fulfilled, (state, action) => {
+        const sessionId = String(action.meta.arg.sessionId);
+        setDatasetMetadata(state, action.payload);
+        state.sessionDetailsById[sessionId] = {
+          status: 'succeeded',
+          error: null,
+          datasetRevision: action.payload.datasetRevision || state.dataset.datasetRevision,
+          session: action.payload.session || null,
+        };
+      })
+      .addCase(fetchSessionDetail.rejected, (state, action) => {
+        const sessionId = String(action.meta.arg.sessionId);
+        const existing = state.sessionDetailsById[sessionId] || {};
+        state.sessionDetailsById[sessionId] = {
+          ...existing,
+          status: 'failed',
+          error: action.payload || 'Nie udało się pobrać podsumowania sesji.',
+        };
+      })
+      .addCase(fetchSessionHands.pending, (state, action) => {
+        const sessionId = String(action.meta.arg.sessionId);
+        const { handRanking = '', sortBy = 'date', sortOrder = 'desc', cursor = null } = action.meta.arg;
+        const queryKey = createSessionHandsQueryKey({ sessionId, handRanking, sortBy, sortOrder });
+        const existing = state.sessionHandsById[sessionId];
+        state.sessionHandsById[sessionId] = (!cursor && existing?.queryKey !== queryKey)
+          ? {
+            items: [], nextCursor: null, datasetRevision: null, queryKey, handRanking, sortBy, sortOrder,
+            status: 'loading', error: null,
+          }
+          : { ...(existing || { items: [], nextCursor: null, datasetRevision: null, queryKey, handRanking, sortBy, sortOrder }), status: 'loading', error: null };
+        touchSessionHandPage(state, sessionId);
+      })
+      .addCase(fetchSessionHands.fulfilled, (state, action) => {
+        const sessionId = String(action.payload.sessionId || action.meta.arg.sessionId);
+        setDatasetMetadata(state, action.payload);
+        const existing = state.sessionHandsById[sessionId] || { items: [] };
+        if (existing.queryKey !== action.payload.queryKey) return;
+        const received = Array.isArray(action.payload.hands) ? action.payload.hands : [];
+        const items = action.meta.arg.cursor
+          ? [...existing.items, ...received.filter((hand) => !existing.items.some((item) => item.id === hand.id))]
+          : received;
+        state.sessionHandsById[sessionId] = {
+          items,
+          nextCursor: action.payload.nextCursor || null,
+          status: 'succeeded',
+          error: null,
+          datasetRevision: action.payload.datasetRevision || state.dataset.datasetRevision,
+          queryKey: action.payload.queryKey,
+          handRanking: action.payload.handRanking || '',
+          sortBy: action.payload.sortBy || 'date',
+          sortOrder: action.payload.sortOrder || 'desc',
+        };
+        touchSessionHandPage(state, sessionId);
+      })
+      .addCase(fetchSessionHands.rejected, (state, action) => {
+        const sessionId = String(action.meta.arg.sessionId);
+        const existing = state.sessionHandsById[sessionId] || { items: [], nextCursor: null };
+        if (existing.queryKey !== createSessionHandsQueryKey(action.meta.arg)) return;
+        state.sessionHandsById[sessionId] = {
+          ...existing,
+          status: 'failed',
+          error: action.payload || 'Nie udało się pobrać rąk sesji.',
+        };
+      })
+      .addCase(fetchHandCollection.pending, (state, action) => {
+        const { gameType, mode, cursor = null } = action.meta.arg;
+        const queryKey = createHandCollectionQueryKey(action.meta.arg);
+        const existing = state.handCollections[gameType][mode];
+        state.handCollections[gameType][mode] = !cursor
+          ? {
+            ...createEmptyHandCollectionPage(),
+            queryKey,
+            status: 'loading',
+          }
+          : { ...existing, status: 'loading', error: null };
+      })
+      .addCase(fetchHandCollection.fulfilled, (state, action) => {
+        const { gameType, mode, cursor = null } = action.meta.arg;
+        setDatasetMetadata(state, action.payload);
+        const existing = state.handCollections[gameType][mode];
+        if (existing.queryKey !== action.payload.queryKey) return;
+        const received = Array.isArray(action.payload.hands) ? action.payload.hands : [];
+        const items = cursor
+          ? [...existing.items, ...received.filter((hand) => !existing.items.some((item) => item.id === hand.id))]
+          : received;
+        state.handCollections[gameType][mode] = {
+          items,
+          nextCursor: action.payload.nextCursor || null,
+          total: Number(action.payload.total) || 0,
+          collectionCounts: action.payload.collectionCounts || { analyzed: 0, saved: 0 },
+          status: 'succeeded',
+          error: null,
+          datasetRevision: action.payload.datasetRevision || state.dataset.datasetRevision,
+          queryKey: action.payload.queryKey,
+        };
+      })
+      .addCase(fetchHandCollection.rejected, (state, action) => {
+        const { gameType, mode } = action.meta.arg;
+        const page = state.handCollections[gameType][mode];
+        if (page.queryKey !== createHandCollectionQueryKey(action.meta.arg)) return;
+        page.status = 'failed';
+        page.error = action.payload || 'Could not load the hand collection.';
+      })
+      .addCase(fetchProfile.pending, (state, action) => {
+        state.aggregates.profile.status = 'loading';
+        state.aggregates.profile.error = null;
+        state.aggregates.profile.queryKey = createAggregateQueryKey(action.meta.arg);
+      })
+      .addCase(fetchProfile.fulfilled, (state, action) => {
+        if (state.aggregates.profile.queryKey !== action.payload.queryKey) return;
+        setDatasetMetadata(state, action.payload);
+        state.aggregates.profile = {
+          data: action.payload,
+          status: 'succeeded',
+          error: null,
+          datasetRevision: action.payload.datasetRevision || state.dataset.datasetRevision,
+          queryKey: action.payload.queryKey,
+        };
+      })
+      .addCase(fetchProfile.rejected, (state, action) => {
+        if (state.aggregates.profile.queryKey !== createAggregateQueryKey(action.meta.arg)) return;
+        state.aggregates.profile.status = 'failed';
+        state.aggregates.profile.error = action.payload || 'Nie udało się pobrać raportu profilu.';
+      })
+      .addCase(fetchOpponents.pending, (state, action) => {
+        state.aggregates.opponents.status = 'loading';
+        state.aggregates.opponents.error = null;
+        state.aggregates.opponents.queryKey = createAggregateQueryKey(action.meta.arg);
+      })
+      .addCase(fetchOpponents.fulfilled, (state, action) => {
+        if (state.aggregates.opponents.queryKey !== action.payload.queryKey) return;
+        setDatasetMetadata(state, action.payload);
+        const previous = state.aggregates.opponents;
+        const received = Array.isArray(action.payload.opponents) ? action.payload.opponents : [];
+        const items = action.payload.cursor && previous.queryKey === action.payload.queryKey
+          ? [...previous.items, ...received.filter((candidate) => !previous.items.some((item) => item.id === candidate.id))]
+          : received;
+        state.aggregates.opponents = {
+          items,
+          nextCursor: action.payload.nextCursor || null,
+          total: Number(action.payload.total) || 0,
+          status: 'succeeded',
+          error: null,
+          datasetRevision: action.payload.datasetRevision || state.dataset.datasetRevision,
+          queryKey: action.payload.queryKey,
+        };
+      })
+      .addCase(fetchOpponents.rejected, (state, action) => {
+        if (state.aggregates.opponents.queryKey !== createAggregateQueryKey(action.meta.arg)) return;
+        state.aggregates.opponents.status = 'failed';
+        state.aggregates.opponents.error = action.payload || 'Nie udało się pobrać listy przeciwników.';
+      })
+      .addCase(fetchCards.pending, (state, action) => {
+        state.aggregates.cards.status = 'loading';
+        state.aggregates.cards.error = null;
+        state.aggregates.cards.queryKey = createAggregateQueryKey(action.meta.arg);
+      })
+      .addCase(fetchCards.fulfilled, (state, action) => {
+        if (state.aggregates.cards.queryKey !== action.payload.queryKey) return;
+        setDatasetMetadata(state, action.payload);
+        state.aggregates.cards = {
+          data: action.payload,
+          status: 'succeeded',
+          error: null,
+          datasetRevision: action.payload.datasetRevision || state.dataset.datasetRevision,
+          queryKey: action.payload.queryKey,
+        };
+      })
+      .addCase(fetchCards.rejected, (state, action) => {
+        if (state.aggregates.cards.queryKey !== createAggregateQueryKey(action.meta.arg)) return;
+        state.aggregates.cards.status = 'failed';
+        state.aggregates.cards.error = action.payload || 'Nie udało się pobrać statystyk kart startowych.';
+      })
+      .addCase(fetchWallet.pending, (state, action) => {
+        state.aggregates.wallet.status = 'loading';
+        state.aggregates.wallet.error = null;
+        state.aggregates.wallet.queryKey = createAggregateQueryKey({ gameType: 'cash', ...(action.meta.arg || {}) });
+      })
+      .addCase(fetchWallet.fulfilled, (state, action) => {
+        if (state.aggregates.wallet.queryKey !== action.payload.queryKey) return;
+        setDatasetMetadata(state, action.payload);
+        state.aggregates.wallet = {
+          data: action.payload,
+          status: 'succeeded',
+          error: null,
+          datasetRevision: action.payload.datasetRevision || state.dataset.datasetRevision,
+          queryKey: action.payload.queryKey,
+        };
+      })
+      .addCase(fetchWallet.rejected, (state, action) => {
+        if (state.aggregates.wallet.queryKey !== createAggregateQueryKey({ gameType: 'cash', ...(action.meta.arg || {}) })) return;
+        state.aggregates.wallet.status = 'failed';
+        state.aggregates.wallet.error = action.payload || 'Nie udało się pobrać danych portfela.';
+      })
+      .addCase(fetchAiModels.pending, (state) => {
+        state.aiModelsStatus = 'loading';
+        state.aiModelsError = null;
+      })
+      .addCase(fetchAiModels.fulfilled, (state, action) => {
+        state.aiModels = action.payload;
+        state.aiModelsStatus = 'succeeded';
+      })
+      .addCase(fetchAiModels.rejected, (state, action) => {
+        state.aiModelsStatus = 'failed';
+        state.aiModelsError = action.payload || 'Nie udało się pobrać konfiguracji modeli AI.';
+      })
+      .addCase(analyzeHandWithAI.pending, (state) => {
+        state.loadingAI = true;
+        state.errorAI = null;
+      })
       .addCase(analyzeHandWithAI.fulfilled, (state, action) => {
         state.loadingAI = false;
-        const existingEntry = state.aiAnalyses[action.payload.handId];
-        const history = Array.isArray(existingEntry)
-          ? existingEntry
-          : existingEntry?.analysis ? [existingEntry] : [];
-        history.push({
-          reportId: action.payload.reportId,
-          model: action.payload.model,
-          analyzedAt: action.payload.analyzedAt,
-          analysis: action.payload.analysis,
-        });
-        state.aiAnalyses[action.payload.handId] = history;
+        const report = action.payload;
+        const history = Array.isArray(state.aiAnalyses[report.handId]) ? state.aiAnalyses[report.handId] : [];
+        history.push(report);
+        state.aiAnalyses[report.handId] = history;
         localStorage.setItem(AI_ANALYSES_CACHE_KEY, JSON.stringify(state.aiAnalyses));
       })
-      .addCase(analyzeHandWithAI.rejected, (state, action) => { state.loadingAI = false; state.errorAI = action.payload; })
+      .addCase(analyzeHandWithAI.rejected, (state, action) => {
+        state.loadingAI = false;
+        state.errorAI = action.payload;
+        if (action.payload?.code === 'DATASET_REVISION_MISMATCH') state.datasetRefreshNotice = 'Dane zmieniły się podczas działania. Odświeżyliśmy dataset — ponów analizę ręcznie.';
+      })
       .addCase(analyzeSessionWithAI.pending, (state, action) => {
         const sessionId = action.meta.arg.sessionId;
         state.sessionAnalysisStatusById[sessionId] = 'loading';
@@ -771,34 +1317,48 @@ const pokerSlice = createSlice({
         const report = action.payload;
         state.sessionAnalysisStatusById[report.sessionId] = 'succeeded';
         delete state.sessionAnalysisErrorById[report.sessionId];
-        const history = Array.isArray(state.sessionAiAnalyses[report.sessionId])
-          ? state.sessionAiAnalyses[report.sessionId]
-          : [];
-        history.push({
-          reportId: report.reportId,
-          model: report.model,
-          analyzedAt: report.analyzedAt,
-          handCount: report.handCount,
-          fingerprint: report.fingerprint,
-          analysis: report.analysis,
-        });
+        const history = Array.isArray(state.sessionAiAnalyses[report.sessionId]) ? state.sessionAiAnalyses[report.sessionId] : [];
+        history.push(report);
         state.sessionAiAnalyses[report.sessionId] = history;
         localStorage.setItem(SESSION_AI_ANALYSES_CACHE_KEY, JSON.stringify(state.sessionAiAnalyses));
       })
       .addCase(analyzeSessionWithAI.rejected, (state, action) => {
         const sessionId = action.meta.arg.sessionId;
         state.sessionAnalysisStatusById[sessionId] = 'failed';
-        const rejectedError = action.payload;
-        const message = typeof rejectedError === 'string'
-          ? rejectedError
-          : rejectedError?.message;
-        const code = typeof rejectedError === 'object' && typeof rejectedError?.code === 'string'
-          ? rejectedError.code
-          : undefined;
-        state.sessionAnalysisErrorById[sessionId] = {
-          message: message || 'Nie udało się przeanalizować sesji.',
-          ...(code ? { code } : {}),
+        state.sessionAnalysisErrorById[sessionId] = action.payload;
+        if (action.payload?.code === 'DATASET_REVISION_MISMATCH') state.datasetRefreshNotice = 'Dane zmieniły się podczas działania. Odświeżyliśmy dataset — ponów analizę ręcznie.';
+      })
+      .addCase(fetchSessionGroupPreview.pending, (state, action) => {
+        state.sessionGroupPreview = {
+          ...createEmptySessionGroupPreview(),
+          status: 'loading',
+          queryKey: createSessionGroupPreviewQueryKey({
+            sessionIds: action.meta.arg?.sessionIds,
+            datasetRevision: state.dataset.datasetRevision || '',
+          }),
         };
+      })
+      .addCase(fetchSessionGroupPreview.fulfilled, (state, action) => {
+        if (state.sessionGroupPreview.queryKey !== action.payload.queryKey) return;
+        setDatasetMetadata(state, action.payload);
+        state.sessionGroupPreview = {
+          data: action.payload,
+          status: 'succeeded',
+          error: null,
+          datasetRevision: action.payload.datasetRevision || state.dataset.datasetRevision,
+          queryKey: action.payload.queryKey,
+        };
+      })
+      .addCase(fetchSessionGroupPreview.rejected, (state, action) => {
+        const queryKey = createSessionGroupPreviewQueryKey({
+          sessionIds: action.meta.arg?.sessionIds,
+          datasetRevision: state.dataset.datasetRevision || '',
+        });
+        if (state.sessionGroupPreview.queryKey !== queryKey) return;
+        state.sessionGroupPreview.status = action.meta.aborted ? 'idle' : 'failed';
+        state.sessionGroupPreview.error = action.meta.aborted
+          ? null
+          : (action.payload || 'Nie udało się pobrać podglądu wybranych sesji.');
       })
       .addCase(analyzeSessionGroupWithAI.pending, (state) => {
         state.sessionGroupAnalysisStatus = 'loading';
@@ -806,63 +1366,13 @@ const pokerSlice = createSlice({
       })
       .addCase(analyzeSessionGroupWithAI.fulfilled, (state, action) => {
         state.sessionGroupAnalysisStatus = 'succeeded';
-        state.sessionGroupAnalysisError = null;
         state.sessionGroupAiAnalyses.push(action.payload);
-        localStorage.setItem(
-          SESSION_GROUP_AI_ANALYSES_CACHE_KEY,
-          JSON.stringify(state.sessionGroupAiAnalyses),
-        );
+        localStorage.setItem(SESSION_GROUP_AI_ANALYSES_CACHE_KEY, JSON.stringify(state.sessionGroupAiAnalyses));
       })
       .addCase(analyzeSessionGroupWithAI.rejected, (state, action) => {
         state.sessionGroupAnalysisStatus = 'failed';
-        const rejectedError = action.payload;
-        const message = typeof rejectedError === 'string'
-          ? rejectedError
-          : rejectedError?.message;
-        const code = typeof rejectedError === 'object' && typeof rejectedError?.code === 'string'
-          ? rejectedError.code
-          : undefined;
-        state.sessionGroupAnalysisError = {
-          message: message || 'Nie udało się przeanalizować wybranych sesji.',
-          ...(code ? { code } : {}),
-        };
-      })
-      .addCase(fetchAiModels.pending, (state) => {
-        state.aiModelsStatus = 'loading';
-        state.aiModelsError = null;
-      })
-      .addCase(fetchAiModels.fulfilled, (state, action) => {
-        state.aiModels = action.payload;
-        state.aiModelsStatus = 'succeeded';
-        state.aiModelsError = null;
-      })
-      .addCase(fetchAiModels.rejected, (state, action) => {
-        state.aiModelsStatus = 'failed';
-        state.aiModelsError = action.payload || 'Nie udało się pobrać konfiguracji modeli AI.';
-      })
-      .addCase(syncLocalSources.pending, (state) => {
-        state.localSourcesStatus = 'loading';
-        state.localSourcesError = null;
-      })
-      .addCase(syncLocalSources.fulfilled, (state, action) => {
-        const enabledById = new Map(
-          state.sources
-            .filter((source) => source.origin === LOCAL_SOURCE_ORIGIN)
-            .map((source) => [source.id, source.enabled]),
-        );
-        const localSources = action.payload.map((source) => ({
-          ...source,
-          enabled: enabledById.get(source.id) ?? true,
-        }));
-        const uploadedSources = state.sources.filter((source) => source.origin !== LOCAL_SOURCE_ORIGIN);
-        state.sources = [...localSources, ...uploadedSources];
-        state.localSourcesStatus = 'succeeded';
-        state.localSourcesError = null;
-        recalculateAllHands(state);
-      })
-      .addCase(syncLocalSources.rejected, (state, action) => {
-        state.localSourcesStatus = 'failed';
-        state.localSourcesError = action.payload || 'Nie udało się zsynchronizować lokalnych plików.';
+        state.sessionGroupAnalysisError = action.payload;
+        if (action.payload?.code === 'DATASET_REVISION_MISMATCH') state.datasetRefreshNotice = 'Dane zmieniły się podczas działania. Odświeżyliśmy dataset — ponów analizę ręcznie.';
       })
       .addCase(syncAiAnalyses.pending, (state) => {
         state.sharedAiAnalysesStatus = 'loading';
@@ -880,30 +1390,27 @@ const pokerSlice = createSlice({
         state.sessionAiAnalyses = normalized.sessionAnalyses;
         state.sessionGroupAiAnalyses = normalized.sessionGroupAnalyses;
         state.sharedAiAnalysesStatus = 'succeeded';
-        state.sharedAiAnalysesError = null;
       })
       .addCase(syncAiAnalyses.rejected, (state, action) => {
         state.sharedAiAnalysesStatus = 'failed';
         state.sharedAiAnalysesError = action.payload || 'Nie udało się zsynchronizować raportów AI.';
       });
-  }
+  },
 });
 
 export const {
-  uploadHandHistory,
-  toggleSource,
-  removeSource,
+  clearSessionGroupPreview,
+  clearDatasetRefreshNotice,
+  closeOpenedHand,
+  selectHand,
   selectSession,
   selectTourney,
-  selectHand,
+  setCardsDateRange,
+  setDataFilters,
   setDefaultAiModel,
+  setSessionGroupReportSelection,
+  setSessionGroupSelection,
   toggleSavedHand,
-  clearData,
 } = pokerSlice.actions;
+
 export default pokerSlice.reducer;
-
-//Chciałbym żebyś mi zrobił podstawowe metryki gracza pokerowego w nowej zakładce "Mój profil". Które to statystki wyliczają się do gracza Hero. Statystyki takie: VPIP, PFR, AF, WSTD, WATSD, Winrate
-
-//Dodatkowo kolejna zakładka "Przeciwnicy" z listą zawodników-przeciwników na bazie ich ID - żeby móc zobaczyć z kim najwięcej grałem/wygrałem/przegrałem. Czyli żeby było wypisane ile rozdań, ile sesji, ile razy showdown, ile razy wygrałem, ile razy przegrałem, jaka wartość łączna wygranych/przegranych - danych/oddanych żetonów
-
-//Lista układów które są najlepsze poszła w złym kierunku - chciałbym żeby ona sprawdziła moja historię wszystkich rozdań cash + turnieje i pokazywała jaka szansa na wygraną z danym układem wg wzoru - ile razy dana ręka wygrała / ilość rozdań wszytskich oraz ile razy dana ręka wygrała / ilość wygranych rozdań

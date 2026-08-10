@@ -4,11 +4,30 @@ import { evaluateVisibleHand } from './handEvaluator.js';
 
 export { evaluateHoldemHand, evaluateVisibleHand } from './handEvaluator.js';
 
+// Zwiększyć przy każdej zmianie, która może wpłynąć na postać danych
+// parsowanych albo agregatów zależnych od parsera.
+export const PARSER_VERSION = 1;
+
 export const GAME_VARIANTS = Object.freeze({
   NLH: 'NLH',
   NLH_BOMB_POT: 'NLH BombPot',
   PLO_4: 'PLO 4',
 });
+
+export const HAND_PARSE_ISSUES = Object.freeze({
+  EMPTY_SECTION: 'EMPTY_SECTION',
+  MISSING_HAND_ID: 'MISSING_HAND_ID',
+  INVALID_PLAYED_AT: 'INVALID_PLAYED_AT',
+  PARSE_ERROR: 'PARSE_ERROR',
+});
+
+// Kanoniczna reprezentacja tekstu jest współdzielona z repozytorium JSONL.
+// Dzięki temu ten sam eksport, niezależnie od BOM-u lub końców linii, zawsze
+// ma taki sam hash zawartości.
+export const normalizeRawHandText = (rawText) => String(rawText ?? '')
+  .replace(/^\uFEFF/, '')
+  .replace(/\r\n?/g, '\n')
+  .trim();
 
 export const detectGameVariant = (rawHand) => {
   const headerMatch = String(rawHand || '').match(/CoinPoker Hand #\d+:\s*([^\r\n(]+)/i);
@@ -22,11 +41,30 @@ export const detectGameVariant = (rawHand) => {
 };
 
 const parsePokerDate = (dateStr) => {
-  if (!dateStr) return new Date();
-  const cleanStr = dateStr.replace(/CE[S]?T|GMT|UTC/g, '').trim();
-  const formattedStr = cleanStr.replace(/\//g, '-').replace(' ', 'T');
-  const d = new Date(formattedStr);
-  return isNaN(d.getTime()) ? new Date() : d;
+  const cleanStr = String(dateStr || '').replace(/\b(?:CE[S]?T|GMT|UTC)\b/gi, '').trim();
+  const match = cleanStr.match(/^(\d{4})[-/](\d{2})[-/](\d{2})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+  if (!match) return null;
+
+  const [, yearValue, monthValue, dayValue, hourValue = '00', minuteValue = '00', secondValue = '00'] = match;
+  const year = Number(yearValue);
+  const month = Number(monthValue);
+  const day = Number(dayValue);
+  const hour = Number(hourValue);
+  const minute = Number(minuteValue);
+  const second = Number(secondValue);
+  const validationDate = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+
+  if (validationDate.getUTCFullYear() !== year
+    || validationDate.getUTCMonth() !== month - 1
+    || validationDate.getUTCDate() !== day
+    || validationDate.getUTCHours() !== hour
+    || validationDate.getUTCMinutes() !== minute
+    || validationDate.getUTCSeconds() !== second) {
+    return null;
+  }
+
+  const parsed = new Date(`${yearValue}-${monthValue}-${dayValue}T${hourValue}:${minuteValue}:${secondValue}`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
 const parseChips = (valStr) => {
@@ -624,19 +662,23 @@ const buildStreetBlocks = (rawHand) => {
   return streets;
 };
 
-export const parseRawHandHistory = (rawText) => {
-  const rawHands = rawText.split(/(?=CoinPoker Hand #)/i);
-  const parsedHands = [];
+export const parseSingleRawHand = (rawText) => {
+  const rawHand = normalizeRawHandText(rawText);
+  if (!rawHand) {
+    return { hand: null, rawText: rawHand, reason: HAND_PARSE_ISSUES.EMPTY_SECTION };
+  }
 
-  for (let rawHand of rawHands) {
-    if (!rawHand.trim()) continue;
+  const idMatch = rawHand.match(/CoinPoker Hand #(\d+)/i);
+  if (!idMatch) {
+    return { hand: null, rawText: rawHand, reason: HAND_PARSE_ISSUES.MISSING_HAND_ID };
+  }
 
-    try {
+  try {
       const handData = {
         id: '', timestamp: null, dateStr: '', timeStr: '', blinds: '', smallBlind: 0, bigBlind: 0, ante: 0, gameType: 'NLH',
         gameVariant: GAME_VARIANTS.NLH, heroCards: [], boardCards: [], boardCardsByBoard: [],
         handRanking: 'NO_HAND', handRankingSource: 'UNAVAILABLE', heroInvestment: 0,
-        heroWinnings: 0, netProfit: 0, outcome: 'FOLDED', rawText: rawHand.trim(),
+        heroWinnings: 0, netProfit: 0, outcome: 'FOLDED', rawText: rawHand,
         position: 'UNKNOWN', streets: [], isTournament: false, heroStartingStack: 0,
         tableId: '', tourneyName: '', tourneyId: '',
         heroVPIP: false, heroPFR: false, sawShowdown: false,
@@ -645,8 +687,6 @@ export const parseRawHandHistory = (rawText) => {
         opponents: []
       };
 
-      const idMatch = rawHand.match(/CoinPoker Hand #(\d+)/i);
-      if (!idMatch) continue;
       handData.id = idMatch[1];
       handData.gameVariant = detectGameVariant(rawHand);
       Object.assign(handData, parseHeaderBlinds(rawHand));
@@ -665,15 +705,20 @@ export const parseRawHandHistory = (rawText) => {
       if (stackMatch) handData.heroStartingStack = parseChips(stackMatch[1]);
 
       const lines = rawHand.split(/\r?\n/).map(l => l.trim()).filter(l => l);
-      if (lines.length === 0) continue;
+      if (lines.length === 0) {
+        return { hand: null, rawText: rawHand, reason: HAND_PARSE_ISSUES.EMPTY_SECTION };
+      }
 
       const dateMatch = lines[0].match(/(\d{4}[-/]\d{2}[-/]\d{2}.*)/);
       if (dateMatch) {
         handData.dateStr = dateMatch[1].trim();
         const d = parsePokerDate(handData.dateStr);
+        if (!d) {
+          return { hand: null, rawText: rawHand, reason: HAND_PARSE_ISSUES.INVALID_PLAYED_AT };
+        }
         handData.timestamp = d.getTime();
       } else {
-        handData.timestamp = new Date().getTime();
+        return { hand: null, rawText: rawHand, reason: HAND_PARSE_ISSUES.INVALID_PLAYED_AT };
       }
 
       handData.heroCards = getHeroCards(rawHand);
@@ -815,13 +860,60 @@ export const parseRawHandHistory = (rawText) => {
         }
       }
 
-      parsedHands.push(handData);
-    } catch (e) {
-      console.error(e);
-    }
+      handData.gameType = handData.isTournament ? 'tournament' : 'cash';
+      return { hand: handData, rawText: rawHand };
+  } catch (error) {
+    return {
+      hand: null,
+      rawText: rawHand,
+      reason: `${HAND_PARSE_ISSUES.PARSE_ERROR}: ${error instanceof Error ? error.message : String(error)}`,
+    };
   }
-  return parsedHands.sort((a, b) => a.timestamp - b.timestamp);
 };
+
+const splitRawHandSections = (rawText) => {
+  const sections = [];
+  const handStartPattern = /CoinPoker Hand #/gi;
+  let match = handStartPattern.exec(rawText);
+  if (!match) return rawText ? [rawText] : [];
+
+  if (match.index > 0) sections.push(rawText.slice(0, match.index));
+  while (match) {
+    const start = match.index;
+    const next = handStartPattern.exec(rawText);
+    sections.push(rawText.slice(start, next?.index));
+    match = next;
+  }
+  return sections;
+};
+
+export const parseHandHistoryDocument = (rawText) => {
+  const normalizedDocument = normalizeRawHandText(rawText);
+  const validHands = [];
+  const issues = [];
+
+  splitRawHandSections(normalizedDocument).forEach((section, index) => {
+    const ordinal = index + 1;
+    const parsed = parseSingleRawHand(section);
+    const handId = parsed.hand?.id || section.match(/CoinPoker Hand #(\d+)/i)?.[1] || null;
+
+    if (parsed.hand) {
+      validHands.push({ hand: parsed.hand, rawText: parsed.rawText, ordinal });
+      return;
+    }
+    issues.push({ ordinal, handId, reason: parsed.reason || HAND_PARSE_ISSUES.PARSE_ERROR });
+  });
+
+  return { validHands, issues };
+};
+
+// Dotychczasowe API parsera pozostaje dostępne dla klienta. Nowy kontrakt
+// dokumentu pozwala importerowi raportować odrzucone sekcje, a wrapper zwraca
+// wyłącznie te same poprawne ręce, których oczekuje istniejący interfejs.
+export const parseRawHandHistory = (rawText) => parseHandHistoryDocument(rawText)
+  .validHands
+  .map(({ hand }) => hand)
+  .sort((left, right) => left.timestamp - right.timestamp);
 
 export const buildSessions = (hands) => {
   const sessionMap = {};

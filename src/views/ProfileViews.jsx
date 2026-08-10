@@ -1,5 +1,6 @@
 // src/views/ProfileViews.jsx
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   CalendarDays,
   ChevronLeft,
@@ -12,7 +13,7 @@ import {
   Users,
 } from 'lucide-react';
 import { SessionSummary } from '../components/SessionSummary.jsx';
-import { buildProfileReport } from '../utils/profileReport.js';
+import { fetchOpponents, fetchProfile, setDataFilters } from '../store/pokerSlice.js';
 
 const PROFILE_GAME_TYPE_LABELS = {
   cash: 'Cash',
@@ -37,22 +38,18 @@ const ProfileDateField = ({ label, value, onChange, testId }) => (
 );
 
 export const ProfileView = ({
-  cashHands = [],
-  tournamentHands = [],
+  report = null,
   gameTypeFilter = 'both',
+  dateFrom = '',
+  dateTo = '',
+  onDateFromChange = () => {},
+  onDateToChange = () => {},
+  onClearDateRange = () => {},
+  isLoading = false,
+  error = null,
 }) => {
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const report = useMemo(() => buildProfileReport({
-    cashHands,
-    tournamentHands,
-    gameType: gameTypeFilter,
-    dateFrom,
-    dateTo,
-  }), [cashHands, tournamentHands, gameTypeFilter, dateFrom, dateTo]);
-
-  const selectedGameTypeLabel = PROFILE_GAME_TYPE_LABELS[report.gameType] || 'Wszystko';
-  const hasReportHands = report.isValid && report.metrics?.hands > 0;
+  const selectedGameTypeLabel = PROFILE_GAME_TYPE_LABELS[report?.gameType || gameTypeFilter] || 'Wszystko';
+  const hasReportHands = report?.isValid && report.metrics?.hands > 0;
   const periodLabel = dateFrom || dateTo
     ? `${dateFrom || 'początek historii'} — ${dateTo || 'koniec historii'}`
     : 'cała wczytana historia';
@@ -76,22 +73,19 @@ export const ProfileView = ({
           <ProfileDateField
             label="Od"
             value={dateFrom}
-            onChange={(event) => setDateFrom(event.target.value)}
+            onChange={(event) => onDateFromChange(event.target.value)}
             testId="profile-date-from"
           />
           <ProfileDateField
             label="Do"
             value={dateTo}
-            onChange={(event) => setDateTo(event.target.value)}
+            onChange={(event) => onDateToChange(event.target.value)}
             testId="profile-date-to"
           />
           <button
             type="button"
             data-testid="profile-clear-date-range"
-            onClick={() => {
-              setDateFrom('');
-              setDateTo('');
-            }}
+            onClick={onClearDateRange}
             disabled={!dateFrom && !dateTo}
             className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
           >
@@ -100,7 +94,15 @@ export const ProfileView = ({
         </div>
       </section>
 
-      {!report.isValid ? (
+      {error ? (
+        <div data-testid="profile-date-error" role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+          {error}
+        </div>
+      ) : isLoading && !report ? (
+        <div role="status" className="rounded-2xl border border-indigo-100 bg-indigo-50 p-8 text-center text-sm font-semibold text-indigo-700">
+          Pobieranie raportu profilu…
+        </div>
+      ) : report && !report.isValid ? (
         <div data-testid="profile-date-error" role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
           {report.error}
           <div className="mt-1 font-normal">Raport nie zostanie wyświetlony, dopóki zakres dat nie będzie poprawny.</div>
@@ -125,7 +127,40 @@ export const ProfileView = ({
   );
 };
 
-export const OpponentsView = ({ opponentsMetrics = [] }) => {
+export const ProfileDataView = () => {
+  const dispatch = useDispatch();
+  const gameTypeFilter = useSelector((state) => state.poker.filters.gameType);
+  const dateFrom = useSelector((state) => state.poker.filters.dateFrom);
+  const dateTo = useSelector((state) => state.poker.filters.dateTo);
+  const profile = useSelector((state) => state.poker.aggregates.profile);
+
+  useEffect(() => {
+    dispatch(fetchProfile({ gameType: gameTypeFilter, dateFrom, dateTo }));
+  }, [dateFrom, dateTo, dispatch, gameTypeFilter]);
+
+  return (
+    <ProfileView
+      report={profile.data}
+      gameTypeFilter={gameTypeFilter}
+      dateFrom={dateFrom}
+      dateTo={dateTo}
+      isLoading={profile.status === 'loading'}
+      error={profile.status === 'failed' ? profile.error : null}
+      onDateFromChange={(value) => dispatch(setDataFilters({ dateFrom: value }))}
+      onDateToChange={(value) => dispatch(setDataFilters({ dateTo: value }))}
+      onClearDateRange={() => dispatch(setDataFilters({ dateFrom: '', dateTo: '' }))}
+    />
+  );
+};
+
+export const OpponentsView = ({
+  opponentsMetrics = [],
+  total = opponentsMetrics.length,
+  hasNextPage = false,
+  isLoading = false,
+  error = null,
+  onLoadMore = () => {},
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [minHands, setMinHands] = useState(100);
   const [sortBy, setSortBy] = useState('handsPlayed');
@@ -264,7 +299,11 @@ export const OpponentsView = ({ opponentsMetrics = [] }) => {
         </div>
 
         {/* TABLE */}
-        {processedOpponents.length === 0 ? (
+        {error ? (
+          <div role="alert" className="flex-1 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
+        ) : isLoading && opponentsMetrics.length === 0 ? (
+          <div role="status" className="flex-1 flex items-center justify-center text-gray-400">Pobieranie przeciwników…</div>
+        ) : processedOpponents.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
             <Users size={48} className="mb-4 opacity-20" />
             <p>Brak przeciwników spełniających kryteria.</p>
@@ -311,7 +350,7 @@ export const OpponentsView = ({ opponentsMetrics = [] }) => {
             {/* PAGINACJA */}
             <div className="bg-slate-50 border-t border-gray-200 px-6 py-3 flex items-center justify-between shrink-0">
                <span className="text-sm font-semibold text-gray-500">
-                 Strona {currentPage} z {totalPages} <span className="font-normal">(Łącznie wyników: {processedOpponents.length})</span>
+                 Strona {currentPage} z {totalPages} <span className="font-normal">(wczytano: {opponentsMetrics.length} z {total})</span>
                </span>
                <div className="flex gap-2">
                  <button 
@@ -330,9 +369,47 @@ export const OpponentsView = ({ opponentsMetrics = [] }) => {
                  </button>
                </div>
             </div>
+            {hasNextPage && (
+              <button
+                type="button"
+                onClick={onLoadMore}
+                disabled={isLoading}
+                className="mx-6 mb-3 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-black text-indigo-700 transition-colors hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isLoading ? 'Pobieranie…' : 'Pobierz kolejnych 100 przeciwników'}
+              </button>
+            )}
           </div>
         )}
       </div>
     </div>
+  );
+};
+
+export const OpponentsDataView = () => {
+  const dispatch = useDispatch();
+  const gameType = useSelector((state) => state.poker.filters.gameType);
+  const dateFrom = useSelector((state) => state.poker.filters.dateFrom);
+  const dateTo = useSelector((state) => state.poker.filters.dateTo);
+  const opponents = useSelector((state) => state.poker.aggregates.opponents);
+
+  useEffect(() => {
+    dispatch(fetchOpponents({ gameType, dateFrom, dateTo }));
+  }, [dateFrom, dateTo, dispatch, gameType]);
+
+  return (
+    <OpponentsView
+      opponentsMetrics={opponents.items}
+      total={opponents.total}
+      hasNextPage={Boolean(opponents.nextCursor)}
+      isLoading={opponents.status === 'loading'}
+      error={opponents.status === 'failed' ? opponents.error : null}
+      onLoadMore={() => dispatch(fetchOpponents({
+        gameType,
+        dateFrom,
+        dateTo,
+        cursor: opponents.nextCursor,
+      }))}
+    />
   );
 };

@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Pochodne indeksy danych oraz pliki atomowych zapisów nie są kanonicznymi danymi.
+data/.cache/
+data/poker/**/*.tmp
+data/poker/**/*.staging
+data/inbox/*.txt
+data/inbox/**/*.tmp

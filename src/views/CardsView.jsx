@@ -1,10 +1,17 @@
 // src/views/CardsView.jsx
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { CardIcon } from '../components/CardIcon.jsx';
 import { Grid, Maximize2, Minimize2, X } from 'lucide-react';
-import { buildStartingHandStats, STARTING_HAND_RANKS } from '../utils/startingHandStats.js';
+import { STARTING_HAND_RANKS } from '../utils/startingHandStats.js';
+import { fetchCards, setCardsDateRange } from '../store/pokerSlice.js';
 
-export const CardsView = ({ activeHands }) => {
+export const CardsView = () => {
+  const dispatch = useDispatch();
+  const gameType = useSelector((state) => state.poker.filters.gameType);
+  const cardsDateFrom = useSelector((state) => state.poker.filters.cardsDateFrom);
+  const cardsDateTo = useSelector((state) => state.poker.filters.cardsDateTo);
+  const cards = useSelector((state) => state.poker.aggregates.cards);
   const [cardTypeFilter, setCardTypeFilter] = useState('all');
   const [viewMode, setViewMode] = useState('classic'); // 'classic' lub 'advanced'
   const [cardsSortBy, setCardsSortBy] = useState('count');
@@ -88,12 +95,21 @@ export const CardsView = ({ activeHands }) => {
     setActiveModal(null);
   };
 
+  useEffect(() => {
+    dispatch(fetchCards({ gameType, dateFrom: cardsDateFrom, dateTo: cardsDateTo, riverOrShowdownOnly }));
+  }, [cardsDateFrom, cardsDateTo, dispatch, gameType, riverOrShowdownOnly]);
+
   const all169HandsData = useMemo(
-    () => buildStartingHandStats(activeHands, { riverOrShowdownOnly }),
-    [activeHands, riverOrShowdownOnly],
+    () => (Array.isArray(cards.data?.hands) ? cards.data.hands : []),
+    [cards.data],
   );
 
   const maxCount = useMemo(() => Math.max(...all169HandsData.map(h => h.count), 1), [all169HandsData]);
+  const cardsMetadata = cards.data || {};
+  const activeDateRangeLabel = cardsDateFrom || cardsDateTo
+    ? `${cardsDateFrom || 'początek historii'} — ${cardsDateTo || 'dziś'}`
+    : 'cała historia';
+  const excludedByReason = cardsMetadata.excludedByReason || {};
 
   const filtered169Hands = useMemo(() => {
     let result = cardTypeFilter === 'all' ? [...all169HandsData] : all169HandsData.filter(h => h.type === cardTypeFilter);
@@ -191,6 +207,8 @@ const renderGrid = (type) => {
 
   return (
     <div className="max-w-7xl mx-auto bg-white p-6 rounded-2xl shadow-sm border border-gray-200 animate-in fade-in duration-300 flex flex-col h-[calc(100vh-140px)] relative">
+      {cards.status === 'failed' && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{cards.error}</div>}
+      {cards.status === 'loading' && all169HandsData.length === 0 && <div role="status" className="mb-4 rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-sm font-semibold text-indigo-700">Pobieranie 169 agregatów kart startowych…</div>}
       
       {/* NAKŁADKA MODALA (Heatmapy) */}
       {activeModal && (
@@ -292,6 +310,7 @@ const renderGrid = (type) => {
       <div className="border-b pb-4 mb-4 shrink-0 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
         <div>
           <h3 className="text-lg font-bold text-gray-800">Statystyka Rąk Startowych</h3>
+          <p className="mt-1 text-xs text-slate-500">Zakres kart: <span className="font-bold text-slate-700">{activeDateRangeLabel}</span></p>
           <div className="flex gap-2 mt-2">
             <button onClick={() => setViewMode('classic')} className={`px-3 py-1 rounded-lg text-xs font-bold ${viewMode === 'classic' ? 'bg-slate-800 text-white' : 'bg-slate-200 text-slate-600'}`}>Klasyczny</button>
             <button onClick={() => setViewMode('advanced')} className={`px-3 py-1 rounded-lg text-xs font-bold ${viewMode === 'advanced' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'}`}>Zaawansowany</button>
@@ -318,6 +337,24 @@ const renderGrid = (type) => {
           </div>
         </div>
       </div>
+
+      <section aria-label="Zakres dat kart startowych" className="mb-3 flex shrink-0 flex-col gap-3 rounded-xl border border-indigo-100 bg-indigo-50/60 p-3 text-xs text-slate-700 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="flex flex-col gap-1 font-bold">Od
+            <input type="date" value={cardsDateFrom} onChange={(event) => dispatch(setCardsDateRange({ dateFrom: event.target.value, dateTo: cardsDateTo }))} className="rounded-lg border border-indigo-200 bg-white px-2 py-1.5 font-normal outline-none focus:border-indigo-500" />
+          </label>
+          <label className="flex flex-col gap-1 font-bold">Do
+            <input type="date" value={cardsDateTo} onChange={(event) => dispatch(setCardsDateRange({ dateFrom: cardsDateFrom, dateTo: event.target.value }))} className="rounded-lg border border-indigo-200 bg-white px-2 py-1.5 font-normal outline-none focus:border-indigo-500" />
+          </label>
+          <button type="button" onClick={() => dispatch(setCardsDateRange({}))} disabled={!cardsDateFrom && !cardsDateTo} className="rounded-lg border border-indigo-200 bg-white px-3 py-1.5 font-bold text-indigo-700 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50">Wyczyść zakres</button>
+        </div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-slate-600">
+          <span>Zindeksowane: <strong className="text-slate-900">{cardsMetadata.indexedHandCount ?? 0}</strong></span>
+          <span>Klasy: <strong className="text-slate-900">{cardsMetadata.populatedClassCount ?? 0}/169</strong></span>
+          {Number(excludedByReason.unsupportedVariant) > 0 && <span>Pominięto warianty poza NLH i NLH BombPot: <strong className="text-slate-900">{excludedByReason.unsupportedVariant}</strong></span>}
+          {Number(excludedByReason.invalidHeroCards) > 0 && <span>Nieprawidłowe karty Hero: <strong className="text-slate-900">{excludedByReason.invalidHeroCards}</strong></span>}
+        </div>
+      </section>
       
       <div className="flex justify-between items-center bg-slate-50 p-2 rounded-xl text-xs gap-3 border mb-3 shrink-0">
         <div className="flex items-center gap-3">

@@ -20,6 +20,34 @@ npm run build
 npm start
 ```
 
+## Dane pokerowe i import
+
+Kanoniczne rozdania są zapisane w `data/poker/hands/*.jsonl`; oryginalne pliki TXT i raporty importu trafiają odpowiednio do `data/poker/sources/`, `data/poker/imports/` oraz `data/poker/issues/`. Przeglądarka pobiera wyłącznie agregaty, strony list i pojedyncze rozdanie potrzebne Replayerowi — nigdy pełne TXT ani JSONL.
+
+Istniejące pliki TXT można jednorazowo przenieść do nowego magazynu świadomie:
+
+```powershell
+npm run data:migrate -- --dry-run
+npm run data:migrate -- --apply
+```
+
+Najpierw zawsze sprawdź wynik `--dry-run`. Tryb `--apply` jest idempotentny: dodaje wyłącznie nowe ID rozdań, pomija identyczne duplikaty i nie nadpisuje konfliktów. Konflikt (to samo `handId`, inna treść) oraz nieprawidłowa sekcja są opisane w raporcie `issues/<importId>.json`; poprawne ręce z tego samego pliku są nadal importowane. Konfliktową rękę można zastąpić tylko świadomie przez CLI `data:replace-hand` z najpierw `--dry-run`, a potem `--apply`.
+
+Zakładka „Wgrane pliki” jest centrum importu: przyjmuje jeden plik TXT albo uruchamia ręczne skanowanie `data/inbox/`. Pliki `data/inbox/*.txt` są celowo ignorowane przez Git i po poprawnym imporcie są archiwizowane. Nie ma włączania, wyłączania ani kasowania źródeł z interfejsu.
+
+Indeks w `data/.cache/` jest pochodny i ignorowany przez Git. Po zmianie kanonicznych danych aplikacja odtworzy go automatycznie; gdy trzeba wymusić odbudowę, zatrzymaj serwer i usuń wyłącznie `data/.cache/poker-index-v1.json.gz`. Nie usuwaj katalogu `data/poker/` ani archiwów źródeł.
+
+Po sprawdzeniu raportu importu wykonaj ręcznie workflow Git:
+
+```powershell
+git status
+git add data/poker data/poker-ai-analyses-v1.json
+git commit -m "Zapisz import historii pokerowych"
+git push
+```
+
+Aplikacja nigdy nie wykonuje `commit`, `pull` ani `push` samodzielnie.
+
 ## Konfiguracja AI
 
 Utwórz albo uzupełnij ignorowany przez Git plik `.env.local` w katalogu projektu:
@@ -59,7 +87,7 @@ Przy uruchomieniu aplikacja scala raporty z `localStorage` i `data`, więc istni
 Plik cache jest zwykłym plikiem repozytorium. Po zakończeniu pracy należy dołączyć go do standardowego commita razem z historiami:
 
 ```powershell
-git add data/poker-ai-analyses-v1.json data/*.txt
+git add data/poker data/poker-ai-analyses-v1.json
 git commit -m "Zapisz historie i raporty AI"
 git push
 ```
@@ -94,6 +122,7 @@ Historia grupowych raportów jest zapisywana osobno jako `poker_ai_session_group
 npm test
 npm run lint
 npm run build
+npm run perf:data
 ```
 
 Testy adapterów i API używają mocków i nie wykonują płatnych wywołań. Ręczny smoke test prawdziwego modelu należy wykonać świadomie z poziomu Replayera lub panelu sesji.

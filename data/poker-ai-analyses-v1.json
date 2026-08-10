@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-10T10:33:50.073Z",
+  "updatedAt": "2026-08-10T16:00:06.933Z",
   "handAnalyses": {
     "594100596": [
       {
@@ -1121,6 +1121,30 @@
           "turn": "",
           "river": "",
           "summary": "Hero poprawnie wykorzystał pozycję i siłę [Jh Kc] do kradzieży blindów. Najważniejsza korekta dotyczy sizingu: przy krótkim efektywnym stacku mniejsze otwarcie daje podobną skuteczność, a lepiej chroni stack przed przebiciem. Brak gry po flopie."
+        }
+      }
+    ],
+    "130477700077": [
+      {
+        "reportId": "2eeea8d0-1287-4476-a967-1080d3501348",
+        "model": {
+          "id": "gemini-2.5-flash",
+          "name": "Gemini 2.5 Flash"
+        },
+        "analyzedAt": "2026-08-10T13:14:02.703Z",
+        "analysis": {
+          "heroResult": {
+            "handId": "130477700077",
+            "outcome": "WON",
+            "heroWinnings": 307051.82,
+            "netProfit": 154088.41,
+            "handRanking": "TWO_PAIR"
+          },
+          "preflop": "Wchodzisz do gry z małego blinda, dopłacając do poziomu dużego blinda z [2s 7s], po tym jak wszyscy gracze spasowali. To standardowe zagranie, które pozwala Ci tanio zobaczyć flopa ze spekulacyjną ręką.",
+          "flop": "Na flopie [5c 7c 2d] trafiasz dwie pary, co jest bardzo silnym układem. Decydujesz się na olbrzymi overbet (ponad 3.5x pot), stawiając 22,875 do puli 6,375. To niezwykle agresywny sizing, który mógłby odrzucić wiele słabszych rąk, ale jednocześnie buduje ogromną pulę. Przeciwnik sprawdza, co sugeruje, że ma coś, z czym chce kontynuować rozdanie, np. parę, silny draw, lub nawet seta.",
+          "turn": "Karta [3d] na turnie otwiera potencjalne drawy do strita i zwiększa ryzyko dla Twoich dwóch par. Decydujesz się na check. Przeciwnik betuje około 1/3 puli (17,875 do puli 52,125), co często może wskazywać na słabszą rękę lub próbę kontroli puli. Twoja odpowiedź to silny raise do 60,350 (ponad 3x bet przeciwnika). To zagranie polaryzuje Twój zakres, pokazując dużą siłę. Przeciwnik ponownie sprawdza, co jest sygnałem, że ma silny draw lub już skompletowany układ.",
+          "river": "Na riverze spada [Js], która nie wydaje się zmieniać istotnie układu sił na stole. Znowu decydujesz się na check. Przeciwnik stawia all-in za 66,363.41, co stanowi około połowy puli. Taki shove jest często bardzo mocny i może oznaczać seta, strita lub lepsze dwie pary, ale może to być również blef. Twoje sprawdzenie w tej sytuacji jest odważne, ale, jak się okazało, było prawidłowe – przeciwnik blefował. To bardzo dobrze wykonane zagranie na riverze, które wyciągnęło maksymalną wartość (czy raczej 'zapłaciło za') od blefującego przeciwnika.",
+          "summary": "Ogólnie rzecz biorąc, zagrałeś to rozdanie agresywnie i odważnie. Zagranie flopem było bardzo nietypowe ze względu na sizing, ale ostatecznie skutecznie budowało pulę. Na turnie Twój check-raise pokazał siłę i zmuszał przeciwnika do podjęcia trudnej decyzji. Na riverze, Twoje sprawdzenie all-ina przeciwnika po checku było świetnym odczytem jego słabości. Wynik – wygrana z dwiema parami [2s 7s] – potwierdza skuteczność Twoich decyzji."
         }
       }
     ]
@@ -2329,6 +2353,67 @@
             {
               "handId": "128821400016",
               "reason": "QTo zostało spasowane first-in z HJ przy około 10,5 BB i ante. Bez silnej presji ICM może to być zbyt zachowawcze; warto sprawdzić tabelę open-shove/minraise dla tej głębokości, choć pojedynczy przypadek nie wystarcza do stwierdzenia stałego leaku."
+            }
+          ]
+        }
+      }
+    ],
+    "cash_45fb11c711ed2bdf": [
+      {
+        "sessionId": "cash_45fb11c711ed2bdf",
+        "reportId": "f194fd2f-a0d8-4f4c-91c8-23a32cacbdd6",
+        "model": {
+          "id": "gemini-2.5-flash",
+          "name": "Gemini 2.5 Flash"
+        },
+        "analyzedAt": "2026-08-10T16:00:06.666Z",
+        "fingerprint": "fnv1a-0860a428",
+        "datasetRevision": "p1-efba5a19ac548277d5e084e6d9914ea6708ecf427288f259ee94148ca6df7d16",
+        "analysis": {
+          "profileStyleId": "RECREATIONAL",
+          "sessionSummary": "W tej sesji Hero zanotował duże wahania, z kilkoma znaczącymi wygranymi i dwiema bardzo kosztownymi stratami. Widoczna jest skłonność do agresywnego rozgrywania silnych rąk, ale jednocześnie Hero często przecenia siłę swoich układów w skomplikowanych sytuacjach. W efekcie, doszło do kilku kosztownych over-commitmentów, które zaważyły na końcowym wyniku.",
+          "keyMistakes": [
+            {
+              "title": "Nadmierne zaangażowanie z silnymi, ale wrażliwymi rękami",
+              "description": "Hero często inwestuje znaczne środki w pule z rękami, które wydają się silne, ale są podatne na lepsze układy lub drawy przeciwnika, zwłaszcza na boardach sprzyjających szerokiemu zakresowi rywali. Prowadzi to do znaczących strat, gdy przeciwnik ujawnia silniejsze holdingi lub kompletne drawy.",
+              "correction": "Zachowaj większą ostrożność i kontrolę nad pulą, gdy napotykasz znaczną agresję na boardach z drawami lub połączonych. Bądź gotów foldować mocne, ale nie-nutsowe ręce i ponownie oceniaj zakres przeciwnika.",
+              "handIds": [
+                "102461200239",
+                "102461200195",
+                "102485000084"
+              ]
+            },
+            {
+              "title": "Luźna i pasywna gra z blindów lub wczesnych pozycji",
+              "description": "Hero często calluje pre-flop raisy z blindów lub wczesnych pozycji z rękami o niskiej grywalności lub spekulacyjnymi. To prowadzi do rozgrywania wielu rąk poza pozycją z marginalnymi układami, co utrudnia efektywne nawigowanie post-flop i często kończy się foldem do agresji.",
+              "correction": "Uściślij swój zakres callowania pre-flop, zwłaszcza poza pozycją (blindy, UTG/HJ), koncentrując się na rękach z lepszą grywalnością. Rozważ częstsze 3-betowanie z odpowiednimi rękami, aby przejąć inicjatywę.",
+              "handIds": [
+                "102485000070",
+                "102461200139",
+                "102461200125"
+              ]
+            }
+          ],
+          "notableHands": [
+            {
+              "handId": "102461200239",
+              "reason": "Największa bezwzględna strata sesji. Hero z parą Króli na boardzie z trzema kierami overplayuje swoją rękę przeciwko gotowemu kolorowi przeciwnika, tracąc cały stack."
+            },
+            {
+              "handId": "102461200195",
+              "reason": "Hero traci dużą pulę z AA, gdy board rozwija się w sposób sprzyjający dwóm parom przeciwnika (Qc Kc na boardzie Qs Kd), a Hero zaangażował się all-in na turnie."
+            },
+            {
+              "handId": "102485000084",
+              "reason": "Duża strata wynikająca z hero callu i agresywnego betowania z parą 99 na boardzie z asem przeciwko pokerowi przeciwnika."
+            },
+            {
+              "handId": "102461200157",
+              "reason": "Hero trafia trójkę szóstek i wygrywa bardzo dużą pulę, skutecznie wyciągając wartość od przeciwnika, który miał dwie pary i callował do końca."
+            },
+            {
+              "handId": "102461200171",
+              "reason": "Hero z dwiema parami (Qc Jd) wygrywa dużą pulę, efektywnie betując na riverze i zmuszając przeciwnika z parą Króli do callowania."
             }
           ]
         }

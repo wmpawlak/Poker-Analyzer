@@ -9,11 +9,15 @@
     "lint": "eslint .",
     "test": "node --test",
     "preview": "vite preview",
-    "start": "node server/index.js --production"
+    "start": "node server/index.js --production",
+    "data:migrate": "node server/dataMigrateCli.js",
+    "data:replace-hand": "node server/dataReplaceHandCli.js",
+    "perf:data": "node server/dataPerfCli.js"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.12.0",
     "@tailwindcss/vite": "^4.3.0",
+    "@tanstack/react-virtual": "^3.14.9",
     "express": "^5.2.1",
     "lucide-react": "^1.16.0",
     "react": "^19.2.6",

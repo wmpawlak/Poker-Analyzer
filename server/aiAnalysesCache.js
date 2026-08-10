@@ -282,3 +282,72 @@ export const pruneAiAnalysesCache = (cache, sessionIds = []) => {
     ].some(referencesOldSession)),
   };
 };
+
+const countReports = (cache) => (
+  Object.values(cache.handAnalyses).flat().length
+  + Object.values(cache.sessionAnalyses).flat().length
+  + cache.sessionGroupAnalyses.length
+);
+
+// Po świadomym zastąpieniu kanonicznego rozdania nie wolno pozostawić raportów
+// odwołujących się do poprzedniego odcisku sesji. Zachowujemy tylko raporty
+// sesji zgodne z nowym indeksem i raporty grupowe, których snapshots nadal
+// wskazują na istniejące, zgodne raporty sesji.
+export const invalidateAiAnalysesForReplacedHand = (cache, {
+  handId,
+  sessionFingerprints = new Map(),
+} = {}) => {
+  const normalized = normalizeAiAnalysesCache(cache);
+  const normalizedHandId = String(handId ?? '').trim();
+  const currentFingerprints = sessionFingerprints instanceof Map
+    ? sessionFingerprints
+    : new Map(Object.entries(sessionFingerprints || {}));
+  const handAnalyses = { ...normalized.handAnalyses };
+  delete handAnalyses[normalizedHandId];
+
+  const sessionAnalyses = Object.fromEntries(
+    Object.entries(normalized.sessionAnalyses).flatMap(([sessionId, reports]) => {
+      const fingerprint = currentFingerprints.get(String(sessionId));
+      if (!fingerprint) return [];
+      const matchingReports = reports.filter((report) => report?.fingerprint === fingerprint);
+      return matchingReports.length > 0 ? [[sessionId, matchingReports]] : [];
+    }),
+  );
+
+  const hasCurrentSourceReport = (source) => {
+    const sessionId = String(source?.sessionId || '').trim();
+    const reportId = String(source?.reportId || '').trim();
+    const fingerprint = String(source?.reportFingerprint || source?.sessionFingerprint || '').trim();
+    return Boolean(sessionId && reportId && fingerprint)
+      && (sessionAnalyses[sessionId] || []).some((report) => (
+        report.reportId === reportId && report.fingerprint === fingerprint
+      ));
+  };
+  const sessionGroupAnalyses = normalized.sessionGroupAnalyses.filter((report) => {
+    const sources = Array.isArray(report?.sources)
+      ? report.sources
+      : Array.isArray(report?.sourceReports)
+        ? report.sourceReports
+        : [];
+    return sources.length === 0 || sources.every(hasCurrentSourceReport);
+  });
+  const nextCache = {
+    ...normalized,
+    handAnalyses,
+    sessionAnalyses,
+    sessionGroupAnalyses,
+  };
+  const before = countReports(normalized);
+  const after = countReports(nextCache);
+  return {
+    cache: nextCache,
+    counts: {
+      handReportsRemoved: (normalized.handAnalyses[normalizedHandId] || []).length,
+      sessionReportsRemoved: Object.values(normalized.sessionAnalyses).flat().length
+        - Object.values(sessionAnalyses).flat().length,
+      groupReportsRemoved: normalized.sessionGroupAnalyses.length - sessionGroupAnalyses.length,
+      removed: before - after,
+      preserved: after,
+    },
+  };
+};

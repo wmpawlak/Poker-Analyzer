@@ -164,6 +164,132 @@ const categoryMetrics = (metrics) => ({
   winrate: metrics?.winrate || null,
 });
 
+const previewDateFromSource = (source) => {
+  const date = asString(source?.metadata?.date).replaceAll('/', '-');
+  if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+  const timestamp = asFiniteNumber(source?.metadata?.startTime);
+  return timestamp ? new Date(timestamp).toISOString().slice(0, 10) : '';
+};
+
+const toSafeGroupSource = (source) => {
+  const metadata = source?.metadata || {};
+  const safe = {
+    sourceId: asString(source?.sourceId),
+    type: normalizeType(source?.type),
+    sessionId: asString(source?.sessionId),
+    sessionFingerprint: asString(source?.sessionFingerprint),
+    metadata: {
+      label: asString(metadata.label),
+      date: asString(metadata.date),
+      startTime: asFiniteNumber(metadata.startTime),
+      handCount: asFiniteNumber(metadata.handCount),
+      tableId: asString(metadata.tableId),
+      tournamentId: asString(metadata.tournamentId),
+      tournamentName: asString(metadata.tournamentName),
+    },
+  };
+  const reportId = asString(source?.reportId);
+  const reportFingerprint = asString(source?.reportFingerprint);
+  return {
+    ...safe,
+    ...(reportId ? { reportId } : {}),
+    ...(reportFingerprint ? { reportFingerprint } : {}),
+  };
+};
+
+const buildCategoryBreakdown = (sources) => Object.fromEntries(
+  SESSION_GROUP_SOURCE_TYPES.map((type) => {
+    const categorySources = sources.filter((source) => source.type === type);
+    return [type, {
+      sessionCount: categorySources.length,
+      handCount: categorySources.reduce((total, source) => total + Number(source.metadata.handCount), 0),
+    }];
+  }),
+);
+
+export const createSessionGroupMetadata = ({
+  activeCategory = 'both',
+  dateRange = {},
+  sources = [],
+  metrics = {},
+} = {}) => {
+  const safeSources = sortSources(sources).map(toSafeGroupSource);
+  return {
+    activeCategory: normalizeCategory(activeCategory) || 'both',
+    dateRange: normalizeDateRange(dateRange),
+    sources: safeSources,
+    sessionCount: safeSources.length,
+    handCount: asFiniteNumber(metrics?.shared?.hands)
+      || safeSources.reduce((total, source) => total + Number(source.metadata.handCount), 0),
+    categoryBreakdown: buildCategoryBreakdown(safeSources),
+  };
+};
+
+const compactPreviewSourceFromCandidate = (candidate) => {
+  const type = normalizeType(candidate?.type);
+  const sessionId = asString(candidate?.sessionId);
+  const sourceId = asString(candidate?.sourceId) || `${type}:${sessionId}`;
+  const sessionFingerprint = asString(candidate?.sessionFingerprint);
+  const hands = (Array.isArray(candidate?.hands) ? candidate.hands : [])
+    .filter((hand) => hand && !hand.isRebuy);
+  if (!type || !sessionId || !sessionFingerprint || sourceId !== `${type}:${sessionId}`) {
+    throw createGroupError('Podgląd analizy wielu sesji zawiera nieprawidłowe źródło.');
+  }
+  if (hands.length === 0 || hands.some((hand) => !asString(hand?.id))) {
+    throw createGroupError('Podgląd analizy wielu sesji wymaga sesji z prawdziwymi rozdaniami.');
+  }
+  return {
+    source: {
+      sourceId,
+      type,
+      sessionId,
+      sessionFingerprint,
+      metadata: {
+        label: asString(candidate?.label),
+        date: asString(candidate?.date),
+        startTime: asFiniteNumber(candidate?.startTime),
+        handCount: hands.length,
+        tableId: asString(candidate?.tableId),
+        tournamentId: asString(candidate?.tournamentId),
+        tournamentName: asString(candidate?.tournamentName),
+      },
+    },
+    hands,
+  };
+};
+
+export const buildSessionGroupPreview = ({ sources = [] } = {}) => {
+  if (!Array.isArray(sources) || sources.length === 0) {
+    throw createGroupError('Podgląd analizy wielu sesji wymaga co najmniej jednej sesji.', 'AI_SESSION_IDS_REQUIRED');
+  }
+  const compactSources = sources.map(compactPreviewSourceFromCandidate);
+  const sortedSources = [...compactSources].sort((left, right) => (
+    left.source.type.localeCompare(right.source.type)
+    || left.source.sessionId.localeCompare(right.source.sessionId)
+  ));
+  const sourceIds = sortedSources.map(({ source }) => source.sourceId);
+  if (unique(sourceIds).length !== sourceIds.length) {
+    throw createGroupError('Podgląd analizy wielu sesji nie może zawierać powielonych źródeł.');
+  }
+  const allHands = sortedSources.flatMap(({ hands }) => hands);
+  const cashHands = sortedSources.filter(({ source }) => source.type === 'cash').flatMap(({ hands }) => hands);
+  const tournamentHands = sortedSources.filter(({ source }) => source.type === 'tournament').flatMap(({ hands }) => hands);
+  const sourceTypes = new Set(sortedSources.map(({ source }) => source.type));
+  const metrics = {
+    shared: comparableMetrics(calculateSessionMetrics(allHands, 'mixed')),
+    ...(cashHands.length > 0 ? { cash: categoryMetrics(calculateSessionMetrics(cashHands, 'cash')) } : {}),
+    ...(tournamentHands.length > 0 ? { tournament: categoryMetrics(calculateSessionMetrics(tournamentHands, 'tournament')) } : {}),
+  };
+  const dates = sortedSources.map(({ source }) => previewDateFromSource(source)).filter(Boolean).sort();
+  const metadata = createSessionGroupMetadata({
+    activeCategory: sourceTypes.size === 1 ? sortedSources[0].source.type : 'both',
+    dateRange: { from: dates[0] || '', to: dates.at(-1) || '' },
+    sources: sortedSources.map(({ source }) => source),
+    metrics,
+  });
+  return { ...metadata, metrics };
+};
+
 const SHARED_METRIC_KEYS = [
   'hands', 'vpip', 'pfr', 'threeBet', 'rfi', 'af', 'afq', 'cBet', 'wtsd', 'wsd',
   'profileStyleId', 'reliability',

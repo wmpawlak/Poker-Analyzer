@@ -1,7 +1,12 @@
 // src/components/replayer/ReplayerModal.jsx
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { analyzeHandWithAI, selectHand, toggleSavedHand } from '../../store/pokerSlice.js';
+import {
+  analyzeHandWithAI,
+  fetchOpenedHand,
+  selectHand,
+  toggleSavedHand,
+} from '../../store/pokerSlice.js';
 import { getAnalysisHistory } from '../../utils/handCollections.js';
 import { CardIcon } from '../CardIcon.jsx';
 import {
@@ -17,26 +22,34 @@ import {
 
 export const ReplayerModal = ({ handId, onClose }) => {
   const dispatch = useDispatch();
-  const {
-    rawHands,
-    aiAnalyses,
-    loadingAI,
-    errorAI,
-    defaultAiModel,
-    aiModels,
-    aiModelsStatus,
-    savedHandIds,
-  } = useSelector((state) => state.poker);
+  const openedHandsById = useSelector((state) => state.poker.openedHandsById);
+  const openedHandStatusById = useSelector((state) => state.poker.openedHandStatusById);
+  const openedHandErrorById = useSelector((state) => state.poker.openedHandErrorById);
+  const aiAnalyses = useSelector((state) => state.poker.aiAnalyses);
+  const loadingAI = useSelector((state) => state.poker.loadingAI);
+  const errorAI = useSelector((state) => state.poker.errorAI);
+  const defaultAiModel = useSelector((state) => state.poker.defaultAiModel);
+  const aiModels = useSelector((state) => state.poker.aiModels);
+  const aiModelsStatus = useSelector((state) => state.poker.aiModelsStatus);
+  const savedHandIds = useSelector((state) => state.poker.savedHandIds);
+  const datasetRevision = useSelector((state) => state.poker.dataset.datasetRevision);
   
   const [modalRightTab, setModalRightTab] = useState('ai');
   const [showAIComments, setShowAIComments] = useState(true);
   const [selectedReportId, setSelectedReportId] = useState(null);
 
-  const modalHand = rawHands.find(h => h.id === handId);
+  const modalHand = openedHandsById[String(handId)];
+  const handStatus = openedHandStatusById[String(handId)] || 'idle';
+  const handError = openedHandErrorById[String(handId)];
   const analysisHistory = modalHand ? getAnalysisHistory(aiAnalyses[modalHand.id]) : [];
   const currentReport = analysisHistory.find((report) => report.reportId === selectedReportId)
     || analysisHistory.at(-1);
   const currentAnalysis = currentReport?.analysis;
+  const isAnalysisStale = Boolean(
+    currentReport?.datasetRevision
+    && datasetRevision
+    && currentReport.datasetRevision !== datasetRevision,
+  );
   const isHandSaved = modalHand ? savedHandIds.includes(String(modalHand.id)) : false;
   const selectedModel = aiModels.find((model) => model.id === defaultAiModel);
   const canAnalyze = selectedModel?.configured === true;
@@ -46,7 +59,24 @@ export const ReplayerModal = ({ handId, onClose }) => {
     ? 'Układ wyliczony lokalnie na podstawie widocznych kart.'
     : undefined;
 
-  if (!modalHand) return null;
+  useEffect(() => {
+    if (!modalHand && handStatus === 'idle') dispatch(fetchOpenedHand({ handId }));
+  }, [dispatch, handId, handStatus, modalHand]);
+
+  if (!modalHand) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+        <div className="rounded-2xl bg-white p-6 text-sm font-semibold text-slate-600 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+          {handStatus === 'failed' ? (
+            <div className="space-y-3 text-center">
+              <p className="text-red-700">{handError}</p>
+              <button type="button" onClick={onClose} className="rounded-lg bg-slate-800 px-3 py-2 text-xs font-black text-white">Zamknij</button>
+            </div>
+          ) : 'Pobieranie szczegółów rozdania…'}
+        </div>
+      </div>
+    );
+  }
 
   const formatTextWithCards = (text) => {
     if (!text || typeof text !== 'string') return text;
@@ -177,6 +207,7 @@ export const ReplayerModal = ({ handId, onClose }) => {
               <p className="mt-2 text-[11px] text-gray-500">
                 Nowa analiza zostanie wykonana modelem <strong>{selectedModelName}</strong> i dopisana do historii.
               </p>
+              {isAnalysisStale && <p role="status" className="mt-2 text-[11px] font-semibold text-amber-800">Ten raport dotyczy wcześniejszej rewizji datasetu.</p>}
             </div>
           )}
           
@@ -187,7 +218,7 @@ export const ReplayerModal = ({ handId, onClose }) => {
               {loadingAI ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-center"><div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div><p className="text-indigo-600 font-semibold animate-pulse">Piszę komentarze...</p></div>
               ) : errorAI ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-red-50 border border-red-200 rounded-xl"><AlertTriangle size={40} className="text-red-400 mb-4" /><p className="text-xs text-red-600 mb-4">{errorAI}</p><button disabled={!canAnalyze} onClick={() => { setSelectedReportId(null); dispatch(selectHand(modalHand.id)); dispatch(analyzeHandWithAI({ handId: modalHand.id })); }} className="bg-red-600 hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-xs font-bold">Spróbuj Ponownie</button></div>
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-red-50 border border-red-200 rounded-xl"><AlertTriangle size={40} className="text-red-400 mb-4" /><p className="text-xs text-red-600 mb-4">{typeof errorAI === 'string' ? errorAI : errorAI.message}</p>{errorAI?.code === 'DATASET_REVISION_MISMATCH' && <p className="mb-4 text-xs font-semibold text-amber-800">Dataset został odświeżony. Ponów działanie ręcznie.</p>}<button disabled={!canAnalyze} onClick={() => { setSelectedReportId(null); dispatch(selectHand(modalHand.id)); dispatch(analyzeHandWithAI({ handId: modalHand.id })); }} className="bg-red-600 hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-xs font-bold">Spróbuj Ponownie</button></div>
               ) : !currentAnalysis ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-indigo-200 rounded-xl bg-indigo-50/50">
                   <Brain size={48} className="text-indigo-300 mb-4" />

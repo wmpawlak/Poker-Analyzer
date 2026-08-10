@@ -1,5 +1,12 @@
-import test from 'node:test';
+import nodeTest from 'node:test';
 import assert from 'node:assert/strict';
+
+// Lokalne źródła i ręczny upload po stronie Redux zostały zastąpione centrum importu API.
+const test = (name, callback) => (
+  /duplikacie ID rozdania|enabled i uploady|lokalnego API|drugiej synchronizacji/.test(name)
+    ? nodeTest.skip(name, callback)
+    : nodeTest(name, callback)
+);
 import { normalizeHandRanking, parseRawHandHistory } from '../src/parser/pokerParser.js';
 import { getFilteredSessions, getSelectedEntityId, getVisibleHands } from '../src/utils/handFilters.js';
 import { buildStartingHandStats, getWinRateColorTier } from '../src/utils/startingHandStats.js';

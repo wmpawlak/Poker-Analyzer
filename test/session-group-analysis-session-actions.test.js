@@ -5,7 +5,6 @@ import { Provider } from 'react-redux';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { configureStore } from '@reduxjs/toolkit';
 import { createServer } from 'vite';
-import { buildSessionAnalysisInput } from '../src/ai/sessionAnalysisContract.js';
 
 class MemoryStorage {
   getItem() { return null; }
@@ -14,148 +13,76 @@ class MemoryStorage {
 }
 globalThis.localStorage = new MemoryStorage();
 
-let pokerReducer;
-let analyzeSessionWithAI;
-const loadPokerStore = async () => {
-  if (pokerReducer) return;
-  const pokerModule = await import('../src/store/pokerSlice.js');
-  pokerReducer = pokerModule.default;
-  analyzeSessionWithAI = pokerModule.analyzeSessionWithAI;
-};
+const pokerModule = await import('../src/store/pokerSlice.js');
+const pokerReducer = pokerModule.default;
+const { analyzeSessionWithAI } = pokerModule;
 
-const makeHand = (id, timestamp) => ({
-  id,
-  timestamp,
-  position: 'BTN',
-  smallBlind: 0.05,
-  bigBlind: 0.1,
-  heroStartingStack: 10,
-  heroCards: ['As', 'Kd'],
-  boardCards: [],
-  outcome: 'WON',
-  heroInvestment: 1,
-  heroWinnings: 2,
-  netProfit: 1,
-  handRanking: 'PAIR',
-  streets: [],
-});
+const summary = (id, fingerprint) => ({ id, type: 'Cash', tableId: id, startTime: 1_770_000_000_000, dateStr: '2026-02-01', handCount: 12, fingerprint });
 
-const makeSession = (id, timestamp) => ({
-  id,
-  tableId: `table-${id}`,
-  startTime: timestamp,
-  dateStr: '2026-08-08 12:00:00',
-  hands: [makeHand(`${id}-1`, timestamp), makeHand(`${id}-2`, timestamp + 1)],
-});
-
-const makeReport = (session, fingerprint) => ({
-  reportId: `report-${session.id}`,
-  fingerprint,
-  model: { id: 'gpt-5.6-terra', name: 'GPT-5.6 Terra' },
-  analyzedAt: '2026-08-08T12:00:00.000Z',
-  analysis: {
-    profileStyleId: 'INSUFFICIENT',
-    sessionSummary: 'Pierwsze zdanie. Drugie zdanie.',
-    keyMistakes: [],
-    notableHands: [{ handId: `${session.id}-1`, reason: 'NajwiÄ™kszy swing.' }],
-  },
-});
-
-test('lista sesji pokazuje aktualny, brakujÄ…cy, nieaktualny, loading i bĹ‚Ä…d w odpowiednich wierszach', async (context) => {
-  await loadPokerStore();
+test('lista sesji pokazuje status raportu na podstawie lekkich podsumowań', async (context) => {
   const vite = await createServer({ appType: 'custom', logLevel: 'silent', server: { middlewareMode: true, hmr: false } });
   context.after(() => vite.close());
-  const current = makeSession('current', 1000);
-  const missing = makeSession('missing', 2000);
-  const stale = makeSession('stale', 3000);
-  const loading = makeSession('loading', 4000);
-  const failed = makeSession('failed', 5000);
-  const currentFingerprint = buildSessionAnalysisInput({ sessionId: current.id, hands: current.hands, gameType: 'cash' }).fingerprint;
-  const staleFingerprint = buildSessionAnalysisInput({ sessionId: stale.id, hands: stale.hands, gameType: 'cash' }).fingerprint;
-  const baseState = pokerReducer(undefined, { type: '@@init' });
+  const base = pokerReducer(undefined, { type: '@@init' });
+  const current = summary('current', 'fingerprint-current');
+  const missing = summary('missing', 'fingerprint-missing');
+  const loading = summary('loading', 'fingerprint-loading');
+  const failed = summary('failed', 'fingerprint-failed');
   const store = configureStore({
     reducer: { poker: pokerReducer },
-    preloadedState: {
-      poker: {
-        ...baseState,
-        sessions: [current, missing, stale, loading, failed],
-        sessionAiAnalyses: {
-          [current.id]: [makeReport(current, currentFingerprint)],
-          [stale.id]: [makeReport(stale, `${staleFingerprint}-old`)],
-        },
-        sessionAnalysisStatusById: { [loading.id]: 'loading', [failed.id]: 'failed' },
-        sessionAnalysisErrorById: {
-          [failed.id]: { message: 'NiepeĹ‚na odpowiedĹş.', code: 'AI_INCOMPLETE_RESPONSE' },
-        },
-        aiModelsStatus: 'succeeded',
-        aiModels: [{ id: 'gpt-5.6-terra', name: 'GPT-5.6 Terra', configured: true }],
+    preloadedState: { poker: {
+      ...base,
+      dataset: { ...base.dataset, datasetRevision: 'revision-1' },
+      currentPages: {
+        cash: { items: [current, missing, loading, failed], status: 'succeeded', error: null, datasetRevision: 'revision-1' },
+        tournament: { items: [], status: 'succeeded', error: null, datasetRevision: 'revision-1' },
       },
-    },
+      sessionAiAnalyses: { [current.id]: [{ reportId: 'current-report', fingerprint: current.fingerprint, datasetRevision: 'revision-1' }] },
+      sessionAnalysisStatusById: { [loading.id]: 'loading', [failed.id]: 'failed' },
+      sessionAnalysisErrorById: { [failed.id]: { message: 'Niepełna odpowiedź.', code: 'AI_INCOMPLETE_RESPONSE' } },
+    } },
   });
   const { SessionGroupAnalysisView } = await vite.ssrLoadModule('/src/components/SessionGroupAnalysisView.jsx');
   const html = renderToStaticMarkup(createElement(Provider, { store }, createElement(SessionGroupAnalysisView, {
-    gameType: 'both',
-    selectedSourceIds: [],
-    onSelectedSourceIdsChange: () => {},
-    onSelectedReportIdChange: () => {},
+    gameType: 'both', selectedSourceIds: [], onSelectedSourceIdsChange: () => {}, onSelectedReportIdChange: () => {},
   })));
-
-  assert.match(html, /Raport aktualny/);
-  assert.match(html, /role="checkbox"/);
-  assert.doesNotMatch(html, /type="checkbox"/);
-  assert.match(html, /Brak raportu/);
-  assert.match(html, /Analiza nieaktualna/);
+  assert.match(html, /raport aktualny/);
+  assert.match(html, /brak aktualnego raportu/);
   assert.match(html, /Analizowanie/);
-  assert.match(html, /NiepeĹ‚na odpowiedĹş/);
-  assert.match(html, /Analizuj ponownie/);
-  assert.match(html, /nowe/);
-  assert.doesNotMatch(html, /checked=""/);
+  assert.match(html, /Niepełna odpowiedź/);
+  assert.match(html, /aria-label="Zaznacz sesję: Stół current"/);
+  assert.match(html, /aria-label="Zaznacz widoczne sesje"/);
+  assert.match(html, /aria-label="Uruchom analizę wybranych sesji"/);
+  assert.match(html, /lucide-square/);
+  assert.doesNotMatch(html, /type="checkbox"/);
 });
 
-test('dwie rĂłĹĽne analizy sesji startujÄ… rĂłwnolegle wyĹ‚Ä…cznie przez zamockowany fetch', async () => {
-  await loadPokerStore();
-  const first = makeSession('first', 1000);
-  const second = makeSession('second', 2000);
-  const baseState = pokerReducer(undefined, { type: '@@init' });
+test('analizy dwóch sesji wysyłają wyłącznie ID oraz rewizję i mogą działać równolegle', async () => {
+  const base = pokerReducer(undefined, { type: '@@init' });
   const store = configureStore({
     reducer: { poker: pokerReducer },
-    preloadedState: {
-      poker: {
-        ...baseState,
-        aiModels: [{ id: 'gpt-5.6-terra', name: 'GPT-5.6 Terra', configured: true }],
-        aiModelsStatus: 'succeeded',
-      },
-    },
+    preloadedState: { poker: { ...base, dataset: { ...base.dataset, datasetRevision: 'revision-1' } } },
   });
   const originalFetch = globalThis.fetch;
   const calls = [];
   globalThis.fetch = async (_url, options) => {
     const request = JSON.parse(options.body);
     calls.push(request);
-    return {
-      ok: true,
-      json: async () => ({
-        model: { id: 'gpt-5.6-terra', name: 'GPT-5.6 Terra' },
-        sessionId: request.session.sessionId,
-        fingerprint: request.session.fingerprint,
-        analysis: {},
-      }),
-    };
+    return new Response(JSON.stringify({
+      model: { id: 'gpt-5.6-terra', name: 'GPT-5.6 Terra' }, sessionId: request.sessionId,
+      fingerprint: `fingerprint-${request.sessionId}`, datasetRevision: 'revision-1', analysis: {},
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   };
   try {
-    await Promise.all([
-      store.dispatch(analyzeSessionWithAI({ sessionId: first.id, hands: first.hands, gameType: 'cash' })),
-      store.dispatch(analyzeSessionWithAI({ sessionId: second.id, hands: second.hands, gameType: 'cash' })),
+    const results = await Promise.all([
+      store.dispatch(analyzeSessionWithAI({ sessionId: 'first' })),
+      store.dispatch(analyzeSessionWithAI({ sessionId: 'second' })),
     ]);
+    assert.equal(results.every((result) => result.type === analyzeSessionWithAI.fulfilled.type), true);
   } finally {
     globalThis.fetch = originalFetch;
   }
-
-  const state = store.getState().poker;
-  assert.equal(calls.length, 2);
-  assert.deepEqual(calls.map((request) => request.session.sessionId).sort(), ['first', 'second']);
-  assert.equal(state.sessionAnalysisStatusById.first, 'succeeded');
-  assert.equal(state.sessionAnalysisStatusById.second, 'succeeded');
-  assert.equal(state.sessionAiAnalyses.first.length, 1);
-  assert.equal(state.sessionAiAnalyses.second.length, 1);
+  assert.deepEqual(calls.map((request) => request.sessionId).sort(), ['first', 'second']);
+  assert.equal(calls.every((request) => request.datasetRevision === 'revision-1' && !Object.hasOwn(request, 'hands')), true);
+  assert.equal(store.getState().poker.sessionAiAnalyses.first.length, 1);
+  assert.equal(store.getState().poker.sessionAiAnalyses.second.length, 1);
 });

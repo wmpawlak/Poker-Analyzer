@@ -1,26 +1,36 @@
 // src/App.jsx
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   fetchAiModels,
+  refreshDataStatus,
+  refreshDataset,
+  refreshImportCenter,
   selectSession,
   selectTourney,
+  setDataFilters,
+  setSessionGroupReportSelection,
+  setSessionGroupSelection,
   syncAiAnalyses,
-  syncLocalSources,
-  uploadHandHistory,
+  uploadImport,
 } from './store/pokerSlice.js';
-import { usePokerMetrics } from './hooks/usePokerMetrics.js';
-import { buildSessionGroupCandidates } from './utils/sessionGroupCandidates.js';
 
 import { Sidebar } from './components/Sidebar.jsx';
-import { ProfileView, OpponentsView } from './views/ProfileViews.jsx';
-import { SessionGroupAnalysisView } from './components/SessionGroupAnalysisView.jsx';
-import { CashView } from './views/CashView.jsx';
-import { TournamentsView } from './views/TournamentsView.jsx';
-import { CardsView } from './views/CardsView.jsx';
-import { WalletView, SourcesView, SettingsView } from './views/MiscViews.jsx';
-import { ReplayerModal } from './components/replayer/ReplayerModal.jsx';
 import { Upload } from 'lucide-react';
+
+const lazyExport = (loader, exportName) => lazy(() => loader().then((module) => ({ default: module[exportName] })));
+const ProfileDataView = lazyExport(() => import('./views/ProfileViews.jsx'), 'ProfileDataView');
+const OpponentsDataView = lazyExport(() => import('./views/ProfileViews.jsx'), 'OpponentsDataView');
+const SessionGroupAnalysisView = lazyExport(() => import('./components/SessionGroupAnalysisView.jsx'), 'SessionGroupAnalysisView');
+const CashView = lazyExport(() => import('./views/CashView.jsx'), 'CashView');
+const TournamentsView = lazyExport(() => import('./views/TournamentsView.jsx'), 'TournamentsView');
+const CardsView = lazyExport(() => import('./views/CardsView.jsx'), 'CardsView');
+const WalletView = lazyExport(() => import('./views/WalletView.jsx'), 'WalletView');
+const SourcesView = lazyExport(() => import('./views/SourcesView.jsx'), 'SourcesView');
+const SettingsView = lazyExport(() => import('./views/SettingsView.jsx'), 'SettingsView');
+const ReplayerModal = lazyExport(() => import('./components/replayer/ReplayerModal.jsx'), 'ReplayerModal');
+
+const TabLoading = () => <div role="status" className="rounded-2xl border border-indigo-100 bg-indigo-50 p-8 text-center text-sm font-semibold text-indigo-700">Ładowanie widoku…</div>;
 
 const TAB_LABELS = {
   profile: 'Mój profil',
@@ -36,83 +46,37 @@ const TAB_LABELS = {
 
 export default function App() {
   const dispatch = useDispatch();
-  const {
-    localSourcesStatus,
-    localSourcesError,
-    sessions,
-    tournaments,
-    sessionAiAnalyses,
-    sessionGroupAiAnalyses,
-    sharedAiAnalysesStatus,
-    sharedAiAnalysesError,
-  } = useSelector((state) => state.poker);
+  const datasetStatus = useSelector((state) => state.poker.dataset.status);
+  const datasetError = useSelector((state) => state.poker.dataset.error);
+  const datasetRefreshNotice = useSelector((state) => state.poker.datasetRefreshNotice);
+  const sharedAiAnalysesStatus = useSelector((state) => state.poker.sharedAiAnalysesStatus);
+  const sharedAiAnalysesError = useSelector((state) => state.poker.sharedAiAnalysesError);
+  const gameTypeFilter = useSelector((state) => state.poker.filters.gameType);
+  const sessionGroupGameType = useSelector((state) => state.poker.filters.sessionGroupGameType);
+  const sessionGroupDateFrom = useSelector((state) => state.poker.filters.sessionGroupDateFrom);
+  const sessionGroupDateTo = useSelector((state) => state.poker.filters.sessionGroupDateTo);
+  const sessionGroupSelectedSourceIds = useSelector((state) => state.poker.sessionGroupSelection.sourceIds);
+  const sessionGroupSelectedReportId = useSelector((state) => state.poker.sessionGroupSelection.reportId);
   
   // Stany UI
   const [activeTab, setActiveTab] = useState('profile'); 
-  const [gameTypeFilter, setGameTypeFilter] = useState('both'); 
-  const [sessionGroupGameType, setSessionGroupGameType] = useState('both');
-  const [sessionGroupDateFrom, setSessionGroupDateFrom] = useState('');
-  const [sessionGroupDateTo, setSessionGroupDateTo] = useState('');
-  const [sessionGroupSelectedSourceIds, setSessionGroupSelectedSourceIds] = useState([]);
-  const [sessionGroupSelectedReportId, setSessionGroupSelectedReportId] = useState(null);
   const [modalHandId, setModalHandId] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragCounter = useRef(0);
 
   useEffect(() => {
-    dispatch(syncLocalSources());
+    dispatch(refreshDataset());
+    dispatch(refreshDataStatus());
+    dispatch(refreshImportCenter());
     dispatch(syncAiAnalyses());
     dispatch(fetchAiModels());
   }, [dispatch]);
 
-  // Pobranie przeliczonych metryk z custom hooka
-  const {
-    activeHands,
-    cashHands,
-    tournamentHands,
-    opponentsMetrics,
-  } = usePokerMetrics(gameTypeFilter);
-
-  const sessionGroupCandidateIds = useMemo(() => new Set(
-    buildSessionGroupCandidates({
-      sessions,
-      tournaments,
-      sessionAiAnalyses,
-      gameType: sessionGroupGameType,
-      dateFrom: sessionGroupDateFrom,
-      dateTo: sessionGroupDateTo,
-    }).candidates.map((candidate) => candidate.sourceId),
-  ), [
-    sessions,
-    tournaments,
-    sessionAiAnalyses,
-    sessionGroupGameType,
-    sessionGroupDateFrom,
-    sessionGroupDateTo,
-  ]);
-
-  const sessionGroupReportIds = useMemo(() => new Set(
-    (Array.isArray(sessionGroupAiAnalyses) ? sessionGroupAiAnalyses : [])
-      .map((report) => report?.reportId)
-      .filter(Boolean),
-  ), [sessionGroupAiAnalyses]);
-
-  useEffect(() => {
-    // The selection mirrors the current candidate domain while remaining in App across tab changes.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSessionGroupSelectedSourceIds((previous) => {
-      const next = previous.filter((sourceId) => sessionGroupCandidateIds.has(sourceId));
-      return next.length === previous.length ? previous : next;
-    });
-  }, [sessionGroupCandidateIds]);
-
-  useEffect(() => {
-    // The selected report must not point at a report removed from Redux history.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSessionGroupSelectedReportId((previous) => (
-      previous && sessionGroupReportIds.has(previous) ? previous : null
-    ));
-  }, [sessionGroupReportIds]);
+  const queueUpload = (file) => {
+    if (!file || !/\.txt$/i.test(file.name)) return;
+    dispatch(uploadImport({ file }));
+    setActiveTab('sources');
+  };
 
   // Drag & Drop
   const handleDragEnter = (e) => { e.preventDefault(); e.stopPropagation(); dragCounter.current += 1; setIsDragging(true); };
@@ -120,15 +84,7 @@ export default function App() {
   const handleDrop = (e) => {
     e.preventDefault(); e.stopPropagation(); setIsDragging(false); dragCounter.current = 0;
     const file = e.dataTransfer.files[0];
-    if (file && file.name.endsWith('.txt')) {
-      const reader = new FileReader();
-      reader.onload = (evt) => dispatch(uploadHandHistory({
-        filename: file.name,
-        content: evt.target.result,
-        modifiedAt: new Date(file.lastModified).toISOString(),
-      }));
-      reader.readAsText(file);
-    }
+    queueUpload(file);
   };
 
   const openAnalysisSourceSession = ({ type, sessionId }) => {
@@ -155,7 +111,7 @@ export default function App() {
         </div>
       )}
 
-      {modalHandId && <ReplayerModal handId={modalHandId} onClose={() => setModalHandId(null)} />}
+      {modalHandId && <Suspense fallback={null}><ReplayerModal handId={modalHandId} onClose={() => setModalHandId(null)} /></Suspense>}
 
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
@@ -165,38 +121,35 @@ export default function App() {
             <h2 className="text-2xl font-bold text-gray-800">Zakładka: {TAB_LABELS[activeTab] || activeTab}</h2>
             {['profile', 'opponents', 'cards'].includes(activeTab) && (
               <div className="flex bg-slate-100 p-1 rounded-xl border border-gray-200">
-                <button onClick={() => setGameTypeFilter('both')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${gameTypeFilter === 'both' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>Wszystko</button>
-                <button onClick={() => setGameTypeFilter('cash')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${gameTypeFilter === 'cash' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>Cash</button>
-                <button onClick={() => setGameTypeFilter('tournament')} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${gameTypeFilter === 'tournament' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>Turnieje</button>
+                <button onClick={() => dispatch(setDataFilters({ gameType: 'both' }))} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${gameTypeFilter === 'both' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>Wszystko</button>
+                <button onClick={() => dispatch(setDataFilters({ gameType: 'cash' }))} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${gameTypeFilter === 'cash' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>Cash</button>
+                <button onClick={() => dispatch(setDataFilters({ gameType: 'tournament' }))} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${gameTypeFilter === 'tournament' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>Turnieje</button>
               </div>
             )}
           </div>
           <label className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 cursor-pointer shadow-md transition-all active:scale-95">
             <Upload size={16} /> Wgraj logi (.txt)
             <input type="file" accept=".txt" onChange={(e) => {
-               const file = e.target.files[0];
-               if(file){
-                 const r = new FileReader();
-                 r.onload = (evt) => dispatch(uploadHandHistory({
-                   filename: file.name,
-                   content: evt.target.result,
-                   modifiedAt: new Date(file.lastModified).toISOString(),
-                 }));
-                 r.readAsText(file);
-               }
+               queueUpload(e.target.files[0]);
+               e.target.value = '';
             }} className="hidden" />
           </label>
         </header>
 
-        {localSourcesStatus === 'loading' && (
+        {datasetStatus === 'loading' && (
           <div role="status" className="bg-indigo-50 border-b border-indigo-100 px-8 py-2 text-sm font-semibold text-indigo-700 flex items-center gap-2">
             <span className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-            Wczytywanie i przeliczanie lokalnych historii rozdań…
+            Odczytywanie aktualnej rewizji datasetu…
           </div>
         )}
-        {localSourcesStatus === 'failed' && (
+        {datasetStatus === 'failed' && (
           <div role="alert" className="bg-red-50 border-b border-red-100 px-8 py-2 text-sm text-red-700">
-            Nie udało się wczytać danych lokalnych: {localSourcesError} Możesz nadal wgrywać pliki ręcznie.
+            Nie udało się odczytać datasetu: {datasetError}
+          </div>
+        )}
+        {datasetRefreshNotice && (
+          <div role="status" className="bg-amber-50 border-b border-amber-200 px-8 py-2 text-sm text-amber-900">
+            {datasetRefreshNotice}
           </div>
         )}
         {sharedAiAnalysesStatus === 'failed' && (
@@ -206,40 +159,33 @@ export default function App() {
         )}
 
         <div className="min-h-0 flex-1 overflow-auto p-6 scrollbar-thin">
-          {activeTab === 'profile' && (
-            <ProfileView
-              cashHands={cashHands}
-              tournamentHands={tournamentHands}
-              gameTypeFilter={gameTypeFilter}
-            />
-          )}
-          {activeTab === 'session-group-analysis' && (
-            <SessionGroupAnalysisView
-              gameType={sessionGroupGameType}
-              onGameTypeChange={setSessionGroupGameType}
-              dateFrom={sessionGroupDateFrom}
-              dateTo={sessionGroupDateTo}
-              onDateFromChange={setSessionGroupDateFrom}
-              onDateToChange={setSessionGroupDateTo}
-              onClearDateRange={() => {
-                setSessionGroupDateFrom('');
-                setSessionGroupDateTo('');
-              }}
-              selectedSourceIds={sessionGroupSelectedSourceIds}
-              onSelectedSourceIdsChange={setSessionGroupSelectedSourceIds}
-              selectedReportId={sessionGroupSelectedReportId}
-              onSelectedReportIdChange={setSessionGroupSelectedReportId}
-              onHandClick={setModalHandId}
-              onOpenSession={openAnalysisSourceSession}
-            />
-          )}
-          {activeTab === 'opponents' && <OpponentsView opponentsMetrics={opponentsMetrics} />}
-          {activeTab === 'cash' && <CashView onHandClick={setModalHandId} />}
-          {activeTab === 'tournaments' && <TournamentsView onHandClick={setModalHandId} />}
-          {activeTab === 'cards' && <CardsView activeHands={activeHands} />}
-          {activeTab === 'wallet' && <WalletView />}
-          {activeTab === 'sources' && <SourcesView />}
-          {activeTab === 'settings' && <SettingsView />}
+          <Suspense fallback={<TabLoading/>}>
+            {activeTab === 'profile' && <ProfileDataView/>}
+            {activeTab === 'session-group-analysis' && (
+              <SessionGroupAnalysisView
+                gameType={sessionGroupGameType}
+                onGameTypeChange={(value) => dispatch(setDataFilters({ sessionGroupGameType: value }))}
+                dateFrom={sessionGroupDateFrom}
+                dateTo={sessionGroupDateTo}
+                onDateFromChange={(value) => dispatch(setDataFilters({ sessionGroupDateFrom: value }))}
+                onDateToChange={(value) => dispatch(setDataFilters({ sessionGroupDateTo: value }))}
+                onClearDateRange={() => dispatch(setDataFilters({ sessionGroupDateFrom: '', sessionGroupDateTo: '' }))}
+                selectedSourceIds={sessionGroupSelectedSourceIds}
+                onSelectedSourceIdsChange={(sourceIds) => dispatch(setSessionGroupSelection(sourceIds))}
+                selectedReportId={sessionGroupSelectedReportId}
+                onSelectedReportIdChange={(reportId) => dispatch(setSessionGroupReportSelection(reportId))}
+                onHandClick={setModalHandId}
+                onOpenSession={openAnalysisSourceSession}
+              />
+            )}
+            {activeTab === 'opponents' && <OpponentsDataView/>}
+            {activeTab === 'cash' && <CashView onHandClick={setModalHandId} />}
+            {activeTab === 'tournaments' && <TournamentsView onHandClick={setModalHandId} />}
+            {activeTab === 'cards' && <CardsView/>}
+            {activeTab === 'wallet' && <WalletView/>}
+            {activeTab === 'sources' && <SourcesView/>}
+            {activeTab === 'settings' && <SettingsView/>}
+          </Suspense>
         </div>
       </main>
     </div>

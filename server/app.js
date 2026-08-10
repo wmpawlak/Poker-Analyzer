@@ -5,7 +5,14 @@ import {
   analyzeSessionGroupWithModel,
   analyzeSessionWithModel,
 } from './ai/analysisService.js';
+import {
+  resolveHandAnalysisData,
+  resolveSessionAnalysisData,
+  resolveSessionGroupAnalysisData,
+  resolveSessionGroupPreviewData,
+} from './ai/dataResolver.js';
 import { getPublicAiModels } from './ai/models.js';
+import { createSessionGroupMetadata } from '../src/ai/sessionGroupAnalysisContract.js';
 import {
   DEFAULT_DATA_DIRECTORY as DEFAULT_AI_CACHE_DATA_DIRECTORY,
   mergeAiAnalysesCaches,
@@ -15,17 +22,42 @@ import {
   readAiAnalysesCache,
   writeAiAnalysesCache,
 } from './aiAnalysesCache.js';
-import { listLocalSources, readLocalSource } from './localSources.js';
+import { createDataIndex, DataIndexError } from './dataIndex.js';
+import { createImportId } from './dataImportService.js';
+import {
+  createDataImportCoordinator,
+  DataImportError,
+  parseTextMultipartUpload,
+} from './dataImportCoordinator.js';
+import {
+  createCardsResponse,
+  createHandCollectionsResponse,
+  createOpponentsResponse,
+  createProfileResponse,
+  createSessionDetailResponse,
+  createSessionHandsResponse,
+  createSessionsResponse,
+  createWalletResponse,
+  DataQueryError,
+} from './dataQueries.js';
 
 export const createApiApp = ({
   dataDirectory,
   environment = process.env,
   fetchImpl = globalThis.fetch,
   logger = console,
+  dataIndex: injectedDataIndex,
+  dataImports: injectedDataImports,
 } = {}) => {
   const app = express();
   app.use(express.json({ limit: '12mb' }));
   const cacheDataDirectory = dataDirectory || DEFAULT_AI_CACHE_DATA_DIRECTORY;
+  const dataIndex = injectedDataIndex || createDataIndex({ dataDirectory: cacheDataDirectory, logger });
+  const dataImports = injectedDataImports || createDataImportCoordinator({
+    dataDirectory: cacheDataDirectory,
+    dataIndex,
+    logger,
+  });
   let cacheOperation = Promise.resolve();
   const withCacheLock = (operation) => {
     const next = cacheOperation.then(operation, operation);
@@ -43,20 +75,233 @@ export const createApiApp = ({
       code: error.code || 'AI_CACHE_ERROR',
     });
   };
+  const sendDataError = (response, error) => {
+    if (error instanceof DataQueryError) {
+      response.status(error.status || 400).json({ error: error.message, code: error.code });
+      return;
+    }
+    if (error instanceof DataIndexError && error.code === 'HAND_LOCATION_STALE') {
+      response.status(409).json({ error: error.message, code: error.code });
+      return;
+    }
+    logger?.error?.('Data API error:', error?.message);
+    response.status(500).json({
+      error: 'Nie udało się odczytać kanonicznych danych pokerowych.',
+      code: error?.code || 'DATA_INDEX_ERROR',
+    });
+  };
+  const sendImportError = (response, error) => {
+    if (error instanceof DataImportError) {
+      response.status(error.status).json({ error: error.message, code: error.code });
+      return;
+    }
+    logger?.error?.('Import API error:', error?.message);
+    response.status(500).json({
+      error: 'Nie udało się obsłużyć importu danych pokerowych.',
+      code: error?.code || 'IMPORT_INTERNAL_ERROR',
+    });
+  };
+
+  // Nie obserwujemy katalogu. Jedno skanowanie przy starcie pozwala przetworzyć
+  // ręcznie skopiowane pliki, a późniejsze następuje wyłącznie na żądanie API.
+  void dataImports.scanInbox();
+
+  app.get('/api/data/status', (_request, response) => {
+    void dataIndex.start().catch(() => {});
+    const indexStatus = dataIndex.getStatus();
+    response.json({
+      datasetRevision: indexStatus.activeRevision || indexStatus.datasetRevision || null,
+      ...indexStatus,
+      import: dataImports.getStatus(),
+    });
+  });
+
+  app.get('/api/dataset', async (_request, response) => {
+    try {
+      const snapshot = await dataIndex.getSnapshot();
+      response.json({
+        datasetRevision: snapshot.datasetRevision,
+        builtAt: snapshot.builtAt,
+        handCount: snapshot.hands.length,
+        cashSessionCount: snapshot.sessions.cash.length,
+        tournamentSessionCount: snapshot.sessions.tournament.length,
+      });
+    } catch (error) {
+      sendDataError(response, error);
+    }
+  });
+
+  app.get('/api/sessions', async (request, response) => {
+    try {
+      response.json(createSessionsResponse(await dataIndex.getSnapshot(), request.query));
+    } catch (error) {
+      sendDataError(response, error);
+    }
+  });
+
+  app.get('/api/sessions/:id', async (request, response) => {
+    try {
+      const result = createSessionDetailResponse(await dataIndex.getSnapshot(), request.params.id);
+      if (!result) {
+        response.status(404).json({ error: 'Nie znaleziono sesji.', code: 'SESSION_NOT_FOUND' });
+        return;
+      }
+      response.json(result);
+    } catch (error) {
+      sendDataError(response, error);
+    }
+  });
+
+  app.get('/api/sessions/:id/hands', async (request, response) => {
+    try {
+      const snapshot = await dataIndex.getSnapshot();
+      const result = createSessionHandsResponse(snapshot, request.params.id, request.query);
+      if (!result) {
+        response.status(404).json({ error: 'Nie znaleziono sesji.', code: 'SESSION_NOT_FOUND' });
+        return;
+      }
+      response.json(result);
+    } catch (error) {
+      sendDataError(response, error);
+    }
+  });
+
+  app.post('/api/hand-collections/query', async (request, response) => {
+    try {
+      response.json(createHandCollectionsResponse(await dataIndex.getSnapshot(), request.body));
+    } catch (error) {
+      sendDataError(response, error);
+    }
+  });
+
+  app.get('/api/hands/:id', async (request, response) => {
+    try {
+      const result = await dataIndex.readHand(request.params.id);
+      if (!result) {
+        response.status(404).json({ error: 'Nie znaleziono rozdania.', code: 'HAND_NOT_FOUND' });
+        return;
+      }
+      response.json(result);
+    } catch (error) {
+      sendDataError(response, error);
+    }
+  });
+
+  app.get('/api/profile', async (request, response) => {
+    try {
+      response.json(createProfileResponse(await dataIndex.getSnapshot(), request.query));
+    } catch (error) {
+      sendDataError(response, error);
+    }
+  });
+
+  app.get('/api/opponents', async (request, response) => {
+    try {
+      response.json(createOpponentsResponse(await dataIndex.getSnapshot(), request.query));
+    } catch (error) {
+      sendDataError(response, error);
+    }
+  });
+
+  app.get('/api/cards', async (request, response) => {
+    try {
+      response.json(createCardsResponse(await dataIndex.getSnapshot(), request.query));
+    } catch (error) {
+      sendDataError(response, error);
+    }
+  });
+
+  app.get('/api/wallet', async (request, response) => {
+    try {
+      response.json(createWalletResponse(await dataIndex.getSnapshot(), request.query));
+    } catch (error) {
+      sendDataError(response, error);
+    }
+  });
+
+  app.post('/api/data/refresh', (_request, response) => {
+    void dataImports.scanInbox();
+    response.status(202).json({ status: dataImports.getStatus() });
+  });
+
+  app.post(
+    '/api/imports',
+    express.raw({
+      type: (request) => /^multipart\/form-data\b/i.test(request.headers['content-type'] || ''),
+      limit: '32mb',
+    }),
+    (request, response) => {
+      try {
+        const upload = parseTextMultipartUpload(request.headers['content-type'], request.body);
+        const importId = createImportId(upload.content);
+        void dataImports.queueUpload(upload);
+        response.status(202).json({
+          importId,
+          status: dataImports.getStatus(),
+        });
+      } catch (error) {
+        sendImportError(response, error);
+      }
+    },
+  );
+
+  app.get('/api/imports', async (_request, response) => {
+    try {
+      response.json(await dataImports.listImports());
+    } catch (error) {
+      sendImportError(response, error);
+    }
+  });
+
+  app.get('/api/imports/:id', async (request, response) => {
+    try {
+      const imported = await dataImports.getImport(request.params.id);
+      if (!imported) {
+        response.status(404).json({ error: 'Nie znaleziono importu.', code: 'IMPORT_NOT_FOUND' });
+        return;
+      }
+      response.json(imported);
+    } catch (error) {
+      sendImportError(response, error);
+    }
+  });
 
   app.get('/api/ai/models', (_request, response) => {
     response.json({ models: getPublicAiModels(environment) });
   });
 
+  app.post('/api/session-groups/preview', async (request, response) => {
+    try {
+      const resolved = await resolveSessionGroupPreviewData({
+        dataIndex,
+        sessionIds: request.body?.sessionIds,
+        datasetRevision: request.body?.datasetRevision,
+      });
+      response.json({ datasetRevision: resolved.datasetRevision, ...resolved.preview });
+    } catch (error) {
+      const status = Number.isInteger(error.status) ? error.status : 500;
+      if (status >= 500) logger?.error?.('Session group preview error:', error.message);
+      response.status(status).json({
+        error: error.message || 'Nie udało się pobrać podglądu wybranych sesji.',
+        code: error.code || 'SESSION_GROUP_PREVIEW_ERROR',
+      });
+    }
+  });
+
   app.post('/api/ai/analyze', async (request, response) => {
     try {
+      const resolved = await resolveHandAnalysisData({
+        dataIndex,
+        handId: request.body?.handId,
+        datasetRevision: request.body?.datasetRevision,
+      });
       const result = await analyzeHandWithModel({
         modelId: request.body?.modelId,
-        hand: request.body?.hand,
+        hand: resolved.hand,
         environment,
         fetchImpl,
       });
-      response.json(result);
+      response.json({ ...result, datasetRevision: resolved.datasetRevision });
     } catch (error) {
       const status = Number.isInteger(error.status) ? error.status : 500;
       if (status === 500) {
@@ -71,14 +316,19 @@ export const createApiApp = ({
 
   app.post('/api/ai/analyze-session', async (request, response) => {
     try {
+      const resolved = await resolveSessionAnalysisData({
+        dataIndex,
+        sessionId: request.body?.sessionId,
+        datasetRevision: request.body?.datasetRevision,
+      });
       const result = await analyzeSessionWithModel({
         modelId: request.body?.modelId,
-        session: request.body?.session,
+        session: resolved.session,
         environment,
         fetchImpl,
         logger,
       });
-      response.json(result);
+      response.json({ ...result, datasetRevision: resolved.datasetRevision });
     } catch (error) {
       const status = Number.isInteger(error.status) ? error.status : 500;
       if (status === 500) logger?.error?.('Unexpected AI session analysis error:', error.message);
@@ -91,14 +341,24 @@ export const createApiApp = ({
 
   app.post('/api/ai/analyze-session-group', async (request, response) => {
     try {
+      const resolved = await resolveSessionGroupAnalysisData({
+        dataIndex,
+        dataDirectory: cacheDataDirectory,
+        sessionIds: request.body?.sessionIds,
+        datasetRevision: request.body?.datasetRevision,
+      });
       const result = await analyzeSessionGroupWithModel({
         modelId: request.body?.modelId,
-        group: request.body?.group,
+        group: resolved.group,
         environment,
         fetchImpl,
         logger,
       });
-      response.json(result);
+      response.json({
+        ...result,
+        datasetRevision: resolved.datasetRevision,
+        ...createSessionGroupMetadata(resolved.group),
+      });
     } catch (error) {
       const status = Number.isInteger(error.status) ? error.status : 500;
       if (status >= 500) {
@@ -179,42 +439,16 @@ export const createApiApp = ({
     }
   });
 
-  app.get('/api/local-sources', async (_request, response) => {
-    try {
-      const sources = await listLocalSources(dataDirectory);
-      response.json({ sources });
-    } catch (error) {
-      console.error('Cannot list local poker sources:', error);
-      response.status(500).json({ error: 'Nie udało się odczytać katalogu danych lokalnych.' });
-    }
-  });
-
-  app.get('/api/local-sources/:filename/content', async (request, response) => {
-    try {
-      const content = await readLocalSource(request.params.filename, dataDirectory);
-      response.type('text/plain; charset=utf-8').send(content);
-    } catch (error) {
-      if (error.code === 'ENOENT') {
-        response.status(404).json({ error: 'Nie znaleziono lokalnego pliku.' });
-        return;
-      }
-      if (error.message?.includes('pliku') || error.message?.includes('katalogiem')) {
-        response.status(400).json({ error: error.message });
-        return;
-      }
-      console.error('Cannot read local poker source:', error);
-      response.status(500).json({ error: 'Nie udało się odczytać lokalnego pliku.' });
-    }
-  });
-
-  app.use((error, _request, response, _next) => {
+  app.use((error, request, response, _next) => {
     void _next;
     const payloadTooLarge = error?.type === 'entity.too.large' || error?.status === 413;
     const malformedJson = error?.type === 'entity.parse.failed' || error instanceof SyntaxError;
     if (payloadTooLarge) {
       response.status(413).json({
-        error: 'Zadanie AI przekracza dopuszczalny rozmiar żądania.',
-        code: 'AI_REQUEST_TOO_LARGE',
+        error: request.path === '/api/imports'
+          ? 'Plik importu przekracza dopuszczalny rozmiar 32 MB.'
+          : 'Zadanie AI przekracza dopuszczalny rozmiar żądania.',
+        code: request.path === '/api/imports' ? 'IMPORT_FILE_TOO_LARGE' : 'AI_REQUEST_TOO_LARGE',
       });
       return;
     }

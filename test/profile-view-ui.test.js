@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createServer } from 'vite';
+import { buildProfileReport } from '../src/utils/profileReport.js';
 
 const timestamp = (year, month, day) => new Date(year, month - 1, day).getTime();
 
@@ -38,8 +39,11 @@ test('nowy widok profilu renderuje zakres dat, pełne podsumowanie i osobne wyni
 
   const { ProfileView } = await vite.ssrLoadModule('/src/views/ProfileViews.jsx');
   const html = renderToStaticMarkup(createElement(ProfileView, {
-    cashHands: [makeHand({ timestamp: timestamp(2026, 8, 1), netProfit: 1, bigBlind: 0.1 })],
-    tournamentHands: [makeHand({ timestamp: timestamp(2026, 8, 2), netProfit: 100, isTournament: true })],
+    report: buildProfileReport({
+      cashHands: [makeHand({ timestamp: timestamp(2026, 8, 1), netProfit: 1, bigBlind: 0.1 })],
+      tournamentHands: [makeHand({ timestamp: timestamp(2026, 8, 2), netProfit: 100, isTournament: true })],
+      gameType: 'both',
+    }),
     gameTypeFilter: 'both',
   }));
 
@@ -65,7 +69,7 @@ test('widok profilu pokazuje pusty stan bez rozdań', async (context) => {
 
   const { ProfileView } = await vite.ssrLoadModule('/src/views/ProfileViews.jsx');
   const html = renderToStaticMarkup(createElement(ProfileView, {
-    cashHands: [],
+    report: buildProfileReport({ cashHands: [], tournamentHands: [], gameType: 'cash' }),
     gameTypeFilter: 'cash',
   }));
 
