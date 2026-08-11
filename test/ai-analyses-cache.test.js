@@ -43,6 +43,19 @@ const groupReport = (reportId, sessionId) => ({
   analysis: { summary: `Raport grupy ${reportId}` },
 });
 
+const playerReport = (reportId, analyzedAt = '2026-08-09T10:00:00.000Z') => ({
+  reportId,
+  model: { id: 'gpt-5.6-terra', name: 'GPT-5.6 Terra' },
+  analyzedAt,
+  datasetRevision: 'revision-1',
+  fingerprint: `player-${reportId}`,
+  criteria: { gameType: 'cash', dateFrom: '', dateTo: '' },
+  snapshot: { handCount: 100, metrics: { shared: { hands: 100 } } },
+  sourceCoverage: { sessionsInPeriod: 2, availableReports: 1, usedReports: 1 },
+  sources: [],
+  analysis: { summary: `Analiza gracza ${reportId}` },
+});
+
 const startApi = async (t, dataDirectory) => {
   const server = createApiApp({
     dataDirectory,
@@ -68,11 +81,13 @@ test('cache AI scala raporty z wielu maszyn po reportId bez surowych historii', 
     ...createEmptyAiAnalysesCache(),
     handAnalyses: { 'hand-1': [handReport('hand-report-1'), handReport('hand-report-2')] },
     sessionAnalyses: { 'session-1': [sessionReport('session-report-1', 'session-1')] },
+    playerAnalyses: [playerReport('player-report-1')],
   };
 
   const merged = mergeAiAnalysesCaches(first, second);
   assert.equal(merged.handAnalyses['hand-1'].length, 2);
   assert.equal(merged.sessionAnalyses['session-1'][0].reportId, 'session-report-1');
+  assert.equal(merged.playerAnalyses[0].reportId, 'player-report-1');
   assert.equal(JSON.stringify(merged).includes('rawText'), false);
 });
 
@@ -82,14 +97,23 @@ test('magazyn zapisuje i odczytuje wersjonowany plik atomowo oraz odrzuca surow�
     const cache = {
       ...createEmptyAiAnalysesCache(),
       handAnalyses: { 'hand-1': [handReport('hand-report-1')] },
+      playerAnalyses: [playerReport('player-report-1')],
     };
     await writeAiAnalysesCache(cache, dataDirectory);
     const loaded = await readAiAnalysesCache(dataDirectory);
     assert.deepEqual(loaded.handAnalyses, cache.handAnalyses);
+    assert.equal(loaded.playerAnalyses[0].snapshot.metrics.shared.hands, 100);
     await assert.rejects(
       () => writeAiAnalysesCache({
         ...cache,
         handAnalyses: { 'hand-1': [{ ...handReport('unsafe'), rawText: 'CoinPoker Hand #1' }] },
+      }, dataDirectory),
+      /surowych historii/,
+    );
+    await assert.rejects(
+      () => writeAiAnalysesCache({
+        ...cache,
+        playerAnalyses: [{ ...playerReport('unsafe-player'), snapshot: { hands: [{ id: '1' }] } }],
       }, dataDirectory),
       /surowych historii/,
     );
@@ -192,4 +216,23 @@ test('import localStorage mapuje stare singletony i usuwa surowe dane przed zapi
 test('normalizacja cache frontendu odrzuca nieprawidłową wersję zamiast usuwać lokalne raporty', () => {
   assert.equal(normalizeAiAnalysesCache({ version: 99 }), null);
   assert.throws(() => normalizeServerAiAnalysesCache({ version: 99 }), /nieobsługiwaną wersję/);
+});
+
+test('starszy cache bez playerAnalyses migruje do pustej historii, a raporty gracza scalają się po reportId', () => {
+  const legacy = {
+    version: 1,
+    updatedAt: null,
+    handAnalyses: {},
+    sessionAnalyses: {},
+    sessionGroupAnalyses: [],
+  };
+  assert.deepEqual(normalizeAiAnalysesCache(legacy).playerAnalyses, []);
+  assert.deepEqual(normalizeServerAiAnalysesCache(legacy).playerAnalyses, []);
+
+  const first = { ...legacy, playerAnalyses: [playerReport('same'), playerReport('first')] };
+  const second = { ...legacy, playerAnalyses: [playerReport('same'), playerReport('second')] };
+  assert.deepEqual(
+    mergeAiAnalysesCaches(first, second).playerAnalyses.map((report) => report.reportId),
+    ['same', 'first', 'second'],
+  );
 });

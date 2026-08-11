@@ -1,1 +1,13 @@
+@import "@daypicker/react/style.css";
 @import "tailwindcss";
+
+.date-range-picker .rdp-root {
+  --rdp-accent-color: #4f46e5;
+  --rdp-accent-background-color: #eef2ff;
+  --rdp-day_button-border-radius: 0.5rem;
+  --rdp-day_button-height: 2.25rem;
+  --rdp-day_button-width: 2.25rem;
+  --rdp-day-height: 2.375rem;
+  --rdp-day-width: 2.375rem;
+  --rdp-months-gap: 1rem;
+}

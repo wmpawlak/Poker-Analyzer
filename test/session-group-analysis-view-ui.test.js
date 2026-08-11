@@ -13,7 +13,7 @@ class MemoryStorage {
 }
 globalThis.localStorage = new MemoryStorage();
 
-const { default: pokerReducer } = await import('../src/store/pokerSlice.js');
+const { createSessionMonthsQueryKey, default: pokerReducer } = await import('../src/store/pokerSlice.js');
 
 test('widok analizy wielu sesji używa podsumowań API oraz aktualnych raportów', async (context) => {
   const vite = await createServer({ appType: 'custom', logLevel: 'silent', server: { middlewareMode: true, hmr: false } });
@@ -21,16 +21,16 @@ test('widok analizy wielu sesji używa podsumowań API oraz aktualnych raportów
   const base = pokerReducer(undefined, { type: '@@init' });
   const cash = { id: 'cash-a', type: 'Cash', tableId: 'table-a', startTime: 1_770_000_000_000, dateStr: '2026-02-01', handCount: 42, fingerprint: 'cash-fingerprint' };
   const tournament = { id: 'tournament-b', type: 'Tournament', tourneyId: 'T-1', tourneyName: 'Turniej B', startTime: 1_770_000_060_000, dateStr: '2026-02-01', handCount: 51, fingerprint: 'tournament-fingerprint' };
+  const queryKey = createSessionMonthsQueryKey({ gameType: 'both' });
   const store = configureStore({
     reducer: { poker: pokerReducer },
     preloadedState: {
       poker: {
         ...base,
         dataset: { ...base.dataset, datasetRevision: 'revision-1' },
-        currentPages: {
-          cash: { items: [cash], status: 'succeeded', error: null, datasetRevision: 'revision-1' },
-          tournament: { items: [tournament], status: 'succeeded', error: null, datasetRevision: 'revision-1' },
-        },
+        sessionMonthIndexes: { [queryKey]: { months: [{ key: '2026-02', year: 2026, month: 2, sessionCount: 2, handCount: 93, cashSessionCount: 1, tournamentSessionCount: 1 }], status: 'succeeded', error: null, allStatus: 'idle', allError: null, datasetRevision: 'revision-1' } },
+        sessionMonthPages: { [queryKey]: { '2026-02': { items: [cash, tournament], status: 'succeeded', error: null, datasetRevision: 'revision-1' } } },
+        sessionSummariesById: { [cash.id]: cash, [tournament.id]: tournament },
         sessionAiAnalyses: {
           [cash.id]: [{ reportId: 'cash-report', fingerprint: cash.fingerprint, datasetRevision: 'revision-1' }],
           [tournament.id]: [{ reportId: 'tournament-report', fingerprint: tournament.fingerprint, datasetRevision: 'revision-1' }],
@@ -60,9 +60,10 @@ test('widok analizy wielu sesji używa podsumowań API oraz aktualnych raportów
   })));
 
   assert.match(html, /data-testid="session-group-analysis-session-list"/);
+  assert.match(html, /aria-expanded="false"/);
+  assert.doesNotMatch(html, /role="region"/);
   assert.match(html, /Stół table-a/);
   assert.match(html, /Turniej B/);
-  assert.match(html, /raport aktualny/);
   assert.match(html, /data-testid="session-group-compact-preview"/);
   assert.match(html, /Wspólne podsumowanie/);
   assert.match(html, /Priorytet/);

@@ -15,6 +15,7 @@
     "perf:data": "node server/dataPerfCli.js"
   },
   "dependencies": {
+    "@daypicker/react": "^10.0.1",
     "@reduxjs/toolkit": "^2.12.0",
     "@tailwindcss/vite": "^4.3.0",
     "@tanstack/react-virtual": "^3.14.9",
@@ -35,6 +36,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "jsdom": "^30.0.1",
     "postcss": "^8.5.14",
     "tailwindcss": "^4.3.0",
     "vite": "^8.0.12"

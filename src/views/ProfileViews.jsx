@@ -2,18 +2,31 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  CalendarDays,
+  BarChart3,
+  BrainCircuit,
   ChevronLeft,
   ChevronRight,
+  Database,
   Filter,
-  RotateCcw,
+  ShieldCheck,
   Search,
+  Sparkles,
   Skull,
   Trophy,
   Users,
 } from 'lucide-react';
+import { DateRangePicker } from '../components/DateRangePicker.jsx';
+import { PlayerAnalysisHistory } from '../components/PlayerAnalysisHistory.jsx';
 import { SessionSummary } from '../components/SessionSummary.jsx';
-import { fetchOpponents, fetchProfile, setDataFilters } from '../store/pokerSlice.js';
+import {
+  analyzePlayerWithAI,
+  fetchOpponents,
+  fetchPlayerAnalysisPreview,
+  fetchProfile,
+  setDataFilters,
+  setDateRange,
+  setPlayerAnalysisReportSelection,
+} from '../store/pokerSlice.js';
 
 const PROFILE_GAME_TYPE_LABELS = {
   cash: 'Cash',
@@ -21,38 +34,49 @@ const PROFILE_GAME_TYPE_LABELS = {
   both: 'Wszystko',
 };
 
-const ProfileDateField = ({ label, value, onChange, testId }) => (
-  <label className="flex min-w-[9.5rem] flex-1 flex-col gap-1 text-xs font-black uppercase tracking-wide text-slate-500">
-    <span>{label}</span>
-    <span className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold normal-case tracking-normal text-slate-700 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100">
-      <CalendarDays size={16} className="shrink-0 text-slate-400" />
-      <input
-        data-testid={testId}
-        type="date"
-        value={value}
-        onChange={onChange}
-        className="min-w-0 flex-1 bg-transparent outline-none"
-      />
-    </span>
-  </label>
-);
-
 export const ProfileView = ({
   report = null,
   gameTypeFilter = 'both',
   dateFrom = '',
   dateTo = '',
-  onDateFromChange = () => {},
-  onDateToChange = () => {},
-  onClearDateRange = () => {},
+  onDateRangeChange = () => {},
+  onGameTypeChange = () => {},
   isLoading = false,
   error = null,
+  analysisPreview = null,
+  analysisPreviewStatus = 'idle',
+  analysisPreviewError = null,
+  aiModels = [],
+  defaultAiModel = '',
+  analysisStatus = 'idle',
+  analysisError = null,
+  analysisCount = 0,
+  playerAnalyses = [],
+  selectedPlayerAnalysisReportId = null,
+  currentDatasetRevision = '',
+  sessionAiAnalyses = {},
+  onAnalyze = () => {},
+  onSelectPlayerAnalysis = () => {},
+  onOpenSession = () => {},
+  defaultSubtab = 'statistics',
 }) => {
+  const [activeSubtab, setActiveSubtab] = useState(defaultSubtab);
   const selectedGameTypeLabel = PROFILE_GAME_TYPE_LABELS[report?.gameType || gameTypeFilter] || 'Wszystko';
   const hasReportHands = report?.isValid && report.metrics?.hands > 0;
   const periodLabel = dateFrom || dateTo
     ? `${dateFrom || 'początek historii'} — ${dateTo || 'koniec historii'}`
     : 'cała wczytana historia';
+  const selectedModel = aiModels.find((model) => model.id === defaultAiModel) || null;
+  const modelConfigured = Boolean(selectedModel?.configured);
+  const previewReady = analysisPreviewStatus === 'succeeded' && analysisPreview;
+  const analysisLoading = analysisStatus === 'loading';
+  const analyzeDisabled = analysisLoading
+    || !previewReady
+    || !analysisPreview?.canAnalyze
+    || !modelConfigured;
+  const previewErrorMessage = analysisPreviewError?.message || analysisPreviewError;
+  const analysisErrorMessage = analysisError?.message || analysisError;
+  const coverage = analysisPreview?.sessionEvidence?.coverage;
 
   return (
     <div data-testid="profile-view" className="mx-auto flex max-w-6xl flex-col gap-4 animate-in fade-in duration-300">
@@ -69,32 +93,55 @@ export const ProfileView = ({
           </div>
         </div>
 
-        <div className="mt-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-end">
-          <ProfileDateField
-            label="Od"
-            value={dateFrom}
-            onChange={(event) => onDateFromChange(event.target.value)}
-            testId="profile-date-from"
-          />
-          <ProfileDateField
-            label="Do"
-            value={dateTo}
-            onChange={(event) => onDateToChange(event.target.value)}
-            testId="profile-date-to"
-          />
+        <div data-testid="profile-controls" className="mt-4 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 lg:grid-cols-[auto_minmax(18rem,1fr)] lg:items-end">
+          <div>
+            <div className="mb-1 text-xs font-black uppercase tracking-wide text-slate-500">Typ gry</div>
+            <div className="flex w-full rounded-xl border border-slate-200 bg-white p-1 sm:w-fit">
+              {Object.entries(PROFILE_GAME_TYPE_LABELS).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => onGameTypeChange(value)}
+                  aria-pressed={gameTypeFilter === value}
+                  className={`flex-1 rounded-lg px-3 py-2 text-xs font-black transition-colors sm:flex-none ${gameTypeFilter === value ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="w-full lg:justify-self-end lg:max-w-xl" data-testid="profile-date-range">
+            <DateRangePicker
+              value={{ from: dateFrom, to: dateTo }}
+              onChange={onDateRangeChange}
+              label="Zakres dat profilu"
+            />
+          </div>
+        </div>
+
+        <div role="tablist" aria-label="Sekcje profilu" className="mt-4 flex gap-1 rounded-xl bg-slate-100 p-1">
           <button
             type="button"
-            data-testid="profile-clear-date-range"
-            onClick={onClearDateRange}
-            disabled={!dateFrom && !dateTo}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+            role="tab"
+            aria-selected={activeSubtab === 'statistics'}
+            onClick={() => setActiveSubtab('statistics')}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-black transition-colors ${activeSubtab === 'statistics' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
           >
-            <RotateCcw size={14} /> Wyczyść zakres
+            <BarChart3 size={17} /> Statystyki
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeSubtab === 'analysis'}
+            onClick={() => setActiveSubtab('analysis')}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-black transition-colors ${activeSubtab === 'analysis' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+          >
+            <Sparkles size={17} /> Analizy AI
           </button>
         </div>
       </section>
 
-      {error ? (
+      {activeSubtab === 'statistics' && (error ? (
         <div data-testid="profile-date-error" role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
           {error}
         </div>
@@ -122,20 +169,117 @@ export const ProfileView = ({
             tournament: report.tournamentMetrics,
           } : null}
         />
+      ))}
+
+      {activeSubtab === 'analysis' && (
+        <>
+        <section data-testid="player-analysis-create" role="tabpanel" className="rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="flex items-center gap-2 text-lg font-black text-slate-800"><BrainCircuit size={21} className="text-indigo-600" /> Nowa analiza statystyk gracza</h3>
+              <p className="mt-1 text-sm text-slate-500">Jedno uruchomienie tworzy osobny raport historyczny i wykonuje jedno płatne żądanie AI.</p>
+            </div>
+            {analysisCount > 0 && <div className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-black text-indigo-700">Raporty: {analysisCount}</div>}
+          </div>
+
+          {analysisPreviewStatus === 'loading' ? (
+            <div role="status" className="mt-5 rounded-xl border border-indigo-100 bg-indigo-50 p-5 text-sm font-bold text-indigo-700">Przeliczanie kanonicznych statystyk…</div>
+          ) : previewErrorMessage ? (
+            <div role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">{previewErrorMessage}</div>
+          ) : previewReady ? (
+            <>
+              <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
+                {[
+                  { label: 'Ręce', value: analysisPreview.handCount, icon: Database },
+                  { label: 'Sesje', value: analysisPreview.sessionCount, icon: BarChart3 },
+                  { label: 'Styl', value: analysisPreview.profileStyle?.label || analysisPreview.profileStyleId, icon: BrainCircuit },
+                  { label: 'Wiarygodność', value: analysisPreview.reliability?.label || analysisPreview.reliabilityId, icon: ShieldCheck },
+                  { label: 'Raporty sesji', value: `${coverage?.usedReports || 0} z ${coverage?.availableReports || 0}`, icon: Sparkles },
+                ].map(({ label, value, icon: Icon }) => (
+                  <div key={label} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <Icon size={16} className="mb-2 text-indigo-500" />
+                    <div className="text-[11px] font-black uppercase tracking-wide text-slate-400">{label}</div>
+                    <div className="mt-1 break-words text-sm font-black text-slate-800">{value}</div>
+                  </div>
+                ))}
+              </div>
+              {analysisPreview.warning && (
+                <div role="status" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900">{analysisPreview.warning}</div>
+              )}
+            </>
+          ) : null}
+
+          <div className="mt-5 flex flex-col gap-3 rounded-xl border border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-xs font-black uppercase tracking-wide text-slate-400">Używany model</div>
+              <div className="mt-1 text-sm font-black text-slate-800">{selectedModel?.name || 'Brak wybranego modelu'}</div>
+              {!modelConfigured && <div className="mt-1 text-xs font-semibold text-red-600">Model nie jest skonfigurowany na serwerze.</div>}
+            </div>
+            <button
+              type="button"
+              onClick={onAnalyze}
+              disabled={analyzeDisabled}
+              className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-black text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              {analysisLoading
+                ? 'Tworzenie raportu…'
+                : analysisErrorMessage
+                  ? 'Spróbuj ponownie — nowe płatne żądanie'
+                  : 'Utwórz analizę AI — jedno płatne żądanie'}
+            </button>
+          </div>
+
+          {analysisErrorMessage && (
+            <div role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              <strong>Nie udało się utworzyć raportu.</strong> {analysisErrorMessage} Ponowienie uruchomi nowe płatne żądanie.
+            </div>
+          )}
+          {analysisStatus === 'succeeded' && !analysisErrorMessage && (
+            <div role="status" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">Nowy raport został zapisany i automatycznie wybrany.</div>
+          )}
+        </section>
+        <PlayerAnalysisHistory
+          reports={playerAnalyses}
+          selectedReportId={selectedPlayerAnalysisReportId}
+          currentDatasetRevision={currentDatasetRevision}
+          sessionAiAnalyses={sessionAiAnalyses}
+          onSelectReport={onSelectPlayerAnalysis}
+          onOpenSession={onOpenSession}
+        />
+        </>
       )}
     </div>
   );
 };
 
-export const ProfileDataView = () => {
+export const ProfileDataView = ({ onOpenSession = () => {} }) => {
   const dispatch = useDispatch();
   const gameTypeFilter = useSelector((state) => state.poker.filters.gameType);
-  const dateFrom = useSelector((state) => state.poker.filters.dateFrom);
-  const dateTo = useSelector((state) => state.poker.filters.dateTo);
+  const dateRange = useSelector((state) => state.poker.filters.dateRanges.profile);
+  const { from: dateFrom, to: dateTo } = dateRange;
   const profile = useSelector((state) => state.poker.aggregates.profile);
+  const analysisPreview = useSelector((state) => state.poker.playerAnalysisPreview);
+  const aiModels = useSelector((state) => state.poker.aiModels);
+  const defaultAiModel = useSelector((state) => state.poker.defaultAiModel);
+  const analysisStatus = useSelector((state) => state.poker.playerAnalysisStatus);
+  const analysisError = useSelector((state) => state.poker.playerAnalysisError);
+  const analysisCount = useSelector((state) => state.poker.playerAiAnalyses.length);
+  const playerAnalyses = useSelector((state) => state.poker.playerAiAnalyses);
+  const selectedPlayerAnalysisReportId = useSelector((state) => state.poker.selectedPlayerAnalysisReportId);
+  const currentDatasetRevision = useSelector((state) => state.poker.dataset.datasetRevision);
+  const sessionAiAnalyses = useSelector((state) => state.poker.sessionAiAnalyses);
 
   useEffect(() => {
     dispatch(fetchProfile({ gameType: gameTypeFilter, dateFrom, dateTo }));
+  }, [dateFrom, dateTo, dispatch, gameTypeFilter]);
+
+  useEffect(() => {
+    const request = dispatch(fetchPlayerAnalysisPreview({
+      gameType: gameTypeFilter,
+      dateFrom,
+      dateTo,
+    }));
+    return () => request.abort();
   }, [dateFrom, dateTo, dispatch, gameTypeFilter]);
 
   return (
@@ -146,9 +290,28 @@ export const ProfileDataView = () => {
       dateTo={dateTo}
       isLoading={profile.status === 'loading'}
       error={profile.status === 'failed' ? profile.error : null}
-      onDateFromChange={(value) => dispatch(setDataFilters({ dateFrom: value }))}
-      onDateToChange={(value) => dispatch(setDataFilters({ dateTo: value }))}
-      onClearDateRange={() => dispatch(setDataFilters({ dateFrom: '', dateTo: '' }))}
+      analysisPreview={analysisPreview.data}
+      analysisPreviewStatus={analysisPreview.status}
+      analysisPreviewError={analysisPreview.error}
+      aiModels={aiModels}
+      defaultAiModel={defaultAiModel}
+      analysisStatus={analysisStatus}
+      analysisError={analysisError}
+      analysisCount={analysisCount}
+      playerAnalyses={playerAnalyses}
+      selectedPlayerAnalysisReportId={selectedPlayerAnalysisReportId}
+      currentDatasetRevision={currentDatasetRevision}
+      sessionAiAnalyses={sessionAiAnalyses}
+      onGameTypeChange={(gameType) => dispatch(setDataFilters({ gameType }))}
+      onDateRangeChange={(range) => dispatch(setDateRange({ view: 'profile', ...range }))}
+      onAnalyze={() => dispatch(analyzePlayerWithAI({
+        gameType: gameTypeFilter,
+        dateFrom,
+        dateTo,
+        modelId: defaultAiModel,
+      }))}
+      onSelectPlayerAnalysis={(reportId) => dispatch(setPlayerAnalysisReportSelection(reportId))}
+      onOpenSession={onOpenSession}
     />
   );
 };
@@ -159,6 +322,8 @@ export const OpponentsView = ({
   hasNextPage = false,
   isLoading = false,
   error = null,
+  dateRange = { from: '', to: '' },
+  onDateRangeChange = () => {},
   onLoadMore = () => {},
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -234,9 +399,21 @@ export const OpponentsView = ({
         
         {/* HEADER & CONTROLS */}
         <div className="border-b border-gray-100 pb-4 mb-4 shrink-0 space-y-4">
-          <div>
-            <h3 className="text-xl font-black text-gray-800">Baza Przeciwników</h3>
-            <p className="text-sm text-gray-500 mt-1">Z kim mierzysz się najczęściej i na kim zarabiasz najwięcej?</p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="text-xl font-black text-gray-800">Baza Przeciwników</h3>
+              <p className="text-sm text-gray-500 mt-1">Z kim mierzysz się najczęściej i na kim zarabiasz najwięcej?</p>
+            </div>
+            <div className="w-full sm:max-w-sm" data-testid="opponents-date-range">
+              <DateRangePicker
+                value={dateRange}
+                onChange={(range) => {
+                  setCurrentPage(1);
+                  onDateRangeChange(range);
+                }}
+                label="Zakres dat przeciwników"
+              />
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-4 bg-slate-50 p-3 rounded-xl border border-gray-200">
@@ -389,8 +566,8 @@ export const OpponentsView = ({
 export const OpponentsDataView = () => {
   const dispatch = useDispatch();
   const gameType = useSelector((state) => state.poker.filters.gameType);
-  const dateFrom = useSelector((state) => state.poker.filters.dateFrom);
-  const dateTo = useSelector((state) => state.poker.filters.dateTo);
+  const dateRange = useSelector((state) => state.poker.filters.dateRanges.opponents);
+  const { from: dateFrom, to: dateTo } = dateRange;
   const opponents = useSelector((state) => state.poker.aggregates.opponents);
 
   useEffect(() => {
@@ -404,6 +581,8 @@ export const OpponentsDataView = () => {
       hasNextPage={Boolean(opponents.nextCursor)}
       isLoading={opponents.status === 'loading'}
       error={opponents.status === 'failed' ? opponents.error : null}
+      dateRange={dateRange}
+      onDateRangeChange={(range) => dispatch(setDateRange({ view: 'opponents', ...range }))}
       onLoadMore={() => dispatch(fetchOpponents({
         gameType,
         dateFrom,

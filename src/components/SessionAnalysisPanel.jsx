@@ -1,7 +1,6 @@
-import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AlertTriangle, Brain, History, Play } from 'lucide-react';
-import { analyzeSessionWithAI } from '../store/pokerSlice.js';
+import { analyzeSessionWithAI, setSessionAnalysisReportSelection } from '../store/pokerSlice.js';
 import { getCurrentSessionAnalysisReport } from '../utils/sessionAnalysisStatus.js';
 
 const formatDate = (value) => {
@@ -24,7 +23,9 @@ export const SessionAnalysisPanel = ({
   const sessionAnalysisStatusById = useSelector((state) => state.poker.sessionAnalysisStatusById);
   const sessionAnalysisErrorById = useSelector((state) => state.poker.sessionAnalysisErrorById);
   const datasetRevision = useSelector((state) => state.poker.dataset.datasetRevision);
-  const [selectedReportId, setSelectedReportId] = useState(null);
+  const selectedReportId = useSelector((state) => (
+    state.poker.selectedSessionAnalysisReportIdBySessionId[sessionId] || null
+  ));
   const history = sessionAiAnalyses[sessionId] || [];
   const latestCurrentReport = getCurrentSessionAnalysisReport({
     reports: history,
@@ -46,7 +47,7 @@ export const SessionAnalysisPanel = ({
     : 'border-indigo-200 bg-indigo-50 text-indigo-950';
 
   const triggerAnalysis = () => {
-    setSelectedReportId(null);
+    dispatch(setSessionAnalysisReportSelection({ sessionId, reportId: null }));
     dispatch(analyzeSessionWithAI({ sessionId }));
   };
 
@@ -63,7 +64,7 @@ export const SessionAnalysisPanel = ({
       {history.length > 0 && (
         <div className="mt-3 rounded-lg border border-white/80 bg-white/75 p-3">
           <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide opacity-65" htmlFor={`session-analysis-history-${sessionId}`}><History size={14}/> Historia raportów ({history.length})</label>
-          <select id={`session-analysis-history-${sessionId}`} value={currentReport?.reportId || ''} onChange={(event) => setSelectedReportId(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-700 outline-none">
+          <select id={`session-analysis-history-${sessionId}`} value={currentReport?.reportId || ''} onChange={(event) => dispatch(setSessionAnalysisReportSelection({ sessionId, reportId: event.target.value }))} className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-700 outline-none">
             {[...history].reverse().map((report) => <option key={report.reportId} value={report.reportId}>{report.model?.name || 'Nieznany model'} — {formatDate(report.analyzedAt)}{report.fingerprint === sessionFingerprint ? ' (aktualny zestaw)' : ' (wcześniejszy zestaw)'}</option>)}
           </select>
         </div>

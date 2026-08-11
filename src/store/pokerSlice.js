@@ -13,6 +13,7 @@ export const AI_DEFAULT_MODEL_CACHE_KEY = 'poker_ai_default_model';
 export const SAVED_HANDS_CACHE_KEY = 'poker_saved_hands_v1';
 export const SESSION_AI_ANALYSES_CACHE_KEY = 'poker_ai_session_analyses_v1';
 export const SESSION_GROUP_AI_ANALYSES_CACHE_KEY = 'poker_ai_session_group_analyses_v1';
+export const PLAYER_AI_ANALYSES_CACHE_KEY = 'poker_ai_player_analyses_v1';
 export const DEFAULT_AI_MODEL = 'gpt-5.6-terra';
 export const OPEN_HAND_CACHE_LIMIT = 8;
 export const AI_MODEL_CATALOG = [
@@ -179,16 +180,31 @@ export const loadSessionGroupAiAnalyses = (storage = getBrowserStorage()) => {
   return normalized;
 };
 
+export const loadPlayerAiAnalyses = (storage = getBrowserStorage()) => {
+  const cached = parseStoredArray(storage.getItem(PLAYER_AI_ANALYSES_CACHE_KEY));
+  if (!cached) return [];
+  const normalized = cached
+    .filter((report) => report && typeof report === 'object')
+    .map((report, index) => ({
+      ...report,
+      reportId: report.reportId || `legacy-player-v1-${index + 1}`,
+    }));
+  storage.setItem(PLAYER_AI_ANALYSES_CACHE_KEY, JSON.stringify(normalized));
+  return normalized;
+};
+
 const buildCurrentAiAnalysesCache = (state) => buildAiAnalysesCache({
   aiAnalyses: state.aiAnalyses,
   sessionAiAnalyses: state.sessionAiAnalyses,
   sessionGroupAiAnalyses: state.sessionGroupAiAnalyses,
+  playerAiAnalyses: state.playerAiAnalyses,
 });
 
 const buildRawLocalStorageAiAnalyses = (storage = getBrowserStorage()) => ({
   handAnalyses: readLocalStorageJson(storage, AI_ANALYSES_CACHE_KEY, {}),
   sessionAnalyses: readLocalStorageJson(storage, SESSION_AI_ANALYSES_CACHE_KEY, {}),
   sessionGroupAnalyses: readLocalStorageJson(storage, SESSION_GROUP_AI_ANALYSES_CACHE_KEY, []),
+  playerAnalyses: readLocalStorageJson(storage, PLAYER_AI_ANALYSES_CACHE_KEY, []),
 });
 
 const readAiCacheResponse = async (response, fallbackMessage) => {
@@ -325,6 +341,32 @@ const normalizeCollectionHandIds = (ids) => (
   [...new Set((Array.isArray(ids) ? ids : []).map((id) => String(id || '').trim()).filter(Boolean))].sort()
 );
 
+const normalizeSessionIdsInOrder = (ids) => {
+  const seen = new Set();
+  return (Array.isArray(ids) ? ids : [])
+    .map((id) => String(id || '').trim())
+    .filter((id) => id && !seen.has(id) && seen.add(id));
+};
+
+const normalizeSessionQuery = (params = {}) => ({
+  gameType: params.gameType || 'both',
+  handRanking: params.handRanking || '',
+  dateFrom: params.dateFrom || '',
+  dateTo: params.dateTo || '',
+});
+
+export const createSessionMonthsQueryKey = (params = {}) => JSON.stringify(normalizeSessionQuery(params));
+
+const getSummaryQueryKey = ({ datasetRevision = '', sessionIds = [] } = {}) => JSON.stringify({
+  datasetRevision,
+  sessionIds: normalizeSessionIdsInOrder(sessionIds),
+});
+
+const getSessionMonthKey = (session) => {
+  const match = /^(\d{4})[/-](\d{2})(?:[/-]|$)/.exec(String(session?.dateStr || '').trim());
+  return match ? `${match[1]}-${match[2]}` : '';
+};
+
 const createSessionsQueryKey = ({ gameType = '', handRanking = '' } = {}) => (
   JSON.stringify({ gameType, handRanking })
 );
@@ -379,6 +421,41 @@ const createEmptySessionGroupPreview = () => ({
   queryKey: null,
 });
 
+const createEmptyPlayerAnalysisPreview = () => ({
+  data: null,
+  status: 'idle',
+  error: null,
+  datasetRevision: null,
+  queryKey: null,
+});
+
+const createPlayerAnalysisQueryKey = ({
+  gameType = 'both',
+  dateFrom = '',
+  dateTo = '',
+  datasetRevision = '',
+} = {}) => JSON.stringify({ gameType, dateFrom, dateTo, datasetRevision });
+
+const createEmptySessionMonthIndex = () => ({
+  months: [],
+  availableRanks: [],
+  status: 'idle',
+  error: null,
+  allStatus: 'idle',
+  allError: null,
+  datasetRevision: null,
+  requestId: null,
+  allRequestId: null,
+});
+
+const createEmptySessionMonthPage = () => ({
+  items: [],
+  status: 'idle',
+  error: null,
+  datasetRevision: null,
+  requestId: null,
+});
+
 const readAggregate = async (pathname, params, fallbackMessage) => (
   readJsonResponse(await fetch(createQueryUrl(pathname, params)), fallbackMessage)
 );
@@ -397,6 +474,55 @@ export const fetchProfile = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message || 'Nie udało się pobrać raportu profilu.');
     }
+  },
+);
+
+export const fetchPlayerAnalysisPreview = createAsyncThunk(
+  'poker/fetchPlayerAnalysisPreview',
+  async (params = {}, { getState, rejectWithValue, signal }) => {
+    const normalized = {
+      gameType: params.gameType || 'both',
+      dateFrom: params.dateFrom || '',
+      dateTo: params.dateTo || '',
+    };
+    const datasetRevision = String(getState().poker.dataset.datasetRevision || '');
+    try {
+      const response = await fetch(createQueryUrl('/api/player-analysis/preview', normalized), { signal });
+      if (!response.ok) {
+        return rejectWithValue(await getResponseErrorDetails(
+          response,
+          'Nie udało się pobrać podglądu analizy gracza.',
+        ));
+      }
+      const result = await response.json();
+      if (!result?.datasetRevision || !result?.metrics?.shared
+        || typeof result.canAnalyze !== 'boolean' || !result?.sessionEvidence?.coverage) {
+        throw new Error('Serwer zwrócił nieprawidłowy podgląd analizy gracza.');
+      }
+      return {
+        ...result,
+        queryKey: createPlayerAnalysisQueryKey({
+          ...normalized,
+          datasetRevision,
+        }),
+      };
+    } catch (error) {
+      if (error?.name === 'AbortError') throw error;
+      return rejectWithValue({
+        message: error.message || 'Nie udało się pobrać podglądu analizy gracza.',
+      });
+    }
+  },
+  {
+    condition: (params = {}, { getState }) => {
+      const state = getState().poker;
+      const queryKey = createPlayerAnalysisQueryKey({
+        ...params,
+        datasetRevision: state.dataset.datasetRevision || '',
+      });
+      return state.playerAnalysisPreview.status !== 'loading'
+        || state.playerAnalysisPreview.queryKey !== queryKey;
+    },
   },
 );
 
@@ -461,6 +587,140 @@ export const fetchWallet = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message || 'Nie udało się pobrać danych portfela.');
     }
+  },
+);
+
+export const fetchSessionMonths = createAsyncThunk(
+  'poker/fetchSessionMonths',
+  async (params = {}, { rejectWithValue, signal }) => {
+    const query = normalizeSessionQuery(params);
+    try {
+      if (!['cash', 'tournament', 'both'].includes(query.gameType)) throw new Error('Nieprawidłowy typ sesji.');
+      const result = await readJsonResponse(
+        await fetch(createQueryUrl('/api/session-months', query), { signal }),
+        'Nie udało się pobrać indeksu miesięcy sesji.',
+      );
+      return { ...result, query, queryKey: createSessionMonthsQueryKey(query) };
+    } catch (error) {
+      if (error?.name === 'AbortError') throw error;
+      return rejectWithValue(error.message || 'Nie udało się pobrać indeksu miesięcy sesji.');
+    }
+  },
+  {
+    condition: (params = {}, { getState }) => {
+      const query = normalizeSessionQuery(params);
+      if (!['cash', 'tournament', 'both'].includes(query.gameType)) return true;
+      const state = getState().poker;
+      const entry = state.sessionMonthIndexes[createSessionMonthsQueryKey(query)];
+      if (entry?.status === 'loading') return false;
+      return !(entry?.status === 'succeeded'
+        && entry.datasetRevision
+        && entry.datasetRevision === state.dataset.datasetRevision);
+    },
+  },
+);
+
+export const fetchSessionMonth = createAsyncThunk(
+  'poker/fetchSessionMonth',
+  async ({ month, ...params } = {}, { rejectWithValue, signal }) => {
+    const query = normalizeSessionQuery(params);
+    try {
+      if (!['cash', 'tournament', 'both'].includes(query.gameType)) throw new Error('Nieprawidłowy typ sesji.');
+      const result = await readJsonResponse(
+        await fetch(createQueryUrl('/api/sessions', { ...query, month }), { signal }),
+        'Nie udało się pobrać sesji z wybranego miesiąca.',
+      );
+      return { ...result, month, query, queryKey: createSessionMonthsQueryKey(query) };
+    } catch (error) {
+      if (error?.name === 'AbortError') throw error;
+      return rejectWithValue(error.message || 'Nie udało się pobrać sesji z wybranego miesiąca.');
+    }
+  },
+  {
+    condition: ({ month, ...params } = {}, { getState }) => {
+      const query = normalizeSessionQuery(params);
+      if (!['cash', 'tournament', 'both'].includes(query.gameType) || !month) return true;
+      const state = getState().poker;
+      const queryKey = createSessionMonthsQueryKey(query);
+      const page = state.sessionMonthPages[queryKey]?.[month];
+      if (page?.status === 'loading') return false;
+      return !(page?.status === 'succeeded'
+        && page.datasetRevision
+        && page.datasetRevision === state.dataset.datasetRevision);
+    },
+  },
+);
+
+export const fetchAllSessionsForQuery = createAsyncThunk(
+  'poker/fetchAllSessionsForQuery',
+  async (params = {}, { rejectWithValue, signal }) => {
+    const query = normalizeSessionQuery(params);
+    try {
+      if (!['cash', 'tournament', 'both'].includes(query.gameType)) throw new Error('Nieprawidłowy typ sesji.');
+      const result = await readJsonResponse(
+        await fetch(createQueryUrl('/api/sessions', query), { signal }),
+        'Nie udało się pobrać pełnej listy sesji.',
+      );
+      return { ...result, query, queryKey: createSessionMonthsQueryKey(query) };
+    } catch (error) {
+      if (error?.name === 'AbortError') throw error;
+      return rejectWithValue(error.message || 'Nie udało się pobrać pełnej listy sesji.');
+    }
+  },
+  {
+    condition: (params = {}, { getState }) => {
+      const query = normalizeSessionQuery(params);
+      if (!['cash', 'tournament', 'both'].includes(query.gameType)) return true;
+      const state = getState().poker;
+      const entry = state.sessionMonthIndexes[createSessionMonthsQueryKey(query)];
+      if (entry?.allStatus === 'loading') return false;
+      return !(entry?.allStatus === 'succeeded'
+        && entry.datasetRevision
+        && entry.datasetRevision === state.dataset.datasetRevision);
+    },
+  },
+);
+
+export const fetchSessionSummariesByIds = createAsyncThunk(
+  'poker/fetchSessionSummariesByIds',
+  async ({ sessionIds = [], datasetRevision: requestedRevision } = {}, {
+    dispatch, getState, rejectWithValue, signal,
+  }) => {
+    const normalizedIds = normalizeSessionIdsInOrder(sessionIds);
+    const datasetRevision = String(requestedRevision || getState().poker.dataset.datasetRevision || '').trim();
+    try {
+      if (!datasetRevision) throw new Error('Dataset nie jest jeszcze gotowy.');
+      const response = await fetch('/api/session-summaries/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ datasetRevision, sessionIds: normalizedIds }),
+        signal,
+      });
+      if (!response.ok) {
+        const details = await getResponseErrorDetails(response, 'Nie udało się pobrać podsumowań sesji.');
+        if (details.status === 409 && details.code === 'DATASET_REVISION_MISMATCH') void dispatch(refreshDataset());
+        return rejectWithValue(details);
+      }
+      const result = await response.json();
+      return {
+        ...result,
+        requestedSessionIds: normalizedIds,
+        queryKey: getSummaryQueryKey({ datasetRevision, sessionIds: normalizedIds }),
+      };
+    } catch (error) {
+      if (error?.name === 'AbortError') throw error;
+      return rejectWithValue({ message: error.message || 'Nie udało się pobrać podsumowań sesji.' });
+    }
+  },
+  {
+    condition: ({ sessionIds = [], datasetRevision: requestedRevision } = {}, { getState }) => {
+      const state = getState().poker;
+      const datasetRevision = String(requestedRevision || state.dataset.datasetRevision || '').trim();
+      const queryKey = getSummaryQueryKey({ datasetRevision, sessionIds });
+      const entry = state.sessionSummaryQueries[queryKey];
+      return entry?.status !== 'loading'
+        && !(entry?.status === 'succeeded' && entry.datasetRevision === state.dataset.datasetRevision);
+    },
   },
 );
 
@@ -772,6 +1032,75 @@ export const analyzeSessionGroupWithAI = createAsyncThunk(
   { condition: (_, { getState }) => getState().poker.sessionGroupAnalysisStatus !== 'loading' },
 );
 
+export const analyzePlayerWithAI = createAsyncThunk(
+  'poker/analyzePlayer',
+  async (params = {}, { dispatch, getState, rejectWithValue }) => {
+    try {
+      const state = getState().poker;
+      const profileRange = state.filters.dateRanges.profile;
+      const criteria = {
+        gameType: params.gameType || state.filters.gameType || 'both',
+        dateFrom: params.dateFrom ?? profileRange.from ?? '',
+        dateTo: params.dateTo ?? profileRange.to ?? '',
+      };
+      const response = await fetch('/api/ai/analyze-player', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          modelId: params.modelId || state.defaultAiModel,
+          ...criteria,
+          datasetRevision: requireRevision(state),
+        }),
+      });
+      if (!response.ok) {
+        return rejectAiResponse({
+          response,
+          dispatch,
+          rejectWithValue,
+          fallbackMessage: 'Nie udało się przeanalizować statystyk gracza.',
+        });
+      }
+      const result = await response.json();
+      if (!result?.model?.id || !result?.model?.name || !result?.fingerprint
+        || !result?.analysis || !result?.criteria || !result?.metrics?.shared
+        || !result?.sessionEvidence?.coverage || !Array.isArray(result.sessionEvidence.reports)) {
+        throw new Error('Serwer zwrócił nieprawidłowy raport analizy gracza AI.');
+      }
+      return {
+        reportId: createReportId(`player-${result.fingerprint}`),
+        analyzedAt: new Date().toISOString(),
+        model: result.model,
+        datasetRevision: result.datasetRevision,
+        fingerprint: result.fingerprint,
+        criteria: result.criteria,
+        handCount: Number(result.handCount) || 0,
+        sessionCount: Number(result.sessionCount) || 0,
+        snapshot: {
+          actualDateRange: result.actualDateRange,
+          handCount: Number(result.handCount) || 0,
+          sessionCount: Number(result.sessionCount) || 0,
+          cashHandCount: Number(result.cashHandCount) || 0,
+          tournamentHandCount: Number(result.tournamentHandCount) || 0,
+          metrics: result.metrics,
+          profileStyleId: result.profileStyleId,
+          profileStyle: result.profileStyle,
+          reliabilityId: result.reliabilityId,
+          reliability: result.reliability,
+          metricCatalog: result.metricCatalog,
+        },
+        sourceCoverage: result.sessionEvidence.coverage,
+        sources: result.sessionEvidence.reports,
+        analysis: result.analysis,
+      };
+    } catch (error) {
+      return rejectWithValue({
+        message: error?.message || 'Nie udało się przeanalizować statystyk gracza.',
+      });
+    }
+  },
+  { condition: (_, { getState }) => getState().poker.playerAnalysisStatus !== 'loading' },
+);
+
 const initialState = {
   dataset: {
     datasetRevision: null,
@@ -792,13 +1121,14 @@ const initialState = {
   },
   filters: {
     gameType: 'both',
-    dateFrom: '',
-    dateTo: '',
-    cardsDateFrom: '',
-    cardsDateTo: '',
     sessionGroupGameType: 'both',
-    sessionGroupDateFrom: '',
-    sessionGroupDateTo: '',
+    dateRanges: {
+      profile: { from: '', to: '' },
+      opponents: { from: '', to: '' },
+      wallet: { from: '', to: '' },
+      cards: { from: '', to: '' },
+      sessionGroup: { from: '', to: '' },
+    },
   },
   aggregates: {
     profile: { data: null, status: 'idle', error: null, datasetRevision: null, queryKey: null },
@@ -812,6 +1142,11 @@ const initialState = {
     cash: { cursor: null, items: [], availableRanks: [], handRanking: '', status: 'idle', error: null, datasetRevision: null, queryKey: null },
     tournament: { cursor: null, items: [], availableRanks: [], handRanking: '', status: 'idle', error: null, datasetRevision: null, queryKey: null },
   },
+  sessionMonthIndexes: {},
+  sessionMonthPages: {},
+  activeSessionMonthQueryKeys: { cash: null, tournament: null, both: null },
+  sessionSummariesById: {},
+  sessionSummaryQueries: {},
   sessionDetailsById: {},
   sessionHandsById: {},
   sessionHandPageOrder: [],
@@ -837,12 +1172,18 @@ const initialState = {
   aiModelsError: null,
   aiAnalyses: loadAiAnalyses(),
   sessionAiAnalyses: loadSessionAiAnalyses(),
+  selectedSessionAnalysisReportIdBySessionId: {},
   sessionAnalysisStatusById: {},
   sessionAnalysisErrorById: {},
   sessionGroupAiAnalyses: loadSessionGroupAiAnalyses(),
   sessionGroupPreview: createEmptySessionGroupPreview(),
   sessionGroupAnalysisStatus: 'idle',
   sessionGroupAnalysisError: null,
+  playerAiAnalyses: loadPlayerAiAnalyses(),
+  playerAnalysisPreview: createEmptyPlayerAnalysisPreview(),
+  playerAnalysisStatus: 'idle',
+  playerAnalysisError: null,
+  selectedPlayerAnalysisReportId: null,
   savedHandIds: loadSavedHandIds(),
   loadingAI: false,
   errorAI: null,
@@ -868,6 +1209,11 @@ const saveHandInBoundedCache = (state, hand) => {
 const resetBrowsableDatasetData = (state) => {
   state.currentPages.cash = { cursor: null, items: [], availableRanks: [], handRanking: '', status: 'idle', error: null, datasetRevision: null, queryKey: null };
   state.currentPages.tournament = { cursor: null, items: [], availableRanks: [], handRanking: '', status: 'idle', error: null, datasetRevision: null, queryKey: null };
+  state.sessionMonthIndexes = {};
+  state.sessionMonthPages = {};
+  state.activeSessionMonthQueryKeys = { cash: null, tournament: null, both: null };
+  state.sessionSummariesById = {};
+  state.sessionSummaryQueries = {};
   state.sessionDetailsById = {};
   state.sessionHandsById = {};
   state.sessionHandPageOrder = [];
@@ -876,6 +1222,7 @@ const resetBrowsableDatasetData = (state) => {
     tournament: { analyzed: createEmptyHandCollectionPage(), saved: createEmptyHandCollectionPage() },
   };
   state.sessionGroupPreview = createEmptySessionGroupPreview();
+  state.playerAnalysisPreview = createEmptyPlayerAnalysisPreview();
   state.openedHandsById = {};
   state.openedHandOrder = [];
   state.openedHandStatusById = {};
@@ -886,6 +1233,43 @@ const resetBrowsableDatasetData = (state) => {
   };
   state.aggregates.cards = { data: null, status: 'idle', error: null, datasetRevision: null, queryKey: null };
   state.aggregates.wallet = { data: null, status: 'idle', error: null, datasetRevision: null, queryKey: null };
+};
+
+const responseHasStaleRevision = (state, payload) => Boolean(
+  state.dataset.datasetRevision
+  && payload?.datasetRevision
+  && state.dataset.datasetRevision !== payload.datasetRevision
+);
+
+const saveSessionSummaries = (state, sessions) => {
+  (Array.isArray(sessions) ? sessions : []).forEach((session) => {
+    if (session?.id) state.sessionSummariesById[String(session.id)] = session;
+  });
+};
+
+const deriveMonthDescriptors = (sessions) => {
+  const months = new Map();
+  (Array.isArray(sessions) ? sessions : []).forEach((session) => {
+    const key = getSessionMonthKey(session);
+    if (!key) return;
+    const current = months.get(key) || {
+      key,
+      year: Number(key.slice(0, 4)),
+      month: Number(key.slice(5, 7)),
+      sessionCount: 0,
+      handCount: 0,
+      matchingHandCount: 0,
+      cashSessionCount: 0,
+      tournamentSessionCount: 0,
+    };
+    current.sessionCount += 1;
+    current.handCount += Number(session.handCount) || 0;
+    current.matchingHandCount += Number(session.matchingHandCount) || 0;
+    if (session.type === 'Tournament') current.tournamentSessionCount += 1;
+    else current.cashSessionCount += 1;
+    months.set(key, current);
+  });
+  return [...months.values()].sort((left, right) => right.key.localeCompare(left.key));
 };
 
 const touchSessionHandPage = (state, sessionId) => {
@@ -906,16 +1290,20 @@ const setDatasetMetadata = (state, payload) => {
     resetBrowsableDatasetData(state);
   }
   state.dataset.datasetRevision = nextRevision;
-  state.dataset.builtAt = payload?.builtAt || state.dataset.builtAt;
-  state.dataset.handCount = Number(payload?.handCount) || 0;
-  state.dataset.cashSessionCount = Number(payload?.cashSessionCount) || 0;
-  state.dataset.tournamentSessionCount = Number(payload?.tournamentSessionCount) || 0;
+  if (payload?.builtAt !== undefined) state.dataset.builtAt = payload.builtAt || null;
+  if (payload?.handCount !== undefined) state.dataset.handCount = Number(payload.handCount) || 0;
+  if (payload?.cashSessionCount !== undefined) state.dataset.cashSessionCount = Number(payload.cashSessionCount) || 0;
+  if (payload?.tournamentSessionCount !== undefined) state.dataset.tournamentSessionCount = Number(payload.tournamentSessionCount) || 0;
 };
 
 const updateImportStatus = (state, status) => {
   state.importCenter.phase = status?.import?.phase || status?.phase || state.importCenter.phase;
   state.importCenter.activeImportIds = status?.import?.activeImportIds || status?.activeImportIds || [];
-  if (status?.datasetRevision && !state.dataset.datasetRevision) state.dataset.datasetRevision = status.datasetRevision;
+  const nextRevision = status?.activeRevision || status?.datasetRevision;
+  if (nextRevision && state.dataset.datasetRevision && nextRevision !== state.dataset.datasetRevision) {
+    resetBrowsableDatasetData(state);
+  }
+  if (nextRevision) state.dataset.datasetRevision = nextRevision;
 };
 
 const pokerSlice = createSlice({
@@ -923,21 +1311,35 @@ const pokerSlice = createSlice({
   initialState,
   reducers: {
     selectSession: (state, action) => {
-      state.selectedSessionId = action.payload || null;
+      const sessionId = action.payload ? String(action.payload) : null;
+      state.selectedSessionId = sessionId;
       state.selectedHandId = null;
+      if (sessionId) delete state.selectedSessionAnalysisReportIdBySessionId[sessionId];
     },
     selectTourney: (state, action) => {
-      state.selectedTourneyId = action.payload || null;
+      const sessionId = action.payload ? String(action.payload) : null;
+      state.selectedTourneyId = sessionId;
       state.selectedHandId = null;
+      if (sessionId) delete state.selectedSessionAnalysisReportIdBySessionId[sessionId];
     },
     selectHand: (state, action) => { state.selectedHandId = action.payload || null; },
     setDataFilters: (state, action) => {
       state.filters = { ...state.filters, ...(action.payload || {}) };
     },
-    setCardsDateRange: (state, action) => {
-      const range = action.payload || {};
-      state.filters.cardsDateFrom = String(range.dateFrom || '');
-      state.filters.cardsDateTo = String(range.dateTo || '');
+    setDateRange: (state, action) => {
+      const payload = action.payload || {};
+      const view = String(payload.view || '');
+      const currentRange = state.filters.dateRanges[view];
+      if (!currentRange) return;
+      const range = payload.range || payload;
+      state.filters.dateRanges[view] = {
+        from: range.from === undefined && range.dateFrom === undefined
+          ? currentRange.from
+          : String(range.from ?? range.dateFrom ?? '').trim(),
+        to: range.to === undefined && range.dateTo === undefined
+          ? currentRange.to
+          : String(range.to ?? range.dateTo ?? '').trim(),
+      };
     },
     setSessionGroupSelection: (state, action) => {
       const sourceIds = Array.isArray(action.payload)
@@ -950,6 +1352,16 @@ const pokerSlice = createSlice({
     },
     setSessionGroupReportSelection: (state, action) => {
       state.sessionGroupSelection.reportId = action.payload ? String(action.payload) : null;
+    },
+    setPlayerAnalysisReportSelection: (state, action) => {
+      state.selectedPlayerAnalysisReportId = action.payload ? String(action.payload) : null;
+    },
+    setSessionAnalysisReportSelection: (state, action) => {
+      const sessionId = String(action.payload?.sessionId || '').trim();
+      if (!sessionId) return;
+      const reportId = String(action.payload?.reportId || '').trim();
+      if (reportId) state.selectedSessionAnalysisReportIdBySessionId[sessionId] = reportId;
+      else delete state.selectedSessionAnalysisReportIdBySessionId[sessionId];
     },
     setDefaultAiModel: (state, action) => {
       if (!AI_MODEL_IDS.includes(action.payload)) return;
@@ -1051,6 +1463,225 @@ const pokerSlice = createSlice({
         const handId = String(action.meta.arg.handId);
         state.openedHandStatusById[handId] = 'failed';
         state.openedHandErrorById[handId] = action.payload || 'Nie udało się pobrać rozdania.';
+      })
+      .addCase(fetchSessionMonths.pending, (state, action) => {
+        const query = normalizeSessionQuery(action.meta.arg);
+        const queryKey = createSessionMonthsQueryKey(query);
+        const existing = state.sessionMonthIndexes[queryKey] || createEmptySessionMonthIndex();
+        state.activeSessionMonthQueryKeys[query.gameType] = queryKey;
+        state.sessionMonthIndexes[queryKey] = {
+          ...existing,
+          status: 'loading',
+          error: null,
+          requestId: action.meta.requestId,
+        };
+      })
+      .addCase(fetchSessionMonths.fulfilled, (state, action) => {
+        const { query, queryKey } = action.payload;
+        const existing = state.sessionMonthIndexes[queryKey];
+        if (existing?.requestId !== action.meta.requestId) return;
+        if (state.activeSessionMonthQueryKeys[query.gameType] !== queryKey
+          || responseHasStaleRevision(state, action.payload)) {
+          existing.status = 'idle';
+          existing.requestId = null;
+          return;
+        }
+        setDatasetMetadata(state, action.payload);
+        state.activeSessionMonthQueryKeys[query.gameType] = queryKey;
+        state.sessionMonthIndexes[queryKey] = {
+          ...createEmptySessionMonthIndex(),
+          ...existing,
+          months: Array.isArray(action.payload.months) ? action.payload.months : [],
+          availableRanks: Array.isArray(action.payload.availableRanks) ? action.payload.availableRanks : [],
+          status: 'succeeded',
+          error: null,
+          datasetRevision: action.payload.datasetRevision || state.dataset.datasetRevision,
+          requestId: null,
+        };
+      })
+      .addCase(fetchSessionMonths.rejected, (state, action) => {
+        const query = normalizeSessionQuery(action.meta.arg);
+        const queryKey = createSessionMonthsQueryKey(query);
+        const entry = state.sessionMonthIndexes[queryKey];
+        if (entry?.requestId !== action.meta.requestId) return;
+        if (state.activeSessionMonthQueryKeys[query.gameType] !== queryKey) {
+          entry.status = 'idle';
+          entry.error = null;
+          entry.requestId = null;
+          return;
+        }
+        entry.status = action.meta.aborted ? 'idle' : 'failed';
+        entry.error = action.meta.aborted ? null : (action.payload || 'Nie udało się pobrać indeksu miesięcy sesji.');
+        entry.requestId = null;
+      })
+      .addCase(fetchSessionMonth.pending, (state, action) => {
+        const { month, ...params } = action.meta.arg || {};
+        const query = normalizeSessionQuery(params);
+        const queryKey = createSessionMonthsQueryKey(query);
+        const pages = state.sessionMonthPages[queryKey] || {};
+        const existing = pages[month] || createEmptySessionMonthPage();
+        state.activeSessionMonthQueryKeys[query.gameType] = queryKey;
+        state.sessionMonthPages[queryKey] = {
+          ...pages,
+          [month]: {
+            ...existing,
+            status: 'loading',
+            error: null,
+            requestId: action.meta.requestId,
+          },
+        };
+      })
+      .addCase(fetchSessionMonth.fulfilled, (state, action) => {
+        const { month, query, queryKey } = action.payload;
+        const page = state.sessionMonthPages[queryKey]?.[month];
+        if (page?.requestId !== action.meta.requestId) return;
+        if (state.activeSessionMonthQueryKeys[query.gameType] !== queryKey
+          || responseHasStaleRevision(state, action.payload)) {
+          page.status = 'idle';
+          page.requestId = null;
+          return;
+        }
+        setDatasetMetadata(state, action.payload);
+        state.activeSessionMonthQueryKeys[query.gameType] = queryKey;
+        saveSessionSummaries(state, action.payload.sessions);
+        state.sessionMonthPages[queryKey] ||= {};
+        state.sessionMonthPages[queryKey][month] = {
+          items: Array.isArray(action.payload.sessions) ? action.payload.sessions : [],
+          status: 'succeeded',
+          error: null,
+          datasetRevision: action.payload.datasetRevision || state.dataset.datasetRevision,
+          requestId: null,
+        };
+      })
+      .addCase(fetchSessionMonth.rejected, (state, action) => {
+        const { month, ...params } = action.meta.arg || {};
+        const query = normalizeSessionQuery(params);
+        const queryKey = createSessionMonthsQueryKey(query);
+        const page = state.sessionMonthPages[queryKey]?.[month];
+        if (page?.requestId !== action.meta.requestId) return;
+        if (state.activeSessionMonthQueryKeys[query.gameType] !== queryKey) {
+          page.status = 'idle';
+          page.error = null;
+          page.requestId = null;
+          return;
+        }
+        page.status = action.meta.aborted ? 'idle' : 'failed';
+        page.error = action.meta.aborted ? null : (action.payload || 'Nie udało się pobrać sesji z wybranego miesiąca.');
+        page.requestId = null;
+      })
+      .addCase(fetchAllSessionsForQuery.pending, (state, action) => {
+        const query = normalizeSessionQuery(action.meta.arg);
+        const queryKey = createSessionMonthsQueryKey(query);
+        const existing = state.sessionMonthIndexes[queryKey] || createEmptySessionMonthIndex();
+        state.activeSessionMonthQueryKeys[query.gameType] = queryKey;
+        state.sessionMonthIndexes[queryKey] = {
+          ...existing,
+          allStatus: 'loading',
+          allError: null,
+          allRequestId: action.meta.requestId,
+        };
+      })
+      .addCase(fetchAllSessionsForQuery.fulfilled, (state, action) => {
+        const { query, queryKey } = action.payload;
+        const existing = state.sessionMonthIndexes[queryKey];
+        if (existing?.allRequestId !== action.meta.requestId) return;
+        if (state.activeSessionMonthQueryKeys[query.gameType] !== queryKey
+          || responseHasStaleRevision(state, action.payload)) {
+          existing.allStatus = 'idle';
+          existing.allRequestId = null;
+          return;
+        }
+        setDatasetMetadata(state, action.payload);
+        state.activeSessionMonthQueryKeys[query.gameType] = queryKey;
+        const sessions = Array.isArray(action.payload.sessions) ? action.payload.sessions : [];
+        const grouped = new Map();
+        sessions.forEach((session) => {
+          const month = getSessionMonthKey(session);
+          if (!month) return;
+          if (!grouped.has(month)) grouped.set(month, []);
+          grouped.get(month).push(session);
+        });
+        const months = existing?.months?.length ? existing.months : deriveMonthDescriptors(sessions);
+        const pages = state.sessionMonthPages[queryKey] || {};
+        months.forEach(({ key }) => {
+          pages[key] = {
+            items: grouped.get(key) || [],
+            status: 'succeeded',
+            error: null,
+            datasetRevision: action.payload.datasetRevision || state.dataset.datasetRevision,
+            requestId: null,
+          };
+        });
+        grouped.forEach((items, month) => {
+          if (pages[month]) return;
+          pages[month] = {
+            items,
+            status: 'succeeded',
+            error: null,
+            datasetRevision: action.payload.datasetRevision || state.dataset.datasetRevision,
+            requestId: null,
+          };
+        });
+        state.sessionMonthPages[queryKey] = pages;
+        saveSessionSummaries(state, sessions);
+        state.sessionMonthIndexes[queryKey] = {
+          ...createEmptySessionMonthIndex(),
+          ...existing,
+          months,
+          availableRanks: Array.isArray(action.payload.availableRanks) ? action.payload.availableRanks : [],
+          datasetRevision: action.payload.datasetRevision || state.dataset.datasetRevision,
+          allStatus: 'succeeded',
+          allError: null,
+          allRequestId: null,
+        };
+      })
+      .addCase(fetchAllSessionsForQuery.rejected, (state, action) => {
+        const query = normalizeSessionQuery(action.meta.arg);
+        const queryKey = createSessionMonthsQueryKey(query);
+        const entry = state.sessionMonthIndexes[queryKey];
+        if (entry?.allRequestId !== action.meta.requestId) return;
+        if (state.activeSessionMonthQueryKeys[query.gameType] !== queryKey) {
+          entry.allStatus = 'idle';
+          entry.allError = null;
+          entry.allRequestId = null;
+          return;
+        }
+        entry.allStatus = action.meta.aborted ? 'idle' : 'failed';
+        entry.allError = action.meta.aborted ? null : (action.payload || 'Nie udało się pobrać pełnej listy sesji.');
+        entry.allRequestId = null;
+      })
+      .addCase(fetchSessionSummariesByIds.pending, (state, action) => {
+        const datasetRevision = String(action.meta.arg?.datasetRevision || state.dataset.datasetRevision || '').trim();
+        const queryKey = getSummaryQueryKey({ datasetRevision, sessionIds: action.meta.arg?.sessionIds });
+        state.sessionSummaryQueries[queryKey] = {
+          status: 'loading',
+          error: null,
+          missingSessionIds: [],
+          datasetRevision,
+          requestId: action.meta.requestId,
+        };
+      })
+      .addCase(fetchSessionSummariesByIds.fulfilled, (state, action) => {
+        const entry = state.sessionSummaryQueries[action.payload.queryKey];
+        if (entry?.requestId !== action.meta.requestId || responseHasStaleRevision(state, action.payload)) return;
+        setDatasetMetadata(state, action.payload);
+        saveSessionSummaries(state, action.payload.sessions);
+        state.sessionSummaryQueries[action.payload.queryKey] = {
+          status: 'succeeded',
+          error: null,
+          missingSessionIds: Array.isArray(action.payload.missingSessionIds) ? action.payload.missingSessionIds : [],
+          datasetRevision: action.payload.datasetRevision || state.dataset.datasetRevision,
+          requestId: null,
+        };
+      })
+      .addCase(fetchSessionSummariesByIds.rejected, (state, action) => {
+        const datasetRevision = String(action.meta.arg?.datasetRevision || state.dataset.datasetRevision || '').trim();
+        const queryKey = getSummaryQueryKey({ datasetRevision, sessionIds: action.meta.arg?.sessionIds });
+        const entry = state.sessionSummaryQueries[queryKey];
+        if (entry?.requestId !== action.meta.requestId) return;
+        entry.status = action.meta.aborted ? 'idle' : 'failed';
+        entry.error = action.meta.aborted ? null : (action.payload?.message || action.payload || 'Nie udało się pobrać podsumowań sesji.');
+        entry.requestId = null;
       })
       .addCase(fetchSessions.pending, (state, action) => {
         const page = state.currentPages[action.meta.arg.gameType];
@@ -1209,6 +1840,38 @@ const pokerSlice = createSlice({
         state.aggregates.profile.status = 'failed';
         state.aggregates.profile.error = action.payload || 'Nie udało się pobrać raportu profilu.';
       })
+      .addCase(fetchPlayerAnalysisPreview.pending, (state, action) => {
+        state.playerAnalysisPreview = {
+          ...createEmptyPlayerAnalysisPreview(),
+          status: 'loading',
+          queryKey: createPlayerAnalysisQueryKey({
+            ...(action.meta.arg || {}),
+            datasetRevision: state.dataset.datasetRevision || '',
+          }),
+        };
+      })
+      .addCase(fetchPlayerAnalysisPreview.fulfilled, (state, action) => {
+        if (state.playerAnalysisPreview.queryKey !== action.payload.queryKey) return;
+        setDatasetMetadata(state, action.payload);
+        state.playerAnalysisPreview = {
+          data: action.payload,
+          status: 'succeeded',
+          error: null,
+          datasetRevision: action.payload.datasetRevision,
+          queryKey: action.payload.queryKey,
+        };
+      })
+      .addCase(fetchPlayerAnalysisPreview.rejected, (state, action) => {
+        const queryKey = createPlayerAnalysisQueryKey({
+          ...(action.meta.arg || {}),
+          datasetRevision: state.dataset.datasetRevision || '',
+        });
+        if (state.playerAnalysisPreview.queryKey !== queryKey) return;
+        state.playerAnalysisPreview.status = action.meta.aborted ? 'idle' : 'failed';
+        state.playerAnalysisPreview.error = action.meta.aborted
+          ? null
+          : (action.payload || { message: 'Nie udało się pobrać podglądu analizy gracza.' });
+      })
       .addCase(fetchOpponents.pending, (state, action) => {
         state.aggregates.opponents.status = 'loading';
         state.aggregates.opponents.error = null;
@@ -1320,6 +1983,7 @@ const pokerSlice = createSlice({
         const history = Array.isArray(state.sessionAiAnalyses[report.sessionId]) ? state.sessionAiAnalyses[report.sessionId] : [];
         history.push(report);
         state.sessionAiAnalyses[report.sessionId] = history;
+        state.selectedSessionAnalysisReportIdBySessionId[report.sessionId] = report.reportId;
         localStorage.setItem(SESSION_AI_ANALYSES_CACHE_KEY, JSON.stringify(state.sessionAiAnalyses));
       })
       .addCase(analyzeSessionWithAI.rejected, (state, action) => {
@@ -1374,6 +2038,26 @@ const pokerSlice = createSlice({
         state.sessionGroupAnalysisError = action.payload;
         if (action.payload?.code === 'DATASET_REVISION_MISMATCH') state.datasetRefreshNotice = 'Dane zmieniły się podczas działania. Odświeżyliśmy dataset — ponów analizę ręcznie.';
       })
+      .addCase(analyzePlayerWithAI.pending, (state) => {
+        state.playerAnalysisStatus = 'loading';
+        state.playerAnalysisError = null;
+      })
+      .addCase(analyzePlayerWithAI.fulfilled, (state, action) => {
+        state.playerAnalysisStatus = 'succeeded';
+        state.playerAnalysisError = null;
+        state.playerAiAnalyses.push(action.payload);
+        state.selectedPlayerAnalysisReportId = action.payload.reportId;
+        localStorage.setItem(PLAYER_AI_ANALYSES_CACHE_KEY, JSON.stringify(state.playerAiAnalyses));
+      })
+      .addCase(analyzePlayerWithAI.rejected, (state, action) => {
+        state.playerAnalysisStatus = 'failed';
+        state.playerAnalysisError = action.payload || {
+          message: 'Nie udało się przeanalizować statystyk gracza.',
+        };
+        if (action.payload?.code === 'DATASET_REVISION_MISMATCH') {
+          state.datasetRefreshNotice = 'Dane zmieniły się podczas działania. Odświeżyliśmy dataset — ponów analizę ręcznie.';
+        }
+      })
       .addCase(syncAiAnalyses.pending, (state) => {
         state.sharedAiAnalysesStatus = 'loading';
         state.sharedAiAnalysesError = null;
@@ -1385,10 +2069,21 @@ const pokerSlice = createSlice({
           handCacheKey: AI_ANALYSES_CACHE_KEY,
           sessionCacheKey: SESSION_AI_ANALYSES_CACHE_KEY,
           sessionGroupCacheKey: SESSION_GROUP_AI_ANALYSES_CACHE_KEY,
+          playerCacheKey: PLAYER_AI_ANALYSES_CACHE_KEY,
         });
         state.aiAnalyses = normalized.handAnalyses;
         state.sessionAiAnalyses = normalized.sessionAnalyses;
+        Object.entries(state.selectedSessionAnalysisReportIdBySessionId).forEach(([sessionId, reportId]) => {
+          if (!(state.sessionAiAnalyses[sessionId] || []).some((report) => report.reportId === reportId)) {
+            delete state.selectedSessionAnalysisReportIdBySessionId[sessionId];
+          }
+        });
         state.sessionGroupAiAnalyses = normalized.sessionGroupAnalyses;
+        state.playerAiAnalyses = normalized.playerAnalyses;
+        if (!state.playerAiAnalyses.some((report) => report.reportId === state.selectedPlayerAnalysisReportId)) {
+          state.selectedPlayerAnalysisReportId = [...state.playerAiAnalyses]
+            .sort((left, right) => String(right.analyzedAt || '').localeCompare(String(left.analyzedAt || '')))[0]?.reportId || null;
+        }
         state.sharedAiAnalysesStatus = 'succeeded';
       })
       .addCase(syncAiAnalyses.rejected, (state, action) => {
@@ -1405,9 +2100,11 @@ export const {
   selectHand,
   selectSession,
   selectTourney,
-  setCardsDateRange,
   setDataFilters,
+  setDateRange,
   setDefaultAiModel,
+  setPlayerAnalysisReportSelection,
+  setSessionAnalysisReportSelection,
   setSessionGroupReportSelection,
   setSessionGroupSelection,
   toggleSavedHand,

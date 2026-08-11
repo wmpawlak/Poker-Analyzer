@@ -9,6 +9,8 @@ import {
   selectSession,
   selectTourney,
   setDataFilters,
+  setDateRange,
+  setSessionAnalysisReportSelection,
   setSessionGroupReportSelection,
   setSessionGroupSelection,
   syncAiAnalyses,
@@ -53,8 +55,7 @@ export default function App() {
   const sharedAiAnalysesError = useSelector((state) => state.poker.sharedAiAnalysesError);
   const gameTypeFilter = useSelector((state) => state.poker.filters.gameType);
   const sessionGroupGameType = useSelector((state) => state.poker.filters.sessionGroupGameType);
-  const sessionGroupDateFrom = useSelector((state) => state.poker.filters.sessionGroupDateFrom);
-  const sessionGroupDateTo = useSelector((state) => state.poker.filters.sessionGroupDateTo);
+  const sessionGroupDateRange = useSelector((state) => state.poker.filters.dateRanges.sessionGroup);
   const sessionGroupSelectedSourceIds = useSelector((state) => state.poker.sessionGroupSelection.sourceIds);
   const sessionGroupSelectedReportId = useSelector((state) => state.poker.sessionGroupSelection.reportId);
   
@@ -87,13 +88,15 @@ export default function App() {
     queueUpload(file);
   };
 
-  const openAnalysisSourceSession = ({ type, sessionId }) => {
+  const openAnalysisSourceSession = ({ type, sessionId, reportId = null }) => {
     if (type === 'tournament') {
       dispatch(selectTourney(sessionId));
+      if (reportId) dispatch(setSessionAnalysisReportSelection({ sessionId, reportId }));
       setActiveTab('tournaments');
       return;
     }
     dispatch(selectSession(sessionId));
+    if (reportId) dispatch(setSessionAnalysisReportSelection({ sessionId, reportId }));
     setActiveTab('cash');
   };
 
@@ -119,7 +122,7 @@ export default function App() {
         <header className="bg-white border-b border-gray-200 px-8 py-5 flex justify-between items-center shadow-sm z-10 shrink-0">
           <div className="flex items-center gap-6">
             <h2 className="text-2xl font-bold text-gray-800">Zakładka: {TAB_LABELS[activeTab] || activeTab}</h2>
-            {['profile', 'opponents', 'cards'].includes(activeTab) && (
+            {['opponents', 'cards'].includes(activeTab) && (
               <div className="flex bg-slate-100 p-1 rounded-xl border border-gray-200">
                 <button onClick={() => dispatch(setDataFilters({ gameType: 'both' }))} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${gameTypeFilter === 'both' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>Wszystko</button>
                 <button onClick={() => dispatch(setDataFilters({ gameType: 'cash' }))} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${gameTypeFilter === 'cash' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>Cash</button>
@@ -160,16 +163,13 @@ export default function App() {
 
         <div className="min-h-0 flex-1 overflow-auto p-6 scrollbar-thin">
           <Suspense fallback={<TabLoading/>}>
-            {activeTab === 'profile' && <ProfileDataView/>}
+            {activeTab === 'profile' && <ProfileDataView onOpenSession={openAnalysisSourceSession}/>}
             {activeTab === 'session-group-analysis' && (
               <SessionGroupAnalysisView
                 gameType={sessionGroupGameType}
                 onGameTypeChange={(value) => dispatch(setDataFilters({ sessionGroupGameType: value }))}
-                dateFrom={sessionGroupDateFrom}
-                dateTo={sessionGroupDateTo}
-                onDateFromChange={(value) => dispatch(setDataFilters({ sessionGroupDateFrom: value }))}
-                onDateToChange={(value) => dispatch(setDataFilters({ sessionGroupDateTo: value }))}
-                onClearDateRange={() => dispatch(setDataFilters({ sessionGroupDateFrom: '', sessionGroupDateTo: '' }))}
+                dateRange={sessionGroupDateRange}
+                onDateRangeChange={(range) => dispatch(setDateRange({ view: 'sessionGroup', ...range }))}
                 selectedSourceIds={sessionGroupSelectedSourceIds}
                 onSelectedSourceIdsChange={(sourceIds) => dispatch(setSessionGroupSelection(sourceIds))}
                 selectedReportId={sessionGroupSelectedReportId}

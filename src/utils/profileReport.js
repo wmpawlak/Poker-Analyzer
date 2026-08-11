@@ -1,12 +1,11 @@
 import { calculateSessionMetrics } from './sessionMetrics.js';
+import { getLocalDateRange } from './dateRange.js';
 
 export const PROFILE_GAME_TYPES = Object.freeze({
   CASH: 'cash',
   TOURNAMENT: 'tournament',
   BOTH: 'both',
 });
-
-const DATE_INPUT_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 export const normalizeProfileGameType = (gameType) => {
   const normalized = String(gameType || '').trim().toLowerCase();
@@ -19,50 +18,14 @@ export const normalizeProfileGameType = (gameType) => {
   return PROFILE_GAME_TYPES.BOTH;
 };
 
-const parseDateBoundary = (value, endOfDay) => {
-  if (!value) return { timestamp: null, error: null };
-
-  const match = String(value).match(DATE_INPUT_PATTERN);
-  if (!match) return { timestamp: null, error: 'Wprowadź poprawną datę w formacie RRRR-MM-DD.' };
-
-  const [, yearValue, monthValue, dayValue] = match;
-  const year = Number(yearValue);
-  const month = Number(monthValue);
-  const day = Number(dayValue);
-  const timestamp = new Date(
-    year,
-    month - 1,
-    day,
-    endOfDay ? 23 : 0,
-    endOfDay ? 59 : 0,
-    endOfDay ? 59 : 0,
-    endOfDay ? 999 : 0,
-  ).getTime();
-  const parsed = new Date(timestamp);
-
-  if (parsed.getFullYear() !== year
-    || parsed.getMonth() !== month - 1
-    || parsed.getDate() !== day) {
-    return { timestamp: null, error: 'Wprowadź poprawną datę kalendarzową.' };
-  }
-
-  return { timestamp, error: null };
-};
-
 export const getProfileDateRange = (dateFrom = '', dateTo = '') => {
-  const from = parseDateBoundary(dateFrom, false);
-  const to = parseDateBoundary(dateTo, true);
-  const error = from.error || to.error
-    || (from.timestamp !== null && to.timestamp !== null && from.timestamp > to.timestamp
-      ? 'Data „od” nie może być późniejsza niż data „do”.'
-      : null);
-
+  const range = getLocalDateRange(dateFrom, dateTo);
   return {
-    valid: !error,
-    error,
-    fromTimestamp: from.timestamp,
-    toTimestamp: to.timestamp,
-    isEmpty: !dateFrom && !dateTo,
+    valid: range.valid,
+    error: range.error,
+    fromTimestamp: range.fromTimestamp,
+    toTimestamp: range.toTimestamp,
+    isEmpty: range.isEmpty,
   };
 };
 

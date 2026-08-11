@@ -13,7 +13,7 @@ class MemoryStorage {
 }
 globalThis.localStorage = new MemoryStorage();
 
-const { default: pokerReducer } = await import('../src/store/pokerSlice.js');
+const { createSessionMonthsQueryKey, default: pokerReducer } = await import('../src/store/pokerSlice.js');
 
 const session = (id, fingerprint) => ({
   id,
@@ -27,22 +27,29 @@ const session = (id, fingerprint) => ({
   fingerprint,
 });
 
-test('przeglądarka sesji pokazuje dostępne z klawiatury statusy aktualnej i nieaktualnej analizy', async (context) => {
+test('przeglądarka sesji pokazuje filtry statusu i początkowo zwiniętą listę miesięcy', async (context) => {
   const vite = await createServer({ appType: 'custom', logLevel: 'silent', server: { middlewareMode: true, hmr: false } });
   context.after(() => vite.close());
   const base = pokerReducer(undefined, { type: '@@init' });
   const current = session('current', 'fingerprint-current');
   const stale = session('stale', 'fingerprint-stale');
   const missing = session('missing', 'fingerprint-missing');
+  const queryKey = createSessionMonthsQueryKey({ gameType: 'cash' });
   const store = configureStore({
     reducer: { poker: pokerReducer },
     preloadedState: { poker: {
       ...base,
       dataset: { ...base.dataset, datasetRevision: 'revision-2' },
-      currentPages: {
-        ...base.currentPages,
-        cash: { ...base.currentPages.cash, items: [current, stale, missing], status: 'succeeded', datasetRevision: 'revision-2' },
+      sessionMonthIndexes: {
+        [queryKey]: {
+          months: [{ key: '2026-02', year: 2026, month: 2, sessionCount: 3, handCount: 36, cashSessionCount: 3, tournamentSessionCount: 0 }],
+          availableRanks: [], status: 'succeeded', error: null, allStatus: 'idle', allError: null, datasetRevision: 'revision-2',
+        },
       },
+      sessionMonthPages: {
+        [queryKey]: { '2026-02': { items: [current, stale, missing], status: 'succeeded', error: null, datasetRevision: 'revision-2' } },
+      },
+      sessionSummariesById: Object.fromEntries([current, stale, missing].map((item) => [item.id, item])),
       sessionAiAnalyses: {
         [current.id]: [{ reportId: 'current-report', fingerprint: current.fingerprint, datasetRevision: 'revision-2' }],
         [stale.id]: [{ reportId: 'old-report', fingerprint: stale.fingerprint, datasetRevision: 'revision-1' }],
@@ -57,7 +64,8 @@ test('przeglądarka sesji pokazuje dostępne z klawiatury statusy aktualnej i ni
   assert.match(html, /Status analizy/);
   assert.match(html, /Z aktualnym raportem/);
   assert.match(html, /Bez aktualnego raportu/);
-  assert.match(html, /aria-label="Aktualna analiza sesji — filtruj sesje z aktualnym raportem"/);
-  assert.match(html, /aria-label="Analiza sesji jest nieaktualna — filtruj sesje bez aktualnego raportu"/);
-  assert.match(html, /role="button" tabindex="0"/);
+  assert.match(html, /aria-label="Luty 2026, 3 sesji, 36 rozdań"/);
+  assert.match(html, /aria-expanded="false"/);
+  assert.doesNotMatch(html, /role="region"/);
+  assert.doesNotMatch(html, /aria-label="Aktualna analiza sesji/);
 });

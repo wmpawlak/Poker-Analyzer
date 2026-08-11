@@ -61,6 +61,15 @@ const asHandRanking = (value) => {
   throw new DataQueryError('handRanking ma nieprawidłową wartość.');
 };
 
+const asMonth = (value) => {
+  if (value === undefined || value === null || value === '') return '';
+  const normalized = String(value).trim();
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(normalized)) {
+    throw new DataQueryError('month musi mieć format YYYY-MM.');
+  }
+  return normalized;
+};
+
 const asHandSortBy = (value) => {
   if (value === undefined || value === null || value === '') return 'date';
   if (value === 'date' || value === 'profit') return value;
@@ -148,6 +157,33 @@ const getHandRanking = (hand) => hand?.handRanking || 'NO_HAND';
 const getNonRebuyHands = (session) => (
   Array.isArray(session?.hands) ? session.hands.filter((hand) => hand && !hand.isRebuy) : []
 );
+
+const getSessionMonthKey = (session) => {
+  const match = /^(\d{4})[/-](\d{2})(?:[/-]|$)/.exec(String(session?.dateStr || '').trim());
+  return match ? `${match[1]}-${match[2]}` : '';
+};
+
+const selectSessions = (snapshot, query = {}, { includeMonth = false } = {}) => {
+  const gameType = asGameType(query.gameType);
+  const { range, dateFrom, dateTo } = getDateRange(query);
+  const handRanking = asHandRanking(query.handRanking);
+  const month = includeMonth ? asMonth(query.month) : '';
+  const sessions = [
+    ...(gameType === 'tournament' ? [] : snapshot.sessions.cash || []),
+    ...(gameType === 'cash' ? [] : snapshot.sessions.tournament || []),
+  ]
+    .filter((session) => isInDateRange({ timestamp: session.startTime }, range))
+    .filter((session) => !month || getSessionMonthKey(session) === month)
+    .sort((left, right) => right.startTime - left.startTime);
+  return {
+    sessions,
+    gameType,
+    handRanking,
+    dateFrom,
+    dateTo,
+    month,
+  };
+};
 
 const sortHands = (hands, sortBy, sortOrder) => (
   [...hands].sort((left, right) => {
@@ -431,15 +467,11 @@ export const createOpponentsResponse = (snapshot, query) => {
 };
 
 export const createSessionsResponse = (snapshot, query) => {
-  const gameType = asGameType(query?.gameType);
-  const { range } = getDateRange(query);
-  const handRanking = asHandRanking(query?.handRanking);
-  const selectedSessions = [
-    ...(gameType === 'tournament' ? [] : snapshot.sessions.cash || []),
-    ...(gameType === 'cash' ? [] : snapshot.sessions.tournament || []),
-  ]
-    .filter((session) => isInDateRange({ timestamp: session.startTime }, range))
-    .sort((left, right) => right.startTime - left.startTime);
+  const {
+    sessions: selectedSessions,
+    gameType,
+    handRanking,
+  } = selectSessions(snapshot, query, { includeMonth: true });
   const availableRanks = countAvailableRanks(selectedSessions.flatMap(getNonRebuyHands));
   const sessions = selectedSessions
     .map((session) => {
@@ -460,6 +492,88 @@ export const createSessionsResponse = (snapshot, query) => {
     handRanking,
     availableRanks,
     sessions,
+  };
+};
+
+export const createSessionMonthsResponse = (snapshot, query = {}) => {
+  const {
+    sessions: selectedSessions,
+    gameType,
+    handRanking,
+    dateFrom,
+    dateTo,
+  } = selectSessions(snapshot, query);
+  const availableRanks = countAvailableRanks(selectedSessions.flatMap(getNonRebuyHands));
+  const monthsByKey = new Map();
+
+  selectedSessions.forEach((session) => {
+    const key = getSessionMonthKey(session);
+    if (!key) return;
+    const hands = getNonRebuyHands(session);
+    const matchingHandCount = handRanking
+      ? hands.filter((hand) => getHandRanking(hand) === handRanking).length
+      : hands.length;
+    if (handRanking && matchingHandCount === 0) return;
+    const current = monthsByKey.get(key) || {
+      key,
+      year: Number(key.slice(0, 4)),
+      month: Number(key.slice(5, 7)),
+      sessionCount: 0,
+      handCount: 0,
+      matchingHandCount: 0,
+      cashSessionCount: 0,
+      tournamentSessionCount: 0,
+    };
+    current.sessionCount += 1;
+    current.handCount += hands.length;
+    current.matchingHandCount += matchingHandCount;
+    if (session.type === 'Tournament') current.tournamentSessionCount += 1;
+    else current.cashSessionCount += 1;
+    monthsByKey.set(key, current);
+  });
+
+  return {
+    datasetRevision: snapshot.datasetRevision,
+    gameType,
+    handRanking,
+    dateFrom,
+    dateTo,
+    availableRanks,
+    months: [...monthsByKey.values()].sort((left, right) => right.key.localeCompare(left.key)),
+  };
+};
+
+const normalizeSessionIds = (value) => {
+  if (!Array.isArray(value)) throw new DataQueryError('sessionIds musi być tablicą identyfikatorów.');
+  return value
+    .map((id) => String(id ?? '').trim())
+    .filter(Boolean);
+};
+
+export const createSessionSummariesResponse = (snapshot, payload = {}) => {
+  const requestedRevision = String(payload.datasetRevision || '').trim();
+  if (!requestedRevision) {
+    throw new DataQueryError('datasetRevision jest wymagane.', 'DATASET_REVISION_REQUIRED');
+  }
+  if (requestedRevision !== snapshot.datasetRevision) {
+    throw new DataQueryError(
+      'Dataset zmienił się przed pobraniem podsumowań sesji.',
+      'DATASET_REVISION_MISMATCH',
+      409,
+    );
+  }
+  const sessionIds = normalizeSessionIds(payload.sessionIds);
+  const sessions = [];
+  const missingSessionIds = [];
+  sessionIds.forEach((sessionId) => {
+    const session = snapshot.sessionsById.get(sessionId);
+    if (session) sessions.push(toSessionSummary(session));
+    else missingSessionIds.push(sessionId);
+  });
+  return {
+    datasetRevision: snapshot.datasetRevision,
+    sessions,
+    missingSessionIds,
   };
 };
 

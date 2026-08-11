@@ -25,6 +25,13 @@ import {
   validateSessionGroupAnalysis,
   validateSessionGroupAnalysisInput,
 } from '../../src/ai/sessionGroupAnalysisContract.js';
+import {
+  buildPlayerAnalysisPrompt,
+  playerAnalysisGeminiResponseSchema,
+  playerAnalysisResponseSchema,
+  validatePlayerAnalysis,
+  validatePlayerAnalysisInput,
+} from '../../src/ai/playerAnalysisContract.js';
 
 const providerAdapters = {
   gemini: analyzeWithGemini,
@@ -217,6 +224,74 @@ export const analyzeSessionGroupWithModel = async ({
   return {
     model: getPublicAiModel(definition),
     fingerprint: validatedGroup.fingerprint,
+    analysis: validatedAnalysis,
+  };
+};
+
+export const analyzePlayerWithModel = async ({
+  modelId,
+  player,
+  environment,
+  fetchImpl = globalThis.fetch,
+  logger,
+}) => {
+  const definition = getAiModelDefinition(modelId);
+  if (!definition) {
+    throw new AiServiceError(`Nieznany model AI: ${modelId || 'brak'}.`, {
+      status: 400,
+      code: 'AI_UNKNOWN_MODEL',
+    });
+  }
+
+  let validatedPlayer;
+  try {
+    validatedPlayer = validatePlayerAnalysisInput(player);
+  } catch (error) {
+    throw new AiServiceError(error.message, {
+      status: error.code === 'AI_PLAYER_ANALYSIS_TOO_LARGE' ? 413 : 400,
+      code: error.code || 'AI_INVALID_PLAYER_ANALYSIS',
+      cause: error,
+    });
+  }
+  if (!isModelConfigured(definition, environment)) {
+    throw new AiServiceError(`Model ${definition.name} nie jest skonfigurowany na serwerze.`, {
+      status: 503,
+      code: 'AI_MODEL_NOT_CONFIGURED',
+    });
+  }
+
+  const adapter = providerAdapters[definition.provider];
+  const openAiPlayerProfile = definition.provider === 'openai'
+    ? {
+      maxOutputTokens: 32_000,
+      reasoningEffort: 'high',
+      logger,
+    }
+    : {};
+  const analysis = await adapter({
+    modelId: definition.id,
+    apiKey: environment[definition.environmentKey],
+    prompt: buildPlayerAnalysisPrompt(validatedPlayer),
+    schema: definition.provider === 'gemini'
+      ? playerAnalysisGeminiResponseSchema
+      : playerAnalysisResponseSchema,
+    schemaName: 'poker_player_analysis',
+    fetchImpl,
+    ...openAiPlayerProfile,
+  });
+  let validatedAnalysis;
+  try {
+    validatedAnalysis = validatePlayerAnalysis(analysis, validatedPlayer);
+  } catch (error) {
+    throw new AiServiceError(error.message, {
+      status: 422,
+      code: 'AI_INVALID_PLAYER_RESPONSE',
+      cause: error,
+    });
+  }
+  return {
+    model: getPublicAiModel(definition),
+    fingerprint: validatedPlayer.fingerprint,
     analysis: validatedAnalysis,
   };
 };

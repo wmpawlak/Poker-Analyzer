@@ -1,7 +1,8 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Filter } from 'lucide-react';
-import { fetchWallet, setDataFilters } from '../store/pokerSlice.js';
+import { DateRangePicker } from '../components/DateRangePicker.jsx';
+import { fetchWallet, setDateRange } from '../store/pokerSlice.js';
 
 const WalletTimelineChart = lazy(() => import('../components/WalletTimelineChart.jsx'));
 
@@ -21,8 +22,8 @@ const getWinRateColor = (winRate) => {
 
 export const WalletView = () => {
   const dispatch = useDispatch();
-  const dateFrom = useSelector((state) => state.poker.filters.dateFrom);
-  const dateTo = useSelector((state) => state.poker.filters.dateTo);
+  const dateRange = useSelector((state) => state.poker.filters.dateRanges.wallet);
+  const { from: dateFrom, to: dateTo } = dateRange;
   const wallet = useSelector((state) => state.poker.aggregates.wallet);
   const [onlyFlop, setOnlyFlop] = useState(false);
   const walletData = wallet.data || EMPTY_WALLET;
@@ -36,8 +37,13 @@ export const WalletView = () => {
       <div className="flex flex-wrap items-center gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
         <Filter className="text-gray-400" size={20}/>
         <span className="font-bold text-gray-700">Filtry:</span>
-        <input type="date" value={dateFrom} onChange={(event) => dispatch(setDataFilters({ dateFrom: event.target.value }))} className="border p-2 rounded text-sm"/>
-        <input type="date" value={dateTo} onChange={(event) => dispatch(setDataFilters({ dateTo: event.target.value }))} className="border p-2 rounded text-sm"/>
+        <div className="w-full sm:max-w-sm" data-testid="wallet-date-range">
+          <DateRangePicker
+            value={dateRange}
+            onChange={(range) => dispatch(setDateRange({ view: 'wallet', ...range }))}
+            label="Zakres dat wykresów"
+          />
+        </div>
         <button onClick={() => setOnlyFlop((value) => !value)} className={`px-4 py-2 rounded-lg text-sm font-bold border transition-all ${onlyFlop ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-white text-gray-600 border-gray-300'}`}>
           {onlyFlop ? '✓ Tylko ręce z flopem' : 'Pokaż wszystkie ręce'}
         </button>

@@ -2,15 +2,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { CardIcon } from '../components/CardIcon.jsx';
+import { DateRangePicker } from '../components/DateRangePicker.jsx';
 import { Grid, Maximize2, Minimize2, X } from 'lucide-react';
 import { STARTING_HAND_RANKS } from '../utils/startingHandStats.js';
-import { fetchCards, setCardsDateRange } from '../store/pokerSlice.js';
+import { fetchCards, setDateRange } from '../store/pokerSlice.js';
 
 export const CardsView = () => {
   const dispatch = useDispatch();
   const gameType = useSelector((state) => state.poker.filters.gameType);
-  const cardsDateFrom = useSelector((state) => state.poker.filters.cardsDateFrom);
-  const cardsDateTo = useSelector((state) => state.poker.filters.cardsDateTo);
+  const cardsDateRange = useSelector((state) => state.poker.filters.dateRanges.cards);
+  const { from: cardsDateFrom, to: cardsDateTo } = cardsDateRange;
   const cards = useSelector((state) => state.poker.aggregates.cards);
   const [cardTypeFilter, setCardTypeFilter] = useState('all');
   const [viewMode, setViewMode] = useState('classic'); // 'classic' lub 'advanced'
@@ -339,14 +340,12 @@ const renderGrid = (type) => {
       </div>
 
       <section aria-label="Zakres dat kart startowych" className="mb-3 flex shrink-0 flex-col gap-3 rounded-xl border border-indigo-100 bg-indigo-50/60 p-3 text-xs text-slate-700 lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="flex flex-col gap-1 font-bold">Od
-            <input type="date" value={cardsDateFrom} onChange={(event) => dispatch(setCardsDateRange({ dateFrom: event.target.value, dateTo: cardsDateTo }))} className="rounded-lg border border-indigo-200 bg-white px-2 py-1.5 font-normal outline-none focus:border-indigo-500" />
-          </label>
-          <label className="flex flex-col gap-1 font-bold">Do
-            <input type="date" value={cardsDateTo} onChange={(event) => dispatch(setCardsDateRange({ dateFrom: cardsDateFrom, dateTo: event.target.value }))} className="rounded-lg border border-indigo-200 bg-white px-2 py-1.5 font-normal outline-none focus:border-indigo-500" />
-          </label>
-          <button type="button" onClick={() => dispatch(setCardsDateRange({}))} disabled={!cardsDateFrom && !cardsDateTo} className="rounded-lg border border-indigo-200 bg-white px-3 py-1.5 font-bold text-indigo-700 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50">Wyczyść zakres</button>
+        <div className="w-full lg:max-w-sm" data-testid="cards-date-range">
+          <DateRangePicker
+            value={cardsDateRange}
+            onChange={(range) => dispatch(setDateRange({ view: 'cards', ...range }))}
+            label="Zakres dat kart startowych"
+          />
         </div>
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-slate-600">
           <span>Zindeksowane: <strong className="text-slate-900">{cardsMetadata.indexedHandCount ?? 0}</strong></span>

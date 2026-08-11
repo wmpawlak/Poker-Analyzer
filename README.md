@@ -48,6 +48,16 @@ git push
 
 Aplikacja nigdy nie wykonuje `commit`, `pull` ani `push` samodzielnie.
 
+## Miesięczny katalog sesji
+
+Widoki Cash, Turnieje oraz „Analiza wielu sesji” rozpoczynają od lekkiego indeksu miesięcy, a wszystkie akordeony pozostają zwinięte. Aplikacja pobiera i montuje karty miesiąca dopiero po rozwinięciu jego nagłówka. Zamknięcie miesiąca usuwa jego karty z DOM, ale zachowuje pobrane podsumowania w cache do czasu zmiany rewizji datasetu.
+
+Miesiące zawierające ponad 30 sesji używają wirtualnej listy: w DOM pozostają tylko aktualnie widoczne karty i niewielki bufor, również w „Analizie wielu sesji”. Pełne podsumowania otwartego miesiąca nadal trafiają do cache, dlatego ponowne otwarcie nie wymaga kolejnego pobrania. Wirtualizacja ogranicza koszt renderowania w przeglądarce, ale nie zmniejsza payloadu miesięcznego endpointu API.
+
+Miesiące są zawsze ułożone od najnowszego. Kontrolka „Sortuj sesje w miesiącu” zmienia kolejność tylko kart wewnątrz otwartego miesiąca; nie przestawia samych miesięcy. Wybrana sesja i jej prawy panel pozostają aktywne również po zwinięciu miesiąca.
+
+Operacje wymagające wiedzy o całym aktywnym zakresie są jawnie odroczone. Zmiana globalnego filtra statusu analizy w Cash lub Turniejach oraz „Zaznacz widoczne” w analizie wielu sesji pobierają pełną lekką listę `/api/sessions`, nawadniają miesięczny cache, ale nadal nie montują kart zamkniętych miesięcy. Oglądanie raportu historycznego rozwiązuje brakujące źródła przez lekkie zapytanie po ID i nie pobiera całego katalogu.
+
 ## Konfiguracja AI
 
 Utwórz albo uzupełnij ignorowany przez Git plik `.env.local` w katalogu projektu:
@@ -98,6 +108,16 @@ Przeglądarka zapisuje domyślny identyfikator modelu, historię raportów oraz 
 
 CoinPoker `SUMMARY` pozostaje źródłem prawdy dla ID rozdania, wyniku Hero, kwot i końcowego układu. Odpowiedź modelu jest odrzucana tylko wtedy, gdy błędnie podaje `WON`, `LOST` albo `FOLDED`.
 
+### Analiza statystyk gracza
+
+W podzakładce „Mój profil → Analizy AI” można utworzyć przekrojowy raport dla wybranego typu gry i zakresu dat. Raport opiera się na statystykach liczonych lokalnie dla całego okresu i zapisuje ich snapshot, dlatego pozostaje czytelny również po późniejszej zmianie datasetu. Analiza wymaga co najmniej 30 prawdziwych rozdań; dla 30–99 rozdań jest wyraźnie oznaczona jako profil wstępny, a od 100 jako profil statystyczny.
+
+Każde ręczne uruchomienie wykonuje dokładnie jedno potencjalnie płatne żądanie modelu, tworzy nowy wpis historii i nie nadpisuje starszych raportów. Nie ma automatycznego retry ani przełączenia na inny model. Ponowienie po błędzie jest osobnym, nowym potencjalnie płatnym żądaniem.
+
+Raporty istniejących sesji są wyłącznie opcjonalnym materiałem uzupełniającym. Ich brak nie blokuje analizy i nie uruchamia dodatkowych zapytań AI. Jeżeli raport gracza cytuje raport sesji, link otwiera dokładną historyczną wersję tego raportu; usunięte źródło pozostaje widoczne, ale nieaktywne.
+
+Analiza statystyk gracza nie zastępuje zakładki „Analiza wielu sesji”. Profil analizuje wszystkie lokalne metryki z okresu i może działać bez raportów sesji. Analiza wielu sesji jest ręcznym porównaniem od 2 do 5 konkretnie zaznaczonych, wcześniej przeanalizowanych sesji i korzysta z ich raportów jako wymaganych źródeł.
+
 ### Analiza całej sesji
 
 W widoku Cash i Turnieje panel „Analiza AI sesji” tworzy ręcznie uruchamiany raport dla całej aktualnie wybranej sesji. Zawsze obejmuje wszystkie prawdziwe rozdania sesji — filtr układów ani sortowanie listy go nie zawężają. Raport używa aktualnego modelu domyślnego, jest dopisywany do niezależnej historii `poker_ai_session_analyses_v1`, a poprzednie raporty pozostają dostępne i są oznaczane, jeżeli dotyczą wcześniejszego zestawu danych.
@@ -108,9 +128,9 @@ Każde uruchomienie wykonuje najwyżej jeden potencjalnie płatny POST: aplikacj
 
 ### Analiza wielu sesji
 
-„Analiza wielu sesji” jest osobną zakładką sidebara o identyfikatorze `session-group-analysis`, niezależną od „Mojego profilu”. Desktopowy workspace ma lewą kolumnę filtrów, przewijanej listy sesji i stałej akcji oraz prawy panel podglądu, historii i raportu; na węższym ekranie kolumny układają się pionowo, a lista ma ograniczoną wysokość. Lista pokazuje wszystkie sesje z prawdziwymi rozdaniami w bieżących filtrach. Do wspólnej analizy można zaznaczyć wyłącznie sesje z aktualnym raportem zgodnym z odciskiem danych; dla brakującego lub nieaktualnego raportu można bezpośrednio uruchomić analizę z wiersza. Kilka analiz pojedynczych sesji może działać równolegle, a wybór do raportu grupowego nadal wymaga co najmniej dwóch różnych sesji.
+„Analiza wielu sesji” jest osobną zakładką sidebara o identyfikatorze `session-group-analysis`, niezależną od „Mojego profilu”. Desktopowy workspace ma lewą kolumnę filtrów, miesięczny akordeon sesji i stałą akcję oraz prawy panel podglądu, historii i raportu; na węższym ekranie kolumny układają się pionowo, a lista ma ograniczoną wysokość. Zaznaczenia pozostają aktywne po zmianie lub zwinięciu miesiąca, a nagłówki pokazują ich liczbę. Do wspólnej analizy można zaznaczyć wyłącznie sesje z aktualnym raportem zgodnym z odciskiem danych; dla brakującego lub nieaktualnego raportu można bezpośrednio uruchomić analizę z wiersza. Kilka analiz pojedynczych sesji może działać równolegle, a wybór do raportu grupowego nadal wymaga co najmniej dwóch różnych sesji.
 
-Typ gry, zakres dat, zaznaczone `sourceIds` i wybrany raport są przechowywane w `App`, więc przejście do sesji źródłowej albo innej zakładki nie traci pracy. Stan nie jest zapisywany po odświeżeniu strony. Zmiana filtrów lub danych usuwa wyłącznie niewidoczne identyfikatory, a usunięty raport historyczny czyści aktywny wybór.
+Typ gry, zakres dat, zaznaczone `sourceIds` i wybrane raporty są przechowywane w Redux, więc przejście do sesji źródłowej albo innej zakładki nie traci pracy. Stan nie jest zapisywany po odświeżeniu strony. Zmiana filtrów usuwa wyłącznie identyfikatory faktycznie niezgodne z nowym typem gry lub zakresem dat; samo niezamontowanie miesiąca nie usuwa wyboru. Usunięty raport historyczny czyści aktywny wybór.
 
 Przed uruchomieniem raportu aplikacja liczy lokalny wspólny profil stylu oraz osobne wyniki Cash i Turniejów. W próbce mieszanej nie tworzy wspólnej sumy pieniężnej ani wspólnego winrate: Cash pozostaje w walucie i BB/100, a Turnieje w żetonach i żetonach/100. Do modelu trafiają tylko aktualne raporty źródłowe, metadane sesji, lokalne metryki oraz identyfikatory rąk już cytowane przez raporty — nigdy surowe historie rozdań.
 

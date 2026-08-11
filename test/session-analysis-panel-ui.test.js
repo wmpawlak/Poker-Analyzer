@@ -29,6 +29,7 @@ const renderPanel = async ({
   sessionError,
   sessionStatus = 'idle',
   modelConfigured = false,
+  selectedReportId = null,
 } = {}) => {
   const vite = await createServer({ appType: 'custom', logLevel: 'silent', server: { middlewareMode: true, hmr: false } });
   try {
@@ -42,6 +43,9 @@ const renderPanel = async ({
           aiModelsStatus: 'succeeded',
           aiModels: [{ id: 'gpt-5.6-terra', name: 'GPT-5.6 Terra', configured: modelConfigured }],
           sessionAiAnalyses: { 'session-a': reports },
+          selectedSessionAnalysisReportIdBySessionId: selectedReportId
+            ? { 'session-a': selectedReportId }
+            : {},
           sessionAnalysisStatusById: sessionStatus === 'idle' ? {} : { 'session-a': sessionStatus },
           sessionAnalysisErrorById: sessionError === undefined ? {} : { 'session-a': sessionError },
         },
@@ -54,6 +58,33 @@ const renderPanel = async ({
     await vite.close();
   }
 };
+
+test('kontrolowany wybór Redux pokazuje dokładny historyczny raport sesji', async () => {
+  const report = (reportId, fingerprint, summary) => ({
+    reportId,
+    fingerprint,
+    datasetRevision: 'revision-1',
+    model: { name: 'GPT-5.6 Terra' },
+    analyzedAt: '2026-08-08T10:00:00.000Z',
+    analysis: {
+      profileStyleId: 'TAG',
+      sessionSummary: summary,
+      keyMistakes: [],
+      notableHands: [],
+    },
+  });
+  const html = await renderPanel({
+    reports: [
+      report('historical-report', 'previous-data', 'Dokładnie wybrany raport historyczny.'),
+      report('latest-report', 'current-data', 'Najnowszy raport.'),
+    ],
+    selectedReportId: 'historical-report',
+  });
+
+  assert.match(html, /Dokładnie wybrany raport historyczny/);
+  assert.doesNotMatch(html, />Najnowszy raport\.</);
+  assert.match(html, /value="historical-report" selected=""/);
+});
 
 test('panel sesji pokazuje stan bez raportu, małą próbę i brak konfiguracji modelu', async () => {
   const html = await renderPanel();

@@ -2,11 +2,15 @@ import express from 'express';
 import process from 'node:process';
 import {
   analyzeHandWithModel,
+  analyzePlayerWithModel,
   analyzeSessionGroupWithModel,
   analyzeSessionWithModel,
 } from './ai/analysisService.js';
 import {
+  createPlayerAnalysisResponseData,
   resolveHandAnalysisData,
+  resolvePlayerAnalysisData,
+  resolvePlayerAnalysisPreviewData,
   resolveSessionAnalysisData,
   resolveSessionGroupAnalysisData,
   resolveSessionGroupPreviewData,
@@ -36,6 +40,8 @@ import {
   createProfileResponse,
   createSessionDetailResponse,
   createSessionHandsResponse,
+  createSessionMonthsResponse,
+  createSessionSummariesResponse,
   createSessionsResponse,
   createWalletResponse,
   DataQueryError,
@@ -134,6 +140,22 @@ export const createApiApp = ({
   app.get('/api/sessions', async (request, response) => {
     try {
       response.json(createSessionsResponse(await dataIndex.getSnapshot(), request.query));
+    } catch (error) {
+      sendDataError(response, error);
+    }
+  });
+
+  app.get('/api/session-months', async (request, response) => {
+    try {
+      response.json(createSessionMonthsResponse(await dataIndex.getSnapshot(), request.query));
+    } catch (error) {
+      sendDataError(response, error);
+    }
+  });
+
+  app.post('/api/session-summaries/query', async (request, response) => {
+    try {
+      response.json(createSessionSummariesResponse(await dataIndex.getSnapshot(), request.body));
     } catch (error) {
       sendDataError(response, error);
     }
@@ -270,6 +292,26 @@ export const createApiApp = ({
     response.json({ models: getPublicAiModels(environment) });
   });
 
+  app.get('/api/player-analysis/preview', async (request, response) => {
+    try {
+      const resolved = await resolvePlayerAnalysisPreviewData({
+        dataIndex,
+        dataDirectory: cacheDataDirectory,
+        gameType: request.query?.gameType,
+        dateFrom: request.query?.dateFrom,
+        dateTo: request.query?.dateTo,
+      });
+      response.json(resolved.preview);
+    } catch (error) {
+      const status = Number.isInteger(error.status) ? error.status : 500;
+      if (status >= 500) logger?.error?.('Player analysis preview error:', error.message);
+      response.status(status).json({
+        error: error.message || 'Nie udało się przygotować podglądu analizy gracza.',
+        code: error.code || 'PLAYER_ANALYSIS_PREVIEW_ERROR',
+      });
+    }
+  });
+
   app.post('/api/session-groups/preview', async (request, response) => {
     try {
       const resolved = await resolveSessionGroupPreviewData({
@@ -370,6 +412,43 @@ export const createApiApp = ({
       }
       response.status(status).json({
         error: error.message || 'Nie udało się przeanalizować wybranych sesji.',
+        code: error.code || 'AI_INTERNAL_ERROR',
+      });
+    }
+  });
+
+  app.post('/api/ai/analyze-player', async (request, response) => {
+    try {
+      const resolved = await resolvePlayerAnalysisData({
+        dataIndex,
+        dataDirectory: cacheDataDirectory,
+        gameType: request.body?.gameType,
+        dateFrom: request.body?.dateFrom,
+        dateTo: request.body?.dateTo,
+        datasetRevision: request.body?.datasetRevision,
+      });
+      const result = await analyzePlayerWithModel({
+        modelId: request.body?.modelId,
+        player: resolved.playerInput,
+        environment,
+        fetchImpl,
+        logger,
+      });
+      response.json({
+        ...result,
+        ...createPlayerAnalysisResponseData(resolved.player, { includeReports: true }),
+      });
+    } catch (error) {
+      const status = Number.isInteger(error.status) ? error.status : 500;
+      if (status >= 500) {
+        logger?.error?.('AI player analysis error:', {
+          status,
+          code: error.code || 'AI_INTERNAL_ERROR',
+          message: error.message,
+        });
+      }
+      response.status(status).json({
+        error: error.message || 'Nie udało się przeanalizować statystyk gracza.',
         code: error.code || 'AI_INTERNAL_ERROR',
       });
     }

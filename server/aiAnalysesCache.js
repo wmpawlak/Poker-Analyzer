@@ -22,6 +22,13 @@ const forbiddenKeys = new Set([
   'secret',
 ]);
 
+const isForbiddenEntry = (key, value) => {
+  const normalizedKey = key.replaceAll('_', '').toLowerCase();
+  if (!forbiddenKeys.has(normalizedKey)) return false;
+  if (normalizedKey === 'hands' && typeof value === 'number' && Number.isFinite(value)) return false;
+  return true;
+};
+
 const isObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
 const cacheError = (message, code = 'AI_CACHE_INVALID') => {
@@ -39,7 +46,7 @@ const assertSafeReport = (value) => {
     }
     if (!isObject(candidate)) return;
     Object.entries(candidate).forEach(([key, nestedValue]) => {
-      if (forbiddenKeys.has(key.replaceAll('_', '').toLowerCase())) {
+      if (isForbiddenEntry(key, nestedValue)) {
         throw cacheError('Cache AI nie może zawierać surowych historii ani sekretów.');
       }
       visit(nestedValue);
@@ -54,7 +61,7 @@ const sanitizeImportedValue = (value) => {
   if (Array.isArray(value)) return value.map(sanitizeImportedValue);
   if (!isObject(value)) return value;
   return Object.fromEntries(Object.entries(value)
-    .filter(([key]) => !forbiddenKeys.has(key.replaceAll('_', '').toLowerCase()))
+    .filter(([key, nestedValue]) => !isForbiddenEntry(key, nestedValue))
     .map(([key, nestedValue]) => [key, sanitizeImportedValue(nestedValue)]));
 };
 
@@ -122,6 +129,12 @@ export const migrateLocalStorageAiAnalyses = (value, importedAt = new Date().toI
       ownerId: 'group',
       importedAt,
     }),
+    playerAnalyses: migrateLegacyReportList({
+      entry: Array.isArray(source?.playerAnalyses) ? source.playerAnalyses : [],
+      type: 'player',
+      ownerId: 'player',
+      importedAt,
+    }),
   });
 };
 
@@ -152,6 +165,7 @@ export const createEmptyAiAnalysesCache = () => ({
   handAnalyses: {},
   sessionAnalyses: {},
   sessionGroupAnalyses: [],
+  playerAnalyses: [],
 });
 
 export const normalizeAiAnalysesCache = (value) => {
@@ -167,6 +181,7 @@ export const normalizeAiAnalysesCache = (value) => {
     handAnalyses: normalizeReportMap(value.handAnalyses, 'handAnalyses'),
     sessionAnalyses: normalizeReportMap(value.sessionAnalyses, 'sessionAnalyses'),
     sessionGroupAnalyses: normalizeReportList(value.sessionGroupAnalyses, 'sessionGroupAnalyses'),
+    playerAnalyses: normalizeReportList(value.playerAnalyses || [], 'playerAnalyses'),
   };
 };
 
@@ -202,6 +217,7 @@ export const mergeAiAnalysesCaches = (left, right) => {
       normalizedLeft.sessionGroupAnalyses,
       normalizedRight.sessionGroupAnalyses,
     ),
+    playerAnalyses: mergeReportLists(normalizedLeft.playerAnalyses, normalizedRight.playerAnalyses),
   };
 };
 
@@ -280,6 +296,7 @@ export const pruneAiAnalysesCache = (cache, sessionIds = []) => {
       ...(Array.isArray(report?.sources) ? report.sources : []),
       ...(Array.isArray(report?.sourceReports) ? report.sourceReports : []),
     ].some(referencesOldSession)),
+    playerAnalyses: normalized.playerAnalyses,
   };
 };
 
@@ -287,6 +304,7 @@ const countReports = (cache) => (
   Object.values(cache.handAnalyses).flat().length
   + Object.values(cache.sessionAnalyses).flat().length
   + cache.sessionGroupAnalyses.length
+  + cache.playerAnalyses.length
 );
 
 // Po świadomym zastąpieniu kanonicznego rozdania nie wolno pozostawić raportów
@@ -336,6 +354,7 @@ export const invalidateAiAnalysesForReplacedHand = (cache, {
     handAnalyses,
     sessionAnalyses,
     sessionGroupAnalyses,
+    playerAnalyses: normalized.playerAnalyses,
   };
   const before = countReports(normalized);
   const after = countReports(nextCache);

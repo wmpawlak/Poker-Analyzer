@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Brain,
-  CalendarDays,
   CheckSquare,
   CheckCircle2,
   Clock3,
@@ -16,9 +15,26 @@ import {
   analyzeSessionGroupWithAI,
   analyzeSessionWithAI,
   clearSessionGroupPreview,
+  createSessionMonthsQueryKey,
+  fetchAllSessionsForQuery,
+  fetchSessionMonth,
+  fetchSessionMonths,
   fetchSessionGroupPreview,
-  fetchSessions,
+  fetchSessionSummariesByIds,
 } from '../store/pokerSlice.js';
+import { SessionMonthAccordion } from './SessionMonthAccordion.jsx';
+import { DateRangePicker } from './DateRangePicker.jsx';
+import { getLocalDateRange } from '../utils/dateRange.js';
+
+const EMPTY_MONTH_INDEX = Object.freeze({
+  months: [], status: 'idle', error: null, allStatus: 'idle', allError: null,
+});
+const EMPTY_MONTH_PAGES = Object.freeze({});
+
+const monthOf = (session) => {
+  const match = /^(\d{4})[/-](\d{2})(?:[/-]|$)/.exec(String(session?.dateStr || '').trim());
+  return match ? `${match[1]}-${match[2]}` : '';
+};
 
 const typeOf = (session) => session.type === 'Cash' ? 'cash' : 'tournament';
 const labelOf = (session) => typeOf(session) === 'cash'
@@ -27,25 +43,17 @@ const labelOf = (session) => typeOf(session) === 'cash'
 
 const isInRange = (session, dateFrom, dateTo) => {
   const timestamp = Number(session.startTime);
+  const range = getLocalDateRange(dateFrom, dateTo);
   if (!Number.isFinite(timestamp)) return false;
-  if (dateFrom && timestamp < new Date(`${dateFrom}T00:00:00`).getTime()) return false;
-  if (dateTo && timestamp > new Date(`${dateTo}T23:59:59.999`).getTime()) return false;
+  if (!range.valid) return false;
+  if (range.fromTimestamp !== null && timestamp < range.fromTimestamp) return false;
+  if (range.toTimestamp !== null && timestamp > range.toTimestamp) return false;
   return true;
 };
 
 const isCurrentReport = (report, session, datasetRevision) => (
   report?.fingerprint === session.fingerprint
   && (!datasetRevision || !report.datasetRevision || report.datasetRevision === datasetRevision)
-);
-
-const DateField = ({ label, value, onChange, testId }) => (
-  <label className="flex min-w-[9.5rem] flex-1 flex-col gap-1 text-xs font-black uppercase tracking-wide text-slate-500">
-    <span>{label}</span>
-    <span className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold normal-case tracking-normal text-slate-700">
-      <CalendarDays size={16} className="shrink-0 text-slate-400"/>
-      <input data-testid={testId} type="date" value={value} onChange={(event) => onChange(event.target.value)} className="min-w-0 flex-1 bg-transparent outline-none"/>
-    </span>
-  </label>
 );
 
 const metricValue = (metric) => {
@@ -88,7 +96,7 @@ const SourceReferences = ({ sourceRefs, report, candidatesById, onHandClick, onO
           disabled={!available}
           title={available ? `Otwórz ${sourceLabel(source)}` : 'Sesja źródłowa nie jest już dostępna w aktualnych danych.'}
           aria-label={available ? `Otwórz sesję: ${sourceLabel(source)}` : `Niedostępna sesja: ${sourceLabel(source)}`}
-          onClick={() => onOpenSession({ type: source?.type, sessionId: source?.sessionId })}
+          onClick={() => onOpenSession({ type: source?.type, sessionId: source?.sessionId, reportId: source?.reportId })}
           className="rounded px-1.5 py-1 text-[10px] font-black text-slate-700 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:text-slate-400"
         >
           {sourceLabel(source)}
@@ -133,7 +141,7 @@ const ReportSources = ({ report, candidatesById, onOpenSession }) => {
         return <button key={source.sourceId} type="button" disabled={!available}
           title={available ? `Otwórz ${sourceLabel(source)}` : 'Sesja źródłowa nie jest już dostępna w aktualnych danych.'}
           aria-label={available ? `Otwórz sesję: ${sourceLabel(source)}` : `Niedostępna sesja: ${sourceLabel(source)}`}
-          onClick={() => onOpenSession({ type: source.type, sessionId: source.sessionId })}
+          onClick={() => onOpenSession({ type: source.type, sessionId: source.sessionId, reportId: source.reportId })}
           className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-left text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:text-slate-400">
           {sourceLabel(source)} <span className="font-normal text-slate-500">· {source.metadata?.handCount || 0} rąk</span>
         </button>;
@@ -203,11 +211,8 @@ const SessionGroupMetricsPreview = ({ preview }) => {
 export const SessionGroupAnalysisView = ({
   gameType = 'both',
   onGameTypeChange = () => {},
-  dateFrom = '',
-  dateTo = '',
-  onDateFromChange = () => {},
-  onDateToChange = () => {},
-  onClearDateRange = () => {},
+  dateRange = { from: '', to: '' },
+  onDateRangeChange = () => {},
   selectedSourceIds = [],
   onSelectedSourceIdsChange = () => {},
   selectedReportId = null,
@@ -216,9 +221,20 @@ export const SessionGroupAnalysisView = ({
   onOpenSession = () => {},
 }) => {
   const dispatch = useDispatch();
+  const dateFrom = dateRange?.from || '';
+  const dateTo = dateRange?.to || '';
+  const [monthSelection, setMonthSelection] = useState({ queryKey: null, monthKey: null });
+  const sessionQuery = useMemo(() => ({
+    gameType,
+    handRanking: '',
+    dateFrom,
+    dateTo,
+  }), [dateFrom, dateTo, gameType]);
+  const sessionQueryKey = useMemo(() => createSessionMonthsQueryKey(sessionQuery), [sessionQuery]);
   const datasetRevision = useSelector((state) => state.poker.dataset.datasetRevision);
-  const cashPage = useSelector((state) => state.poker.currentPages.cash);
-  const tournamentPage = useSelector((state) => state.poker.currentPages.tournament);
+  const sessionIndex = useSelector((state) => state.poker.sessionMonthIndexes[sessionQueryKey] || EMPTY_MONTH_INDEX);
+  const sessionPages = useSelector((state) => state.poker.sessionMonthPages[sessionQueryKey] || EMPTY_MONTH_PAGES);
+  const sessionSummariesById = useSelector((state) => state.poker.sessionSummariesById);
   const reportsBySession = useSelector((state) => state.poker.sessionAiAnalyses);
   const groupReports = useSelector((state) => state.poker.sessionGroupAiAnalyses);
   const sessionGroupPreview = useSelector((state) => state.poker.sessionGroupPreview);
@@ -229,29 +245,78 @@ export const SessionGroupAnalysisView = ({
   const previewRequestRef = useRef(null);
 
   useEffect(() => {
-    if (cashPage.status !== 'loading' && (!cashPage.datasetRevision || cashPage.datasetRevision !== datasetRevision)) dispatch(fetchSessions({ gameType: 'cash' }));
-    if (tournamentPage.status !== 'loading' && (!tournamentPage.datasetRevision || tournamentPage.datasetRevision !== datasetRevision)) dispatch(fetchSessions({ gameType: 'tournament' }));
-  }, [cashPage.datasetRevision, cashPage.status, datasetRevision, dispatch, tournamentPage.datasetRevision, tournamentPage.status]);
+    dispatch(fetchSessionMonths(sessionQuery));
+  }, [datasetRevision, dispatch, sessionQuery]);
 
-  const candidates = useMemo(() => [
-    ...(cashPage.items || []),
-    ...(tournamentPage.items || []),
-  ].filter((session) => {
-    const type = typeOf(session);
-    return (gameType === 'both' || type === gameType) && isInRange(session, dateFrom, dateTo);
-  }).map((session) => {
+  const decorateCandidate = useCallback((session) => {
     const reports = Array.isArray(reportsBySession[session.id]) ? reportsBySession[session.id] : [];
     const currentReport = [...reports].reverse().find((report) => isCurrentReport(report, session, datasetRevision)) || null;
     return { ...session, gameType: typeOf(session), currentReport };
-  }).sort((left, right) => Number(right.startTime) - Number(left.startTime)), [cashPage.items, datasetRevision, dateFrom, dateTo, gameType, reportsBySession, tournamentPage.items]);
-
-  const selectedIds = [...new Set(selectedSourceIds.map(String))].filter((id) => candidates.some((candidate) => candidate.id === id));
-  const selectedCandidates = candidates.filter((candidate) => selectedIds.includes(candidate.id));
-  const candidatesById = useMemo(() => new Map([
-    ...(cashPage.items || []),
-    ...(tournamentPage.items || []),
-  ].map((session) => [String(session.id), session])), [cashPage.items, tournamentPage.items]);
+  }, [datasetRevision, reportsBySession]);
+  const requestedSelectedIds = useMemo(
+    () => [...new Set(selectedSourceIds.map(String).filter(Boolean))],
+    [selectedSourceIds],
+  );
+  const selectedIds = useMemo(() => requestedSelectedIds.filter((id) => {
+    const session = sessionSummariesById[id];
+    if (!session) return true;
+    const type = typeOf(session);
+    return (gameType === 'both' || type === gameType) && isInRange(session, dateFrom, dateTo);
+  }), [dateFrom, dateTo, gameType, requestedSelectedIds, sessionSummariesById]);
+  const requestedSelectedIdsKey = JSON.stringify([...requestedSelectedIds].sort());
   const selectedIdsKey = JSON.stringify([...selectedIds].sort());
+
+  useEffect(() => {
+    if (requestedSelectedIdsKey !== selectedIdsKey) onSelectedSourceIdsChange(selectedIds);
+  }, [onSelectedSourceIdsChange, requestedSelectedIdsKey, selectedIds, selectedIdsKey]);
+
+  const selectedCandidates = selectedIds
+    .map((id) => sessionSummariesById[id])
+    .filter(Boolean)
+    .map(decorateCandidate);
+  const candidatesById = useMemo(() => new Map(
+    Object.values(sessionSummariesById).map((session) => [String(session.id), session]),
+  ), [sessionSummariesById]);
+  const visibleReports = useMemo(
+    () => [...groupReports].sort((left, right) => String(right.analyzedAt || '').localeCompare(String(left.analyzedAt || ''))),
+    [groupReports],
+  );
+  const activeReport = visibleReports.find((report) => report.reportId === selectedReportId) || visibleReports[0] || null;
+  const unresolvedSessionIds = useMemo(() => [...new Set([
+    ...selectedIds,
+    ...(Array.isArray(activeReport?.sources) ? activeReport.sources.map((source) => String(source?.sessionId || '')) : []),
+  ].filter((id) => id && !sessionSummariesById[id]))], [activeReport, selectedIds, sessionSummariesById]);
+  const unresolvedSessionIdsKey = JSON.stringify(unresolvedSessionIds);
+
+  useEffect(() => {
+    const requestIds = JSON.parse(unresolvedSessionIdsKey);
+    if (!datasetRevision || requestIds.length === 0) return;
+    void dispatch(fetchSessionSummariesByIds({ sessionIds: requestIds, datasetRevision })).then((action) => {
+      const missing = new Set(action.payload?.missingSessionIds || []);
+      if (missing.size === 0) return;
+      const nextSelectedIds = JSON.parse(selectedIdsKey).filter((id) => !missing.has(id));
+      if (nextSelectedIds.length !== JSON.parse(selectedIdsKey).length) onSelectedSourceIdsChange(nextSelectedIds);
+    });
+  }, [datasetRevision, dispatch, onSelectedSourceIdsChange, selectedIdsKey, unresolvedSessionIdsKey]);
+
+  const displayPages = useMemo(() => Object.fromEntries(Object.entries(sessionPages).map(([month, page]) => [
+    month,
+    {
+      ...page,
+      items: [...(page.items || [])].map(decorateCandidate)
+        .sort((left, right) => Number(right.startTime) - Number(left.startTime)),
+    },
+  ])), [decorateCandidate, sessionPages]);
+  const hasExplicitMonth = monthSelection.queryKey === sessionQueryKey;
+  const requestedMonth = hasExplicitMonth ? monthSelection.monthKey : null;
+  const activeMonthKey = requestedMonth && sessionIndex.months.some(({ key }) => key === requestedMonth)
+    ? requestedMonth
+    : null;
+  const selectedCountsByMonth = useMemo(() => selectedIds.reduce((counts, id) => {
+    const month = monthOf(sessionSummariesById[id]);
+    if (month) counts[month] = (counts[month] || 0) + 1;
+    return counts;
+  }, {}), [selectedIds, sessionSummariesById]);
   const previewForSelection = (() => {
     const preview = sessionGroupPreview.data;
     if (sessionGroupPreview.status !== 'succeeded'
@@ -282,8 +347,6 @@ export const SessionGroupAnalysisView = ({
   }, [datasetRevision, dispatch, selectedIdsKey]);
 
   const canAnalyzeGroup = selectedCandidates.length >= 2 && selectedCandidates.every((candidate) => candidate.currentReport);
-  const visibleReports = [...groupReports].sort((left, right) => String(right.analyzedAt || '').localeCompare(String(left.analyzedAt || '')));
-  const activeReport = visibleReports.find((report) => report.reportId === selectedReportId) || visibleReports[0] || null;
   const activeReportStale = Boolean(activeReport) && (() => {
     const sources = Array.isArray(activeReport.sources) ? activeReport.sources : [];
     // Dataset revisions are global; a new, unrelated hand must not invalidate
@@ -292,28 +355,42 @@ export const SessionGroupAnalysisView = ({
     return sources.length > 0 && sources.some((source) => !sourceIsAvailable(source, candidatesById));
   })();
 
-  const toggleSession = (sessionId) => {
+  const toggleSession = useCallback((sessionId) => {
     const next = selectedIds.includes(sessionId)
       ? selectedIds.filter((id) => id !== sessionId)
       : [...selectedIds, sessionId];
     onSelectedSourceIdsChange(next);
-  };
+  }, [onSelectedSourceIdsChange, selectedIds]);
 
-  const selectVisible = () => onSelectedSourceIdsChange(candidates.map((candidate) => candidate.id));
+  const loadMonth = useCallback((month) => {
+    dispatch(fetchSessionMonth({ ...sessionQuery, month }));
+  }, [dispatch, sessionQuery]);
+  const selectVisible = useCallback(async () => {
+    const action = await dispatch(fetchAllSessionsForQuery(sessionQuery));
+    if (!Array.isArray(action.payload?.sessions)) return;
+    onSelectedSourceIdsChange(action.payload.sessions.map((session) => String(session.id)));
+  }, [dispatch, onSelectedSourceIdsChange, sessionQuery]);
+  const renderCandidate = useCallback((candidate) => {
+    const selected = selectedIds.includes(candidate.id);
+    const analyzing = sessionStatusById[candidate.id] === 'loading';
+    return <article key={candidate.id} data-session-id={candidate.id} className={`rounded-xl border p-3 ${selected ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200 bg-white'}`}><div className="flex items-start gap-2"><button type="button" aria-label={`${selected ? 'Odznacz' : 'Zaznacz'} sesję: ${labelOf(candidate)}`} title={selected ? 'Odznacz sesję' : 'Zaznacz sesję'} onClick={() => toggleSession(candidate.id)} className="mt-0.5 rounded text-slate-400 hover:text-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">{selected ? <CheckSquare size={18} className="text-indigo-600"/> : <Square size={18}/>}</button><button type="button" onClick={() => onOpenSession({ type: candidate.gameType, sessionId: candidate.id })} className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"><p className="truncate text-sm font-black text-slate-800">{labelOf(candidate)}</p><p className="mt-0.5 text-xs text-slate-500">{candidate.handCount} rąk · {candidate.dateStr}</p></button></div><div className="mt-2 flex flex-wrap items-center gap-2"><span className={`rounded-full px-2 py-1 text-[10px] font-black ${candidate.currentReport ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{candidate.currentReport ? 'raport aktualny' : 'brak aktualnego raportu'}</span><button type="button" aria-label={`${analyzing ? 'Analizowanie sesji' : candidate.currentReport ? 'Analizuj ponownie' : 'Analizuj sesję'}: ${labelOf(candidate)}`} title={analyzing ? 'Analizowanie sesji' : candidate.currentReport ? 'Analizuj ponownie' : 'Analizuj sesję'} disabled={analyzing} onClick={() => dispatch(analyzeSessionWithAI({ sessionId: candidate.id }))} className="inline-flex size-7 items-center justify-center rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50">{analyzing ? <LoaderCircle size={14} className="animate-spin"/> : <Brain size={14}/>}</button></div>{sessionErrorById[candidate.id] && <p role="alert" className="mt-2 text-xs text-red-700">{sessionErrorById[candidate.id]?.message || sessionErrorById[candidate.id]}</p>}</article>;
+  }, [dispatch, onOpenSession, selectedIds, sessionErrorById, sessionStatusById, toggleSession]);
 
   return (
     <div data-testid="session-group-analysis-view" className="mx-auto w-full max-w-7xl animate-in fade-in duration-300">
       <div data-testid="session-group-analysis-workspace" className="grid items-start gap-4 lg:grid-cols-[minmax(20rem,0.85fr)_minmax(0,1.35fr)]">
-        <div data-testid="session-group-analysis-selector" className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div data-testid="session-group-analysis-selector" className="rounded-2xl border border-gray-200 bg-white shadow-sm">
           <section className="border-b border-gray-200 p-4 sm:p-5">
             <div className="flex items-center gap-2"><Brain size={19} className="text-indigo-600"/><h3 className="text-xl font-black text-slate-800">Analiza wielu sesji</h3></div>
             <div data-testid="session-group-game-type" className="mt-4 flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1 sm:w-fit">
               {[['both', 'Wszystko'], ['cash', 'Cash'], ['tournament', 'Turnieje']].map(([value, label]) => <button key={value} type="button" onClick={() => onGameTypeChange(value)} className={`rounded-lg px-3 py-1.5 text-xs font-black transition-colors ${gameType === value ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:bg-white/70'}`}>{label}</button>)}
             </div>
-            <div className="mt-4 flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-end">
-              <DateField label="Od" value={dateFrom} onChange={onDateFromChange} testId="session-group-date-from"/>
-              <DateField label="Do" value={dateTo} onChange={onDateToChange} testId="session-group-date-to"/>
-              <button type="button" aria-label="Wyczyść zakres dat" title="Wyczyść zakres dat" disabled={!dateFrom && !dateTo} onClick={onClearDateRange} className="inline-flex size-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"><RotateCcw size={14}/></button>
+            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3" data-testid="session-group-date-range">
+              <DateRangePicker
+                value={dateRange}
+                onChange={onDateRangeChange}
+                label="Zakres dat analizy wielu sesji"
+              />
             </div>
           </section>
           <section data-testid="session-group-analysis-action" className="border-b border-indigo-100 bg-indigo-50 px-4 py-3">
@@ -325,20 +402,29 @@ export const SessionGroupAnalysisView = ({
             </button>
             {!canAnalyzeGroup && selectedCandidates.length >= 2 && <p className="mt-2 text-xs text-indigo-800">Najpierw uruchom aktualny raport AI dla każdej wybranej sesji.</p>}
           </section>
-          <section data-testid="session-group-analysis-session-list" className="max-h-[calc(100vh-25rem)] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2.5"><span className="text-xs font-black uppercase tracking-wide text-slate-500">Sesje</span><span className="flex items-center gap-1"><button type="button" aria-label="Zaznacz widoczne sesje" title="Zaznacz widoczne sesje" disabled={candidates.length === 0} onClick={selectVisible} className="inline-flex size-7 items-center justify-center rounded-md text-indigo-700 hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"><CheckSquare size={16}/></button><button type="button" aria-label="Wyczyść wybór sesji" title="Wyczyść wybór sesji" disabled={selectedIds.length === 0} onClick={() => onSelectedSourceIdsChange([])} className="inline-flex size-7 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"><RotateCcw size={15}/></button></span></div>
-            {(cashPage.status === 'loading' || tournamentPage.status === 'loading') && candidates.length === 0 && <p className="p-6 text-center text-sm text-slate-500">Pobieranie list sesji…</p>}
-            {candidates.length === 0 && cashPage.status !== 'loading' && tournamentPage.status !== 'loading' && <p className="p-8 text-center text-sm text-slate-500">Brak sesji z prawdziwymi rozdaniami w bieżącej kategorii i zakresie dat.</p>}
-            <div className="space-y-2 p-3">{candidates.map((candidate) => {
-              const selected = selectedIds.includes(candidate.id);
-              const analyzing = sessionStatusById[candidate.id] === 'loading';
-              return <article key={candidate.id} className={`rounded-xl border p-3 ${selected ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200 bg-white'}`}><div className="flex items-start gap-2"><button type="button" aria-label={`${selected ? 'Odznacz' : 'Zaznacz'} sesję: ${labelOf(candidate)}`} title={selected ? 'Odznacz sesję' : 'Zaznacz sesję'} onClick={() => toggleSession(candidate.id)} className="mt-0.5 rounded text-slate-400 hover:text-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">{selected ? <CheckSquare size={18} className="text-indigo-600"/> : <Square size={18}/>}</button><button type="button" onClick={() => onOpenSession({ type: candidate.gameType, sessionId: candidate.id })} className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"><p className="truncate text-sm font-black text-slate-800">{labelOf(candidate)}</p><p className="mt-0.5 text-xs text-slate-500">{candidate.handCount} rąk · {candidate.dateStr}</p></button></div><div className="mt-2 flex flex-wrap items-center gap-2"><span className={`rounded-full px-2 py-1 text-[10px] font-black ${candidate.currentReport ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{candidate.currentReport ? 'raport aktualny' : 'brak aktualnego raportu'}</span><button type="button" aria-label={`${analyzing ? 'Analizowanie sesji' : candidate.currentReport ? 'Analizuj ponownie' : 'Analizuj sesję'}: ${labelOf(candidate)}`} title={analyzing ? 'Analizowanie sesji' : candidate.currentReport ? 'Analizuj ponownie' : 'Analizuj sesję'} disabled={analyzing} onClick={() => dispatch(analyzeSessionWithAI({ sessionId: candidate.id }))} className="inline-flex size-7 items-center justify-center rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50">{analyzing ? <LoaderCircle size={14} className="animate-spin"/> : <Brain size={14}/>}</button></div>{sessionErrorById[candidate.id] && <p role="alert" className="mt-2 text-xs text-red-700">{sessionErrorById[candidate.id]?.message || sessionErrorById[candidate.id]}</p>}</article>;
-            })}</div>
+          <section data-testid="session-group-analysis-session-list" className="flex max-h-[calc(100vh-25rem)] min-h-64 flex-col">
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-2.5"><span className="text-xs font-black uppercase tracking-wide text-slate-500">Sesje</span><span className="flex items-center gap-1"><button type="button" aria-label="Zaznacz widoczne sesje" title="Zaznacz wszystkie sesje zgodne z filtrami" disabled={sessionIndex.months.length === 0 || sessionIndex.allStatus === 'loading'} onClick={() => { void selectVisible(); }} className="inline-flex size-7 items-center justify-center rounded-md text-indigo-700 hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-40">{sessionIndex.allStatus === 'loading' ? <LoaderCircle size={16} className="animate-spin"/> : <CheckSquare size={16}/>}</button><button type="button" aria-label="Wyczyść wybór sesji" title="Wyczyść wybór sesji" disabled={selectedIds.length === 0} onClick={() => onSelectedSourceIdsChange([])} className="inline-flex size-7 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"><RotateCcw size={15}/></button></span></div>
+            {sessionIndex.status === 'loading' && sessionIndex.months.length === 0 && <p className="p-6 text-center text-sm text-slate-500">Pobieranie indeksu miesięcy…</p>}
+            {sessionIndex.status === 'failed' && <div role="alert" className="m-3 flex items-center justify-between gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700"><span>{sessionIndex.error}</span><button type="button" onClick={() => dispatch(fetchSessionMonths(sessionQuery))} className="rounded border border-red-200 bg-white px-2 py-1 font-bold">Ponów</button></div>}
+            {sessionIndex.allStatus === 'failed' && <div role="alert" className="m-3 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">{sessionIndex.allError}</div>}
+            {sessionIndex.status === 'succeeded' && sessionIndex.months.length === 0 && <p className="p-8 text-center text-sm text-slate-500">Brak sesji z prawdziwymi rozdaniami w bieżącej kategorii i zakresie dat.</p>}
+            {sessionIndex.months.length > 0 && <div className="flex min-h-0 flex-1 p-3"><SessionMonthAccordion
+              months={sessionIndex.months}
+              activeMonthKey={activeMonthKey}
+              pagesByMonth={displayPages}
+              onMonthToggle={(monthKey) => setMonthSelection({ queryKey: sessionQueryKey, monthKey })}
+              onLoadMonth={loadMonth}
+              onRetryMonth={loadMonth}
+              renderSession={renderCandidate}
+              selectedCountsByMonth={selectedCountsByMonth}
+              mixed={gameType === 'both'}
+              emptyMessage="Brak sesji w tym miesiącu."
+            /></div>}
           </section>
         </div>
 
         <section data-testid="session-group-analysis-preview" className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 px-4 py-3 sm:px-5"><h3 className="text-sm font-black text-slate-800">Podgląd i raport analizy</h3><p className="mt-0.5 text-xs text-slate-500">Do serwera trafiają tylko ID sesji i rewzja datasetu; raport jest budowany z aktualnych danych kanonicznych.</p>{visibleReports.length > 0 && <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-2.5"><label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide text-slate-500"><Clock3 size={14}/> Historia raportów ({visibleReports.length})</label><select aria-label="Historia raportów analizy wielu sesji" value={activeReport?.reportId || ''} onChange={(event) => onSelectedReportIdChange(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-700 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">{visibleReports.map((report) => <option key={report.reportId} value={report.reportId}>{report.model?.name || 'Model AI'} · {report.sessionCount || report.sessionIds?.length || 0} sesje</option>)}</select></div>}</div>
+          <div className="border-b border-slate-100 px-4 py-3 sm:px-5"><h3 className="text-sm font-black text-slate-800">Podgląd i raport analizy</h3><p className="mt-0.5 text-xs text-slate-500">Do serwera trafiają tylko ID sesji i rewizja datasetu; raport jest budowany z aktualnych danych kanonicznych.</p>{visibleReports.length > 0 && <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-2.5"><label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide text-slate-500"><Clock3 size={14}/> Historia raportów ({visibleReports.length})</label><select aria-label="Historia raportów analizy wielu sesji" value={activeReport?.reportId || ''} onChange={(event) => onSelectedReportIdChange(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-700 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">{visibleReports.map((report) => <option key={report.reportId} value={report.reportId}>{report.model?.name || 'Model AI'} · {report.sessionCount || report.sessionIds?.length || 0} sesje</option>)}</select></div>}</div>
           <div className="space-y-3 p-4 sm:p-5">
             {sessionGroupPreview.status === 'loading' && <div data-testid="session-group-preview-loading" role="status" className="rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-sm font-semibold text-indigo-800">Aktualizowanie metryk wybranych sesji…</div>}
             {sessionGroupPreview.status === 'failed' && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{sessionGroupPreview.error?.message || sessionGroupPreview.error}</div>}

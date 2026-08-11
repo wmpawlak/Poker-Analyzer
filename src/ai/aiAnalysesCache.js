@@ -8,6 +8,7 @@ export const createEmptyAiAnalysesCache = () => ({
   handAnalyses: {},
   sessionAnalyses: {},
   sessionGroupAnalyses: [],
+  playerAnalyses: [],
 });
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -37,6 +38,7 @@ export const normalizeAiAnalysesCache = (value) => {
     handAnalyses: normalizeReportMap(value.handAnalyses),
     sessionAnalyses: normalizeReportMap(value.sessionAnalyses),
     sessionGroupAnalyses: normalizeReportList(value.sessionGroupAnalyses),
+    playerAnalyses: normalizeReportList(value.playerAnalyses),
   };
 };
 
@@ -70,6 +72,7 @@ export const mergeAiAnalysesCaches = (...caches) => {
     handAnalyses: mergeReportMaps(merged.handAnalyses, cache.handAnalyses),
     sessionAnalyses: mergeReportMaps(merged.sessionAnalyses, cache.sessionAnalyses),
     sessionGroupAnalyses: mergeReportLists(merged.sessionGroupAnalyses, cache.sessionGroupAnalyses),
+    playerAnalyses: mergeReportLists(merged.playerAnalyses, cache.playerAnalyses),
   }), clone(base));
 };
 
@@ -77,6 +80,7 @@ export const buildAiAnalysesCache = ({
   aiAnalyses = {},
   sessionAiAnalyses = {},
   sessionGroupAiAnalyses = [],
+  playerAiAnalyses = [],
   updatedAt = null,
 } = {}) => normalizeAiAnalysesCache({
   version: AI_ANALYSES_CACHE_VERSION,
@@ -84,6 +88,7 @@ export const buildAiAnalysesCache = ({
   handAnalyses: aiAnalyses,
   sessionAnalyses: sessionAiAnalyses,
   sessionGroupAnalyses: sessionGroupAiAnalyses,
+  playerAnalyses: playerAiAnalyses,
 }) || createEmptyAiAnalysesCache();
 
 export const applyAiAnalysesCache = ({
@@ -92,12 +97,14 @@ export const applyAiAnalysesCache = ({
   handCacheKey,
   sessionCacheKey,
   sessionGroupCacheKey,
+  playerCacheKey,
 } = {}) => {
   const normalized = normalizeAiAnalysesCache(cache) || createEmptyAiAnalysesCache();
   if (storage) {
     storage.setItem(handCacheKey, JSON.stringify(normalized.handAnalyses));
     storage.setItem(sessionCacheKey, JSON.stringify(normalized.sessionAnalyses));
     storage.setItem(sessionGroupCacheKey, JSON.stringify(normalized.sessionGroupAnalyses));
+    if (playerCacheKey) storage.setItem(playerCacheKey, JSON.stringify(normalized.playerAnalyses));
   }
   return normalized;
 };

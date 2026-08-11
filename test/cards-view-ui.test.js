@@ -23,7 +23,14 @@ test('widok kart nie dziedziczy dat profilu i pokazuje metadane kompletności', 
     reducer: { poker: pokerReducer },
     preloadedState: { poker: {
       ...base,
-      filters: { ...base.filters, dateFrom: '2026-01-01', dateTo: '2026-01-31', cardsDateFrom: '', cardsDateTo: '' },
+      filters: {
+        ...base.filters,
+        dateRanges: {
+          ...base.filters.dateRanges,
+          profile: { from: '2026-01-01', to: '2026-01-31' },
+          cards: { from: '', to: '' },
+        },
+      },
       aggregates: {
         ...base.aggregates,
         cards: {
@@ -42,6 +49,7 @@ test('widok kart nie dziedziczy dat profilu i pokazuje metadane kompletności', 
 
   assert.match(html, /Zakres kart:.*cała historia/);
   assert.match(html, /aria-label="Zakres dat kart startowych"/);
+  assert.match(html, /data-testid="cards-date-range"/);
   assert.match(html, /Zindeksowane:.*18,?032/);
   assert.match(html, /Klasy:.*169\/169/);
   assert.match(html, /Pominięto warianty poza NLH i NLH BombPot:.*7/);
