@@ -228,12 +228,11 @@ test('pierwszy render pobiera tylko indeks, a miesiące ładuje po rozwinięciu 
   }
 });
 
-test('globalny filtr statusu wykonuje pełne pobranie dopiero po zmianie kontrolki', async () => {
+test('filtr raportu sesji odświeża indeks z parametrem API bez pełnego pobrania sesji', async () => {
   const originalFetch = globalThis.fetch;
   const calls = [];
   installApiMock({ calls });
-  const currentReport = [{ reportId: 'report', fingerprint: augustA.fingerprint, datasetRevision: 'revision-1' }];
-  const { root } = await mountBrowser({ sessionAiAnalyses: { [augustA.id]: currentReport } });
+  const { root } = await mountBrowser();
   try {
     await waitFor(() => document.querySelector('[data-month-key="2026-08"]'));
     assert.equal(calls.filter(({ url }) => url.startsWith('/api/sessions?')).length, 0);
@@ -244,13 +243,11 @@ test('globalny filtr statusu wykonuje pełne pobranie dopiero po zmianie kontrol
       return !new URL(`http://local${url}`).searchParams.has('month');
     });
     assert.equal(fullRequests().length, 0);
-    const statusSelect = [...document.querySelectorAll('select')].find((select) => select.closest('label')?.textContent.includes('Status analizy'));
-    await change(statusSelect, 'current');
-    await waitFor(() => fullRequests().length === 1);
+    const reportSelect = [...document.querySelectorAll('select')].find((select) => select.closest('label')?.textContent.includes('Raport sesji'));
+    await change(reportSelect, 'has');
+    await waitFor(() => calls.filter(({ url }) => new URL(`http://local${url}`).searchParams.get('sessionAnalysis') === 'has').length === 1);
     assert.equal(document.querySelectorAll('[role="region"]').length, 0);
-    await click(document.querySelector('[data-month-key="2026-08"] button'));
-    await waitFor(() => document.body.textContent.includes('Stół #august-a'));
-    assert.equal(document.body.textContent.includes('Stół #august-b'), false);
+    assert.equal(fullRequests().length, 0);
   } finally {
     await act(() => root.unmount());
     globalThis.fetch = originalFetch;

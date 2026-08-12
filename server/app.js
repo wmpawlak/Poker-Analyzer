@@ -1,5 +1,6 @@
 import express from 'express';
 import process from 'node:process';
+import { randomUUID } from 'node:crypto';
 import {
   analyzeHandWithModel,
   analyzePlayerWithModel,
@@ -19,6 +20,7 @@ import { getPublicAiModels } from './ai/models.js';
 import { createSessionGroupMetadata } from '../src/ai/sessionGroupAnalysisContract.js';
 import {
   DEFAULT_DATA_DIRECTORY as DEFAULT_AI_CACHE_DATA_DIRECTORY,
+  createEmptyAiAnalysesCache,
   mergeAiAnalysesCaches,
   migrateLocalStorageAiAnalyses,
   normalizeAiAnalysesCache,
@@ -46,6 +48,11 @@ import {
   createWalletResponse,
   DataQueryError,
 } from './dataQueries.js';
+import { readCanonicalRecords } from './dataRepository.js';
+import { createTrainingRepository } from './training/trainingRepository.js';
+import { createTrainingRefreshService } from './training/refreshService.js';
+import { createTrainingService } from './training/trainingService.js';
+import { createTrainingRouter } from './training/trainingRoutes.js';
 
 export const createApiApp = ({
   dataDirectory,
@@ -54,6 +61,13 @@ export const createApiApp = ({
   logger = console,
   dataIndex: injectedDataIndex,
   dataImports: injectedDataImports,
+  trainingRepository: injectedTrainingRepository,
+  trainingRefreshService: injectedTrainingRefreshService,
+  trainingService: injectedTrainingService,
+  trainingAnalyzeBatch,
+  trainingRandom,
+  trainingIdFactory,
+  readTrainingRecords = readCanonicalRecords,
 } = {}) => {
   const app = express();
   app.use(express.json({ limit: '12mb' }));
@@ -63,6 +77,30 @@ export const createApiApp = ({
     dataDirectory: cacheDataDirectory,
     dataIndex,
     logger,
+  });
+  const trainingRepository = injectedTrainingRepository || createTrainingRepository({
+    dataDirectory: cacheDataDirectory,
+  });
+  const trainingRefreshService = injectedTrainingRefreshService || createTrainingRefreshService({
+    repository: trainingRepository,
+    ...(trainingAnalyzeBatch ? { analyzeBatch: trainingAnalyzeBatch } : {}),
+    ...(trainingIdFactory ? { idFactory: trainingIdFactory } : {}),
+    environment,
+    fetchImpl,
+    logger,
+  });
+  const trainingService = injectedTrainingService || createTrainingService({
+    repository: trainingRepository,
+    ...(trainingRandom ? { random: trainingRandom } : {}),
+    ...(trainingIdFactory ? { idFactory: trainingIdFactory } : {}),
+    isRefreshRunning: () => trainingRefreshService.hasActiveRun?.() === true,
+    getHandAnalysisSummary: async (handId) => {
+      const reports = (await readAiAnalysesCache(cacheDataDirectory)).handAnalyses[String(handId)] || [];
+      const newest = [...reports].sort((left, right) => (
+        (Date.parse(right?.analyzedAt || '') || 0) - (Date.parse(left?.analyzedAt || '') || 0)
+      ))[0];
+      return String(newest?.analysis?.summary || '').trim().slice(0, 1_500) || null;
+    },
   });
   let cacheOperation = Promise.resolve();
   const withCacheLock = (operation) => {
@@ -74,6 +112,24 @@ export const createApiApp = ({
   const cachesEqual = (left, right) => (
     JSON.stringify(cacheWithoutTimestamp(left)) === JSON.stringify(cacheWithoutTimestamp(right))
   );
+  const compactAiAnalysesCache = (cache) => ({ ...cache, sessionAnalyses: {} });
+  const includeSessionAnalyses = (request) => request.query?.includeSessionAnalyses !== 'false';
+  const responseCache = (request, cache) => (
+    includeSessionAnalyses(request) ? cache : compactAiAnalysesCache(cache)
+  );
+  const appendReportToCache = async ({ type, ownerId, report }) => withCacheLock(async () => {
+    const normalizedOwnerId = String(ownerId || '').trim();
+    const collection = type === 'session' ? 'sessionAnalyses' : 'handAnalyses';
+    const incoming = normalizeAiAnalysesCache({
+      ...createEmptyAiAnalysesCache(),
+      [collection]: { [normalizedOwnerId]: [report] },
+    });
+    const existing = await readAiAnalysesCache(cacheDataDirectory);
+    const merged = mergeAiAnalysesCaches(existing, incoming);
+    return cachesEqual(existing, merged)
+      ? existing
+      : writeAiAnalysesCache({ ...merged, updatedAt: new Date().toISOString() }, cacheDataDirectory);
+  });
   const sendCacheError = (response, error) => {
     const status = error.code === 'AI_CACHE_TOO_LARGE' ? 413 : 503;
     response.status(status).json({
@@ -112,6 +168,17 @@ export const createApiApp = ({
   // ręcznie skopiowane pliki, a późniejsze następuje wyłącznie na żądanie API.
   void dataImports.scanInbox();
 
+  app.use('/api/training', createTrainingRouter({
+    repository: trainingRepository,
+    refreshService: trainingRefreshService,
+    trainingService,
+    dataIndex,
+    dataDirectory: cacheDataDirectory,
+    readCanonicalRecords: readTrainingRecords,
+    environment,
+    logger,
+  }));
+
   app.get('/api/data/status', (_request, response) => {
     void dataIndex.start().catch(() => {});
     const indexStatus = dataIndex.getStatus();
@@ -137,9 +204,14 @@ export const createApiApp = ({
     }
   });
 
+
   app.get('/api/sessions', async (request, response) => {
     try {
-      response.json(createSessionsResponse(await dataIndex.getSnapshot(), request.query));
+      const [snapshot, aiAnalysesCache] = await Promise.all([
+        dataIndex.getSnapshot(),
+        readAiAnalysesCache(cacheDataDirectory),
+      ]);
+      response.json(createSessionsResponse(snapshot, request.query, { aiAnalysesCache }));
     } catch (error) {
       sendDataError(response, error);
     }
@@ -147,7 +219,11 @@ export const createApiApp = ({
 
   app.get('/api/session-months', async (request, response) => {
     try {
-      response.json(createSessionMonthsResponse(await dataIndex.getSnapshot(), request.query));
+      const [snapshot, aiAnalysesCache] = await Promise.all([
+        dataIndex.getSnapshot(),
+        readAiAnalysesCache(cacheDataDirectory),
+      ]);
+      response.json(createSessionMonthsResponse(snapshot, request.query, { aiAnalysesCache }));
     } catch (error) {
       sendDataError(response, error);
     }
@@ -155,7 +231,11 @@ export const createApiApp = ({
 
   app.post('/api/session-summaries/query', async (request, response) => {
     try {
-      response.json(createSessionSummariesResponse(await dataIndex.getSnapshot(), request.body));
+      const [snapshot, aiAnalysesCache] = await Promise.all([
+        dataIndex.getSnapshot(),
+        readAiAnalysesCache(cacheDataDirectory),
+      ]);
+      response.json(createSessionSummariesResponse(snapshot, request.body, { aiAnalysesCache }));
     } catch (error) {
       sendDataError(response, error);
     }
@@ -163,7 +243,11 @@ export const createApiApp = ({
 
   app.get('/api/sessions/:id', async (request, response) => {
     try {
-      const result = createSessionDetailResponse(await dataIndex.getSnapshot(), request.params.id);
+      const [snapshot, aiAnalysesCache] = await Promise.all([
+        dataIndex.getSnapshot(),
+        readAiAnalysesCache(cacheDataDirectory),
+      ]);
+      const result = createSessionDetailResponse(snapshot, request.params.id, { aiAnalysesCache });
       if (!result) {
         response.status(404).json({ error: 'Nie znaleziono sesji.', code: 'SESSION_NOT_FOUND' });
         return;
@@ -176,8 +260,11 @@ export const createApiApp = ({
 
   app.get('/api/sessions/:id/hands', async (request, response) => {
     try {
-      const snapshot = await dataIndex.getSnapshot();
-      const result = createSessionHandsResponse(snapshot, request.params.id, request.query);
+      const [snapshot, aiAnalysesCache] = await Promise.all([
+        dataIndex.getSnapshot(),
+        readAiAnalysesCache(cacheDataDirectory),
+      ]);
+      const result = createSessionHandsResponse(snapshot, request.params.id, request.query, { aiAnalysesCache });
       if (!result) {
         response.status(404).json({ error: 'Nie znaleziono sesji.', code: 'SESSION_NOT_FOUND' });
         return;
@@ -343,7 +430,15 @@ export const createApiApp = ({
         environment,
         fetchImpl,
       });
-      response.json({ ...result, datasetRevision: resolved.datasetRevision });
+      const report = {
+        ...result,
+        handId: String(resolved.hand.id),
+        reportId: randomUUID(),
+        analyzedAt: new Date().toISOString(),
+        datasetRevision: resolved.datasetRevision,
+      };
+      await appendReportToCache({ type: 'hand', ownerId: report.handId, report });
+      response.json(report);
     } catch (error) {
       const status = Number.isInteger(error.status) ? error.status : 500;
       if (status === 500) {
@@ -370,7 +465,14 @@ export const createApiApp = ({
         fetchImpl,
         logger,
       });
-      response.json({ ...result, datasetRevision: resolved.datasetRevision });
+      const report = {
+        ...result,
+        reportId: randomUUID(),
+        analyzedAt: new Date().toISOString(),
+        datasetRevision: resolved.datasetRevision,
+      };
+      await appendReportToCache({ type: 'session', ownerId: report.sessionId, report });
+      response.json(report);
     } catch (error) {
       const status = Number.isInteger(error.status) ? error.status : 500;
       if (status === 500) logger?.error?.('Unexpected AI session analysis error:', error.message);
@@ -454,10 +556,53 @@ export const createApiApp = ({
     }
   });
 
-  app.get('/api/ai-analyses', async (_request, response) => {
+  app.get('/api/ai-analyses', async (request, response) => {
     try {
       const cache = await readAiAnalysesCache(cacheDataDirectory);
-      response.json({ cache });
+      response.json({ cache: responseCache(request, cache) });
+    } catch (error) {
+      sendCacheError(response, error);
+    }
+  });
+
+  app.get('/api/ai-analyses/sessions/:sessionId', async (request, response) => {
+    try {
+      const sessionId = String(request.params.sessionId || '').trim();
+      if (!sessionId) {
+        response.status(400).json({ error: 'Brakuje identyfikatora sesji.', code: 'AI_SESSION_ID_REQUIRED' });
+        return;
+      }
+      const cache = await readAiAnalysesCache(cacheDataDirectory);
+      response.json({ sessionId, reports: cache.sessionAnalyses[sessionId] || [] });
+    } catch (error) {
+      sendCacheError(response, error);
+    }
+  });
+
+  app.get('/api/ai-analyses/hands/:handId', async (request, response) => {
+    try {
+      const handId = String(request.params.handId || '').trim();
+      if (!handId) {
+        response.status(400).json({ error: 'Brakuje identyfikatora rozdania.', code: 'AI_HAND_ID_REQUIRED' });
+        return;
+      }
+      const cache = await readAiAnalysesCache(cacheDataDirectory);
+      response.json({ handId, reports: cache.handAnalyses[handId] || [] });
+    } catch (error) {
+      sendCacheError(response, error);
+    }
+  });
+
+  app.post('/api/ai-analyses/sessions/:sessionId', async (request, response) => {
+    try {
+      const sessionId = String(request.params.sessionId || '').trim();
+      const report = request.body?.report;
+      if (!sessionId || !report || String(report.sessionId || '').trim() !== sessionId) {
+        response.status(400).json({ error: 'Raport nie pasuje do wskazanej sesji.', code: 'AI_SESSION_REPORT_INVALID' });
+        return;
+      }
+      const cache = await appendReportToCache({ type: 'session', ownerId: sessionId, report });
+      response.json({ sessionId, reports: cache.sessionAnalyses[sessionId] || [] });
     } catch (error) {
       sendCacheError(response, error);
     }
@@ -478,7 +623,7 @@ export const createApiApp = ({
           ? existing
           : writeAiAnalysesCache({ ...merged, updatedAt: new Date().toISOString() }, cacheDataDirectory);
       });
-      response.json({ cache });
+      response.json({ cache: responseCache(request, cache) });
     } catch (error) {
       sendCacheError(response, error);
     }
@@ -494,7 +639,7 @@ export const createApiApp = ({
           ? existing
           : writeAiAnalysesCache({ ...merged, updatedAt: new Date().toISOString() }, cacheDataDirectory);
       });
-      response.json({ cache });
+      response.json({ cache: responseCache(request, cache) });
     } catch (error) {
       sendCacheError(response, error);
     }
@@ -512,7 +657,7 @@ export const createApiApp = ({
           ? existing
           : writeAiAnalysesCache({ ...pruned, updatedAt: new Date().toISOString() }, cacheDataDirectory);
       });
-      response.json({ cache });
+      response.json({ cache: responseCache(request, cache) });
     } catch (error) {
       sendCacheError(response, error);
     }
@@ -522,19 +667,26 @@ export const createApiApp = ({
     void _next;
     const payloadTooLarge = error?.type === 'entity.too.large' || error?.status === 413;
     const malformedJson = error?.type === 'entity.parse.failed' || error instanceof SyntaxError;
+    const trainingRequest = request.path.startsWith('/api/training');
     if (payloadTooLarge) {
       response.status(413).json({
         error: request.path === '/api/imports'
           ? 'Plik importu przekracza dopuszczalny rozmiar 32 MB.'
-          : 'Zadanie AI przekracza dopuszczalny rozmiar żądania.',
-        code: request.path === '/api/imports' ? 'IMPORT_FILE_TOO_LARGE' : 'AI_REQUEST_TOO_LARGE',
+          : trainingRequest
+            ? 'Żądanie modułu ćwiczeń przekracza dopuszczalny rozmiar.'
+            : 'Zadanie AI przekracza dopuszczalny rozmiar żądania.',
+        code: request.path === '/api/imports'
+          ? 'IMPORT_FILE_TOO_LARGE'
+          : trainingRequest ? 'TRAINING_REQUEST_TOO_LARGE' : 'AI_REQUEST_TOO_LARGE',
       });
       return;
     }
     if (malformedJson) {
       response.status(400).json({
-        error: 'Żądanie AI musi zawierać prawidłowy JSON.',
-        code: 'AI_INVALID_REQUEST',
+        error: trainingRequest
+          ? 'Żądanie modułu ćwiczeń musi zawierać prawidłowy JSON.'
+          : 'Żądanie AI musi zawierać prawidłowy JSON.',
+        code: trainingRequest ? 'TRAINING_INVALID_REQUEST' : 'AI_INVALID_REQUEST',
       });
       return;
     }

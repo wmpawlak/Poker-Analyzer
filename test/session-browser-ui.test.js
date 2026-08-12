@@ -27,7 +27,7 @@ const session = (id, fingerprint) => ({
   fingerprint,
 });
 
-test('przeglądarka sesji pokazuje filtry statusu i początkowo zwiniętą listę miesięcy', async (context) => {
+test('przeglądarka sesji pokazuje spójne filtry analiz i początkowo zwiniętą listę miesięcy', async (context) => {
   const vite = await createServer({ appType: 'custom', logLevel: 'silent', server: { middlewareMode: true, hmr: false } });
   context.after(() => vite.close());
   const base = pokerReducer(undefined, { type: '@@init' });
@@ -61,9 +61,11 @@ test('przeglądarka sesji pokazuje filtry statusu i początkowo zwiniętą list�
     gameType: 'cash', onHandClick: () => {},
   })));
 
-  assert.match(html, /Status analizy/);
-  assert.match(html, /Z aktualnym raportem/);
-  assert.match(html, /Bez aktualnego raportu/);
+  assert.match(html, /Raport sesji/);
+  assert.match(html, /Analiza rozdań/);
+  assert.match(html, /<option value="has">Z analizą<\/option>/);
+  assert.match(html, /<option value="none">Bez analizy<\/option>/);
+  assert.doesNotMatch(html, />Z analizą<\/button>/);
   assert.match(html, /aria-label="Luty 2026, 3 sesji, 36 rozdań"/);
   assert.match(html, /aria-expanded="false"/);
   assert.doesNotMatch(html, /role="region"/);

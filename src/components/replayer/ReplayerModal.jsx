@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   analyzeHandWithAI,
+  fetchHandAnalysisHistory,
   fetchOpenedHand,
   selectHand,
   toggleSavedHand,
@@ -25,6 +26,8 @@ export const ReplayerModal = ({ handId, onClose }) => {
   const openedHandsById = useSelector((state) => state.poker.openedHandsById);
   const openedHandStatusById = useSelector((state) => state.poker.openedHandStatusById);
   const openedHandErrorById = useSelector((state) => state.poker.openedHandErrorById);
+  const handAnalysisHistoryStatusById = useSelector((state) => state.poker.handAnalysisHistoryStatusById);
+  const handAnalysisHistoryErrorById = useSelector((state) => state.poker.handAnalysisHistoryErrorById);
   const aiAnalyses = useSelector((state) => state.poker.aiAnalyses);
   const loadingAI = useSelector((state) => state.poker.loadingAI);
   const errorAI = useSelector((state) => state.poker.errorAI);
@@ -41,6 +44,8 @@ export const ReplayerModal = ({ handId, onClose }) => {
   const modalHand = openedHandsById[String(handId)];
   const handStatus = openedHandStatusById[String(handId)] || 'idle';
   const handError = openedHandErrorById[String(handId)];
+  const analysisHistoryStatus = handAnalysisHistoryStatusById[String(handId)] || 'idle';
+  const analysisHistoryError = handAnalysisHistoryErrorById[String(handId)];
   const analysisHistory = modalHand ? getAnalysisHistory(aiAnalyses[modalHand.id]) : [];
   const currentReport = analysisHistory.find((report) => report.reportId === selectedReportId)
     || analysisHistory.at(-1);
@@ -62,6 +67,10 @@ export const ReplayerModal = ({ handId, onClose }) => {
   useEffect(() => {
     if (!modalHand && handStatus === 'idle') dispatch(fetchOpenedHand({ handId }));
   }, [dispatch, handId, handStatus, modalHand]);
+
+  useEffect(() => {
+    if (handId) dispatch(fetchHandAnalysisHistory({ handId }));
+  }, [dispatch, handId]);
 
   if (!modalHand) {
     return (
@@ -205,8 +214,11 @@ export const ReplayerModal = ({ handId, onClose }) => {
                 )}
               </select>
               <p className="mt-2 text-[11px] text-gray-500">
-                Nowa analiza zostanie wykonana modelem <strong>{selectedModelName}</strong> i dopisana do historii.
+                {analysisHistoryStatus === 'loading'
+                  ? 'Odzyskiwanie zapisanej historii analiz…'
+                  : <>Nowa analiza zostanie wykonana modelem <strong>{selectedModelName}</strong> i dopisana do historii.</>}
               </p>
+              {analysisHistoryStatus === 'failed' && <p role="alert" className="mt-2 text-[11px] font-semibold text-red-700">{analysisHistoryError}</p>}
               {isAnalysisStale && <p role="status" className="mt-2 text-[11px] font-semibold text-amber-800">Ten raport dotyczy wcześniejszej rewizji datasetu.</p>}
             </div>
           )}

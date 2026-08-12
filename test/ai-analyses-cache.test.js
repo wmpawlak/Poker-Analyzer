@@ -218,6 +218,47 @@ test('normalizacja cache frontendu odrzuca nieprawidłową wersję zamiast usuwa
   assert.throws(() => normalizeServerAiAnalysesCache({ version: 99 }), /nieobsługiwaną wersję/);
 });
 
+test('API sesji zwraca historię na żądanie, zapisuje pojedynczy raport i pozwala ukryć ją w synchronizacji', async (t) => {
+  const dataDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'poker-analyzer-ai-session-history-'));
+  t.after(() => fs.rm(dataDirectory, { recursive: true, force: true }));
+  const baseUrl = await startApi(t, dataDirectory);
+  const report = sessionReport('lazy-session-report', 'session-lazy');
+
+  const saved = await fetch(`${baseUrl}/api/ai-analyses/sessions/session-lazy`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ report }),
+  });
+  assert.equal(saved.status, 200);
+  assert.deepEqual((await saved.json()).reports.map((item) => item.reportId), ['lazy-session-report']);
+
+  const history = await fetch(`${baseUrl}/api/ai-analyses/sessions/session-lazy`);
+  assert.equal(history.status, 200);
+  assert.equal((await history.json()).reports[0].analysis.sessionSummary, 'Raport sesji.');
+
+  const compact = await fetch(`${baseUrl}/api/ai-analyses?includeSessionAnalyses=false`);
+  assert.deepEqual((await compact.json()).cache.sessionAnalyses, {});
+});
+
+test('API rozdania odzyskuje pełną historię z trwałego cache po handId', async (t) => {
+  const dataDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'poker-analyzer-ai-hand-history-'));
+  t.after(() => fs.rm(dataDirectory, { recursive: true, force: true }));
+  const baseUrl = await startApi(t, dataDirectory);
+  const first = handReport('hand-history-1');
+  const second = handReport('hand-history-2');
+  await writeAiAnalysesCache({
+    ...createEmptyAiAnalysesCache(),
+    handAnalyses: { 'hand-42': [first, second] },
+  }, dataDirectory);
+
+  const response = await fetch(`${baseUrl}/api/ai-analyses/hands/hand-42`);
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.handId, 'hand-42');
+  assert.deepEqual(body.reports.map((report) => report.reportId), ['hand-history-1', 'hand-history-2']);
+});
+
 test('starszy cache bez playerAnalyses migruje do pustej historii, a raporty gracza scalają się po reportId', () => {
   const legacy = {
     version: 1,

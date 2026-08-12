@@ -30,6 +30,7 @@ const renderPanel = async ({
   sessionStatus = 'idle',
   modelConfigured = false,
   selectedReportId = null,
+  defaultExpanded = false,
 } = {}) => {
   const vite = await createServer({ appType: 'custom', logLevel: 'silent', server: { middlewareMode: true, hmr: false } });
   try {
@@ -52,7 +53,7 @@ const renderPanel = async ({
       },
     });
     return renderToStaticMarkup(createElement(Provider, { store }, createElement(SessionAnalysisPanel, {
-      sessionId: 'session-a', sessionFingerprint: 'current-data', handCount: hands.length, onHandClick: () => {},
+      sessionId: 'session-a', sessionFingerprint: 'current-data', handCount: hands.length, onHandClick: () => {}, defaultExpanded,
     })));
   } finally {
     await vite.close();
@@ -79,6 +80,7 @@ test('kontrolowany wybór Redux pokazuje dokładny historyczny raport sesji', as
       report('latest-report', 'current-data', 'Najnowszy raport.'),
     ],
     selectedReportId: 'historical-report',
+    defaultExpanded: true,
   });
 
   assert.match(html, /Dokładnie wybrany raport historyczny/);
@@ -87,7 +89,7 @@ test('kontrolowany wybór Redux pokazuje dokładny historyczny raport sesji', as
 });
 
 test('panel sesji pokazuje stan bez raportu, małą próbę i brak konfiguracji modelu', async () => {
-  const html = await renderPanel();
+  const html = await renderPanel({ defaultExpanded: true });
   assert.match(html, /Analiza AI sesji/);
   assert.match(html, /poniżej 30 rąk/);
   assert.match(html, /Raport nie został jeszcze wygenerowany ręcznie/);
@@ -96,6 +98,7 @@ test('panel sesji pokazuje stan bez raportu, małą próbę i brak konfiguracji 
 
 test('panel sesji pokazuje historię, nieaktualny raport i nieaktywne nieistniejące rozdanie', async () => {
   const html = await renderPanel({
+    defaultExpanded: true,
     reports: [{
       reportId: 'old', model: { name: 'GPT-5.6 Terra' }, analyzedAt: '2026-08-08T10:00:00.000Z',
       handCount: 2, fingerprint: 'previous-data',
@@ -114,6 +117,7 @@ test('panel sesji pokazuje historię, nieaktualny raport i nieaktywne nieistniej
 
 test('panel sesji oznacza płatne ręczne ponowienie tylko dla niepełnej odpowiedzi AI', async () => {
   const html = await renderPanel({
+    defaultExpanded: true,
     sessionStatus: 'failed',
     modelConfigured: true,
     sessionError: {
@@ -128,6 +132,7 @@ test('panel sesji oznacza płatne ręczne ponowienie tylko dla niepełnej odpowi
 
 test('panel sesji zachowuje zwykłe ponowienie dla starszego tekstowego błędu', async () => {
   const html = await renderPanel({
+    defaultExpanded: true,
     sessionStatus: 'failed',
     modelConfigured: true,
     sessionError: 'Model nie jest skonfigurowany na serwerze.',
@@ -135,4 +140,17 @@ test('panel sesji zachowuje zwykłe ponowienie dla starszego tekstowego błędu'
 
   assert.match(html, />Spróbuj ponownie</);
   assert.doesNotMatch(html, /nowe płatne żądanie/);
+});
+
+test('panel analizy sesji jest domyślnie zwinięty', async () => {
+  const html = await renderPanel({
+    reports: [{
+      reportId: 'report-a', fingerprint: 'current-data', model: { name: 'GPT-5.6 Terra' }, analyzedAt: '2026-08-08T10:00:00.000Z',
+      analysis: { profileStyleId: 'TAG', sessionSummary: 'Treść raportu.', keyMistakes: [], notableHands: [] },
+    }],
+  });
+
+  assert.match(html, /aria-expanded="false"/);
+  assert.match(html, /Rozwiń, aby zobaczyć raport i historię analiz/);
+  assert.doesNotMatch(html, /Treść raportu\./);
 });

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-11T20:38:38.296Z",
+  "updatedAt": "2026-08-11T23:19:28.699Z",
   "handAnalyses": {
     "594100596": [
       {
@@ -3439,6 +3439,77 @@
             {
               "handId": "6280350157",
               "reason": "Hero dokonuje świetnego callu na turnie z AhQc, trafiając strita na riverze (board 8s Jc 3s Kc 9h), wygrywając duży pot. Demonstruje to poprawne decyzje w obliczu presji. "
+            }
+          ]
+        }
+      }
+    ],
+    "tourney_87547_2026/08/11": [
+      {
+        "sessionId": "tourney_87547_2026/08/11",
+        "reportId": "d9e9ebd5-201b-45a1-9f8e-cbfce268fd60",
+        "model": {
+          "id": "gpt-5.6-terra",
+          "name": "GPT-5.6 Terra"
+        },
+        "analyzedAt": "2026-08-11T23:19:28.568Z",
+        "fingerprint": "fnv1a-da734e54",
+        "datasetRevision": "p1-7ba1dcf8dfaf02d9023aefb1daf44cbf034976e13b9cda8523d1c698ded74407",
+        "analysis": {
+          "profileStyleId": "LAG",
+          "sessionSummary": "Profil Hero to LAG: aktywnie buduje pule otwarciami i często wywiera presję po flopie. W tej sesji największy potencjał poprawy dotyczy dyscypliny sizingów preflop oraz unikania kosztownych limpów z rękami offsuit o słabej realizacji equity. Agresja jest wartościowa, ale na teksturach sprzyjających obronie rywala potrzebuje wyraźniejszego planu na check-raise i grę o stacki.",
+          "keyMistakes": [
+            {
+              "title": "Eskalowanie puli z marginalną siłą lub bez planu na kontrę",
+              "description": "W kilku rozdaniach Hero inwestuje dużo na flopach, które dobrze trafiają zakres obrony rywala, a następnie musi oddać pulę po agresji. W #132293500002 raise z Q7s na flopie 6-7-8 z dwoma treflami praktycznie ustawia grę o efektywny stack rywala, mimo że jedna para ma słabą pozycję wobec zakresu 3-betu i kontynuacji. W #132296200050 c-bet z A9o na 8-6-4 z dwoma kierami przeciwko callerowi szybko kończy się bet-foldem na shove, a w #132296200072 lead z A3o na J-2-2 z dwoma karami zostaje złożony po raisie.",
+              "correction": "Przed betem ustal, które ręce kontynuują po check-razie i jaką equity ma Twój zakres. Na niskich, połączonych boardach częściej checkuj showdown value i słabe A-high, a z jedną parą unikaj dużych raise'ów bez mocnych drawów, blokera lub konkretnego exploitu.",
+              "handIds": [
+                "132293500002",
+                "132296200050",
+                "132296200072"
+              ]
+            },
+            {
+              "title": "Limpowanie offsuitowych asów i króli tworzące trudne decyzje",
+              "description": "Limpowanie słabych rąk offsuit nie wykorzystuje inicjatywy Hero i zostawia niekomfortowe decyzje wobec izolacji. W #132296200035 A9o zostaje zlimpowane z UTG i złożone po shovie short stacka; w #132296200072 A3o ze small blinda limp-callu­je dużą izolację, a następnie traci kolejne żetony po flopie. W #132296200080 K9o jest limpem przy około 14 BB, po czym Hero inwestuje c-bet i folduje do zagrania all-in big blinda.",
+              "correction": "Ustal prostsze zakresy raise/fold lub raise/call zależnie od efektywnego stacka, pozycji i ICM. Przy 12–20 BB unikaj limpów typu K9o poza dopracowaną strategią limp/shove; ze small blinda po dużej izolacji A3o offsuit powinno przeważnie fol­dować zamiast limp-callować.",
+              "handIds": [
+                "132296200035",
+                "132296200072",
+                "132296200080"
+              ]
+            },
+            {
+              "title": "Zbyt duże otwarcia preflop względem stacków turniejowych",
+              "description": "Hero kilkukrotnie otwiera za 3,5–4 BB, nie zyskując widocznie więcej fold equity, za to ryzykując nadmierną część stacka. W #132293500002 otwarcie z UTG wynosi 4 BB z Q7s, w #132296200016 Hero otwiera 99 z UTG za 4 BB, a w #132296200038 BTN otwiera 88 za 3,5 BB przy około 36 BB. Takie sizingi obniżają elastyczność po 3-becie lub shovie i podnoszą koszt standardowych foldów.",
+              "correction": "Jako domyślny sizing stosuj około 2–2,3 BB, ewentualnie 2,5 BB w uzasadnionym exploicie. Większe otwarcia zachowaj dla konkretnych dynamik stołu, zamiast uzależniać ich wielkość od siły ręki.",
+              "handIds": [
+                "132293500002",
+                "132296200016",
+                "132296200038"
+              ]
+            }
+          ],
+          "notableHands": [
+            {
+              "handId": "132293500002",
+              "reason": "Kluczowy przykład zbyt ambitnego raise'u na bardzo dynamicznym flopie: Q7s ma tylko drugą parę na 6-7-8 z dwoma treflami po wcześniejszym 3-becie."
+            },
+            {
+              "handId": "132296200072",
+              "reason": "Limp-call z A3o ze small blinda przeciwko dużej izolacji, a potem lead-fold na J-2-2 z dwoma karami; ważne rozdanie do uporządkowania strategii blind vs blind."
+            },
+            {
+              "handId": "132296200080",
+              "reason": "Limp K9o przy płytkim stacku oraz bet-fold po flopie pokazują koszt strategii bez jasno określonych zakresów limpowania i odpowiedzi na presję."
+            },
+            {
+              "handId": "132296200069",
+              "reason": "Interesujący punkt decyzyjny dla doboru c-betów: A9 na Q-T-8 z dwoma karami po check-razie big blinda wymaga precyzyjnej oceny equity i zakresu obrony."
+            },
+            {
+              "handId": "132296200091",
+              "reason": "Największy bezwzględny swing sesji. Przy stacku poniżej 4 BB reshove z QQ z big blinda przeciwko minraise'owi jest standardową decyzją short-stackową; wynik na boardzie nie powinien wpływać na ocenę tej decyzji."
             }
           ]
         }

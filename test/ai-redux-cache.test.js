@@ -47,6 +47,8 @@ const {
   analyzeSessionWithAI,
   clearData,
   default: pokerReducer,
+  fetchHandAnalysisHistory,
+  fetchSessionAnalysisHistory,
   loadAiAnalyses,
   loadDefaultAiModel,
   loadSavedHandIds,
@@ -55,6 +57,7 @@ const {
   setDefaultAiModel,
   syncAiAnalyses,
   toggleSavedHand,
+  releaseSessionAnalysisHistory,
 } = await import('../src/store/pokerSlice.js');
 
 const analysis = {
@@ -279,6 +282,8 @@ test('thunk używa aktualnego modelu domyślnego i zapisuje model z odpowiedzi',
 });
 
 test('synchronizacja scala lokalne raporty z repozytoryjnym cache bez wywołania dostawcy AI', async () => {
+  const originalStorage = new Map(storage.values);
+  storage.values.clear();
   const initialState = pokerReducer(undefined, { type: '@@init' });
   const localHandReport = {
     reportId: 'local-hand-report',
@@ -329,7 +334,7 @@ test('synchronizacja scala lokalne raporty z repozytoryjnym cache bez wywołania
   globalThis.fetch = async (url, options) => {
     requests.push({ url, options });
     const body = options?.body ? JSON.parse(options.body) : null;
-    const cache = url === '/api/ai-analyses' ? remoteCache : body.cache;
+    const cache = String(url).startsWith('/api/ai-analyses?') ? remoteCache : body.cache;
     return new Response(JSON.stringify({ cache }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
@@ -340,16 +345,18 @@ test('synchronizacja scala lokalne raporty z repozytoryjnym cache bez wywołania
     const result = await store.dispatch(syncAiAnalyses());
     assert.equal(result.type, syncAiAnalyses.fulfilled.type);
     assert.equal(requests.length, 2);
-    assert.equal(requests[0].url, '/api/ai-analyses');
-    assert.equal(requests[1].url, '/api/ai-analyses/sync');
+    assert.equal(requests[0].url, '/api/ai-analyses?includeSessionAnalyses=false');
+    assert.equal(requests[1].url, '/api/ai-analyses/sync?includeSessionAnalyses=false');
     const body = JSON.parse(requests[1].options.body);
     assert.equal(body.cache.handAnalyses['96890300082'].length, 2);
     assert.equal(store.getState().poker.aiAnalyses['96890300082'].length, 2);
-    assert.equal(store.getState().poker.sessionAiAnalyses['session-local'].length, 1);
+    assert.equal(body.cache.sessionAnalyses['session-local'].length, 1);
+    assert.equal(store.getState().poker.sessionAiAnalyses['session-local'][0].reportId, 'local-session-report');
     assert.equal(store.getState().poker.sessionGroupAiAnalyses.length, 1);
     assert.equal(JSON.parse(storage.getItem(AI_ANALYSES_CACHE_KEY))['96890300082'].length, 2);
   } finally {
     globalThis.fetch = originalFetch;
+    storage.values = originalStorage;
   }
 });
 
@@ -378,18 +385,18 @@ test('synchronizacja po 503 importuje tolerancyjnie surowy stary localStorage', 
   };
   globalThis.fetch = async (url, options) => {
     requests.push({ url, options });
-    if (url === '/api/ai-analyses') {
+    if (url === '/api/ai-analyses?includeSessionAnalyses=false') {
       return new Response(JSON.stringify({
         cache: { version: 1, updatedAt: null, handAnalyses: {}, sessionAnalyses: {}, sessionGroupAnalyses: [] },
       }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
-    if (url === '/api/ai-analyses/sync') {
+    if (url === '/api/ai-analyses/sync?includeSessionAnalyses=false') {
       return new Response(JSON.stringify({ error: 'Stary format.', code: 'AI_CACHE_INVALID' }), {
         status: 503,
         headers: { 'Content-Type': 'application/json' },
       });
     }
-    assert.equal(url, '/api/ai-analyses/import-local-storage');
+    assert.equal(url, '/api/ai-analyses/import-local-storage?includeSessionAnalyses=false');
     const rawImport = JSON.parse(options.body);
     assert.deepEqual(rawImport.handAnalyses['legacy-hand'], { summary: 'Stary raport bez wrappera.' });
     return new Response(JSON.stringify({
@@ -407,9 +414,9 @@ test('synchronizacja po 503 importuje tolerancyjnie surowy stary localStorage', 
     const result = await store.dispatch(syncAiAnalyses());
     assert.equal(result.type, syncAiAnalyses.fulfilled.type);
     assert.deepEqual(requests.map(({ url }) => url), [
-      '/api/ai-analyses',
-      '/api/ai-analyses/sync',
-      '/api/ai-analyses/import-local-storage',
+      '/api/ai-analyses?includeSessionAnalyses=false',
+      '/api/ai-analyses/sync?includeSessionAnalyses=false',
+      '/api/ai-analyses/import-local-storage?includeSessionAnalyses=false',
     ]);
     assert.equal(store.getState().poker.aiAnalyses['legacy-hand'][0].reportId, importedReport.reportId);
   } finally {
@@ -420,6 +427,51 @@ test('synchronizacja po 503 importuje tolerancyjnie surowy stary localStorage', 
     else storage.setItem(SESSION_AI_ANALYSES_CACHE_KEY, originalSessionCache);
     if (originalGroupCache === null) storage.removeItem(SESSION_GROUP_AI_ANALYSES_CACHE_KEY);
     else storage.setItem(SESSION_GROUP_AI_ANALYSES_CACHE_KEY, originalGroupCache);
+  }
+});
+
+test('historia raportu sesji jest pobierana na żądanie i zwalniana po zamknięciu akordeonu', async () => {
+  const initialState = pokerReducer(undefined, { type: '@@init' });
+  const store = configureStore({ reducer: { poker: pokerReducer }, preloadedState: { poker: initialState } });
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    assert.equal(url, '/api/ai-analyses/sessions/session-lazy');
+    return new Response(JSON.stringify({
+      sessionId: 'session-lazy',
+      reports: [{ reportId: 'lazy-report', fingerprint: 'fingerprint', analysis: { sessionSummary: 'Treść.' } }],
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+  try {
+    const result = await store.dispatch(fetchSessionAnalysisHistory({ sessionId: 'session-lazy' }));
+    assert.equal(result.type, fetchSessionAnalysisHistory.fulfilled.type);
+    assert.equal(store.getState().poker.sessionAiAnalyses['session-lazy'][0].reportId, 'lazy-report');
+    store.dispatch(releaseSessionAnalysisHistory('session-lazy'));
+    assert.equal(store.getState().poker.sessionAiAnalyses['session-lazy'], undefined);
+    assert.equal(store.getState().poker.sessionAnalysisHistoryStatusById['session-lazy'], undefined);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('historia analiz rozdania jest odzyskiwana niezależnie od synchronizacji startowej', async () => {
+  const initialState = pokerReducer(undefined, { type: '@@init' });
+  const store = configureStore({ reducer: { poker: pokerReducer }, preloadedState: { poker: { ...initialState, aiAnalyses: {} } } });
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options) => {
+    assert.equal(url, '/api/ai-analyses/hands/hand-lazy');
+    assert.equal(options.cache, 'no-store');
+    return new Response(JSON.stringify({
+      handId: 'hand-lazy',
+      reports: [{ reportId: 'recovered-hand-report', analysis: { summary: 'Odzyskany raport.' } }],
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+  try {
+    const result = await store.dispatch(fetchHandAnalysisHistory({ handId: 'hand-lazy' }));
+    assert.equal(result.type, fetchHandAnalysisHistory.fulfilled.type);
+    assert.equal(store.getState().poker.aiAnalyses['hand-lazy'][0].reportId, 'recovered-hand-report');
+    assert.equal(store.getState().poker.handAnalysisHistoryStatusById['hand-lazy'], 'succeeded');
+  } finally {
+    globalThis.fetch = originalFetch;
   }
 });
 

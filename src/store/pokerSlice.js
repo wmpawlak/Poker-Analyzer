@@ -207,6 +207,16 @@ const buildRawLocalStorageAiAnalyses = (storage = getBrowserStorage()) => ({
   playerAnalyses: readLocalStorageJson(storage, PLAYER_AI_ANALYSES_CACHE_KEY, []),
 });
 
+const buildLocalStorageAiAnalysesCache = (storage = getBrowserStorage()) => {
+  const raw = buildRawLocalStorageAiAnalyses(storage);
+  return buildAiAnalysesCache({
+    aiAnalyses: raw.handAnalyses,
+    sessionAiAnalyses: loadSessionAiAnalyses(storage),
+    sessionGroupAiAnalyses: raw.sessionGroupAnalyses,
+    playerAiAnalyses: raw.playerAnalyses,
+  });
+};
+
 const readAiCacheResponse = async (response, fallbackMessage) => {
   if (!response.ok) throw new Error(await getResponseError(response, fallbackMessage));
   const body = await response.json();
@@ -324,6 +334,35 @@ export const fetchOpenedHand = createAsyncThunk(
   },
 );
 
+export const fetchHandAnalysisHistory = createAsyncThunk(
+  'poker/fetchHandAnalysisHistory',
+  async ({ handId }, { rejectWithValue }) => {
+    try {
+      const normalizedHandId = String(handId || '').trim();
+      if (!normalizedHandId) throw new Error('Brakuje identyfikatora rozdania.');
+      const result = await readJsonResponse(
+        await fetch(`/api/ai-analyses/hands/${encodeURIComponent(normalizedHandId)}`, { cache: 'no-store' }),
+        'Nie udało się pobrać historii analiz rozdania.',
+      );
+      if (result?.handId !== normalizedHandId || !Array.isArray(result?.reports)) {
+        throw new Error('Serwer zwrócił nieprawidłową historię analiz rozdania.');
+      }
+      return { handId: normalizedHandId, reports: result.reports };
+    } catch (error) {
+      return rejectWithValue(error.message || 'Nie udało się pobrać historii analiz rozdania.');
+    }
+  },
+  {
+    condition: ({ handId }, { getState }) => {
+      const normalizedHandId = String(handId || '');
+      const state = getState().poker;
+      const status = state.handAnalysisHistoryStatusById[normalizedHandId];
+      return status !== 'loading'
+        && (status !== 'succeeded' || !Object.hasOwn(state.aiAnalyses, normalizedHandId));
+    },
+  },
+);
+
 const createQueryUrl = (pathname, params = {}) => {
   const search = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -353,6 +392,8 @@ const normalizeSessionQuery = (params = {}) => ({
   handRanking: params.handRanking || '',
   dateFrom: params.dateFrom || '',
   dateTo: params.dateTo || '',
+  sessionAnalysis: ['has', 'none'].includes(params.sessionAnalysis) ? params.sessionAnalysis : 'all',
+  handAnalysis: params.handAnalysis === 'has' ? 'has' : 'all',
 });
 
 export const createSessionMonthsQueryKey = (params = {}) => JSON.stringify(normalizeSessionQuery(params));
@@ -371,8 +412,8 @@ const createSessionsQueryKey = ({ gameType = '', handRanking = '' } = {}) => (
   JSON.stringify({ gameType, handRanking })
 );
 
-const createSessionHandsQueryKey = ({ sessionId, handRanking = '', sortBy = 'date', sortOrder = 'desc' } = {}) => (
-  JSON.stringify({ sessionId: String(sessionId || ''), handRanking, sortBy, sortOrder })
+const createSessionHandsQueryKey = ({ sessionId, handRanking = '', handAnalysis = 'all', sortBy = 'date', sortOrder = 'desc' } = {}) => (
+  JSON.stringify({ sessionId: String(sessionId || ''), handRanking, handAnalysis, sortBy, sortOrder })
 );
 
 const createHandCollectionQueryKey = ({
@@ -610,6 +651,7 @@ export const fetchSessionMonths = createAsyncThunk(
     condition: (params = {}, { getState }) => {
       const query = normalizeSessionQuery(params);
       if (!['cash', 'tournament', 'both'].includes(query.gameType)) return true;
+      if (params.refresh === true) return true;
       const state = getState().poker;
       const entry = state.sessionMonthIndexes[createSessionMonthsQueryKey(query)];
       if (entry?.status === 'loading') return false;
@@ -644,6 +686,7 @@ export const fetchSessionMonth = createAsyncThunk(
       const queryKey = createSessionMonthsQueryKey(query);
       const page = state.sessionMonthPages[queryKey]?.[month];
       if (page?.status === 'loading') return false;
+      if (params.refresh === true) return true;
       return !(page?.status === 'succeeded'
         && page.datasetRevision
         && page.datasetRevision === state.dataset.datasetRevision);
@@ -772,13 +815,14 @@ export const fetchSessionDetail = createAsyncThunk(
 
 export const fetchSessionHands = createAsyncThunk(
   'poker/fetchSessionHands',
-  async ({ sessionId, handRanking = '', sortBy = 'date', sortOrder = 'desc', cursor = null }, { rejectWithValue }) => {
+  async ({ sessionId, handRanking = '', handAnalysis = 'all', sortBy = 'date', sortOrder = 'desc', cursor = null }, { rejectWithValue }) => {
     try {
       if (!String(sessionId || '').trim()) throw new Error('Brakuje identyfikatora sesji.');
-      const query = { sessionId, handRanking, sortBy, sortOrder };
+      const query = { sessionId, handRanking, handAnalysis, sortBy, sortOrder };
       const result = await readJsonResponse(
         await fetch(createQueryUrl(`/api/sessions/${encodeURIComponent(sessionId)}/hands`, {
           handRanking,
+          handAnalysis,
           sortBy,
           sortOrder,
           cursor,
@@ -786,17 +830,25 @@ export const fetchSessionHands = createAsyncThunk(
         })),
         'Nie udało się pobrać rąk sesji.',
       );
+      if (handAnalysis === 'has' && (
+        result?.handAnalysis !== 'has'
+        || !Array.isArray(result?.hands)
+        || result.hands.some((hand) => hand?.hasAnalysis !== true)
+      )) {
+        throw new Error('Serwer zwrócił ręce bez potwierdzonej analizy dla aktywnego filtra. Odśwież dane i spróbuj ponownie.');
+      }
       return { ...result, queryKey: createSessionHandsQueryKey(query) };
     } catch (error) {
       return rejectWithValue(error.message || 'Nie udało się pobrać rąk sesji.');
     }
   },
   {
-    condition: ({ sessionId, handRanking = '', sortBy = 'date', sortOrder = 'desc', cursor = null }, { getState }) => {
+    condition: ({ sessionId, handRanking = '', handAnalysis = 'all', sortBy = 'date', sortOrder = 'desc', cursor = null, refresh = false }, { getState }) => {
       const state = getState().poker;
       const page = state.sessionHandsById[String(sessionId)];
-      const queryKey = createSessionHandsQueryKey({ sessionId, handRanking, sortBy, sortOrder });
+      const queryKey = createSessionHandsQueryKey({ sessionId, handRanking, handAnalysis, sortBy, sortOrder });
       if (page?.status === 'loading' && page.queryKey === queryKey) return false;
+      if (refresh) return true;
       if (!cursor) {
         return !(page?.status === 'succeeded'
           && page.datasetRevision === state.dataset.datasetRevision
@@ -866,16 +918,19 @@ export const syncAiAnalyses = createAsyncThunk(
   'poker/syncAiAnalyses',
   async (_, { getState, rejectWithValue }) => {
     try {
-      const localCache = buildCurrentAiAnalysesCache(getState().poker);
-      const remoteCache = await readAiCacheResponse(await fetch('/api/ai-analyses'), 'Nie udało się odczytać wspólnego cache analiz AI.');
+      const localCache = mergeAiAnalysesCaches(
+        buildCurrentAiAnalysesCache(getState().poker),
+        buildLocalStorageAiAnalysesCache(),
+      );
+      const remoteCache = await readAiCacheResponse(await fetch('/api/ai-analyses?includeSessionAnalyses=false'), 'Nie udało się odczytać wspólnego cache analiz AI.');
       const mergedCache = mergeAiAnalysesCaches(remoteCache, localCache);
-      const syncResponse = await fetch('/api/ai-analyses/sync', {
+      const syncResponse = await fetch('/api/ai-analyses/sync?includeSessionAnalyses=false', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cache: mergedCache }),
       });
       if (syncResponse.ok) return await readAiCacheResponse(syncResponse, 'Nie udało się zapisać wspólnego cache analiz AI.');
-      const importResponse = await fetch('/api/ai-analyses/import-local-storage', {
+      const importResponse = await fetch('/api/ai-analyses/import-local-storage?includeSessionAnalyses=false', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(buildRawLocalStorageAiAnalyses()),
@@ -905,10 +960,10 @@ export const analyzeHandWithAI = createAsyncThunk(
       const result = await response.json();
       if (!result?.model?.id || !result?.model?.name || !result?.analysis) throw new Error('Serwer zwrócił nieprawidłowy raport analizy AI.');
       return {
-        handId: String(handId),
-        reportId: createReportId(handId),
+        handId: String(result.handId || handId),
+        reportId: result.reportId || createReportId(handId),
         model: result.model,
-        analyzedAt: new Date().toISOString(),
+        analyzedAt: result.analyzedAt || new Date().toISOString(),
         datasetRevision: result.datasetRevision,
         analysis: result.analysis,
       };
@@ -937,9 +992,9 @@ export const analyzeSessionWithAI = createAsyncThunk(
       if (!result?.model?.id || !result?.model?.name || !result?.sessionId || !result?.fingerprint || !result?.analysis) throw new Error('Serwer zwrócił nieprawidłowy raport analizy sesji AI.');
       return {
         sessionId: result.sessionId,
-        reportId: createReportId(result.sessionId),
+        reportId: result.reportId || createReportId(result.sessionId),
         model: result.model,
-        analyzedAt: new Date().toISOString(),
+        analyzedAt: result.analyzedAt || new Date().toISOString(),
         fingerprint: result.fingerprint,
         datasetRevision: result.datasetRevision,
         analysis: result.analysis,
@@ -949,6 +1004,35 @@ export const analyzeSessionWithAI = createAsyncThunk(
     }
   },
   { condition: ({ sessionId }, { getState }) => getState().poker.sessionAnalysisStatusById[sessionId] !== 'loading' },
+);
+
+export const fetchSessionAnalysisHistory = createAsyncThunk(
+  'poker/fetchSessionAnalysisHistory',
+  async ({ sessionId }, { rejectWithValue }) => {
+    try {
+      const normalizedSessionId = String(sessionId || '').trim();
+      if (!normalizedSessionId) throw new Error('Brakuje identyfikatora sesji.');
+      const result = await readJsonResponse(
+        await fetch(`/api/ai-analyses/sessions/${encodeURIComponent(normalizedSessionId)}`, { cache: 'no-store' }),
+        'Nie udało się pobrać historii raportów sesji.',
+      );
+      if (result?.sessionId !== normalizedSessionId || !Array.isArray(result?.reports)) {
+        throw new Error('Serwer zwrócił nieprawidłową historię raportów sesji.');
+      }
+      return { sessionId: normalizedSessionId, reports: result.reports };
+    } catch (error) {
+      return rejectWithValue(error.message || 'Nie udało się pobrać historii raportów sesji.');
+    }
+  },
+  {
+    condition: ({ sessionId }, { getState }) => {
+      const normalizedSessionId = String(sessionId || '');
+      const state = getState().poker;
+      const status = state.sessionAnalysisHistoryStatusById[normalizedSessionId];
+      return status !== 'loading'
+        && (status !== 'succeeded' || !Object.hasOwn(state.sessionAiAnalyses, normalizedSessionId));
+    },
+  },
 );
 
 export const fetchSessionGroupPreview = createAsyncThunk(
@@ -1171,10 +1255,15 @@ const initialState = {
   aiModelsStatus: 'idle',
   aiModelsError: null,
   aiAnalyses: loadAiAnalyses(),
-  sessionAiAnalyses: loadSessionAiAnalyses(),
+  handAnalysisHistoryStatusById: {},
+  handAnalysisHistoryErrorById: {},
+  sessionAiAnalyses: {},
   selectedSessionAnalysisReportIdBySessionId: {},
   sessionAnalysisStatusById: {},
   sessionAnalysisErrorById: {},
+  sessionAnalysisHistoryStatusById: {},
+  sessionAnalysisHistoryErrorById: {},
+  sessionAnalysisMetadataVersion: 0,
   sessionGroupAiAnalyses: loadSessionGroupAiAnalyses(),
   sessionGroupPreview: createEmptySessionGroupPreview(),
   sessionGroupAnalysisStatus: 'idle',
@@ -1363,6 +1452,13 @@ const pokerSlice = createSlice({
       if (reportId) state.selectedSessionAnalysisReportIdBySessionId[sessionId] = reportId;
       else delete state.selectedSessionAnalysisReportIdBySessionId[sessionId];
     },
+    releaseSessionAnalysisHistory: (state, action) => {
+      const sessionId = String(action.payload || '').trim();
+      if (!sessionId) return;
+      delete state.sessionAiAnalyses[sessionId];
+      delete state.sessionAnalysisHistoryStatusById[sessionId];
+      delete state.sessionAnalysisHistoryErrorById[sessionId];
+    },
     setDefaultAiModel: (state, action) => {
       if (!AI_MODEL_IDS.includes(action.payload)) return;
       state.defaultAiModel = action.payload;
@@ -1463,6 +1559,22 @@ const pokerSlice = createSlice({
         const handId = String(action.meta.arg.handId);
         state.openedHandStatusById[handId] = 'failed';
         state.openedHandErrorById[handId] = action.payload || 'Nie udało się pobrać rozdania.';
+      })
+      .addCase(fetchHandAnalysisHistory.pending, (state, action) => {
+        const handId = String(action.meta.arg.handId);
+        state.handAnalysisHistoryStatusById[handId] = 'loading';
+        delete state.handAnalysisHistoryErrorById[handId];
+      })
+      .addCase(fetchHandAnalysisHistory.fulfilled, (state, action) => {
+        const { handId, reports } = action.payload;
+        state.aiAnalyses[handId] = reports;
+        state.handAnalysisHistoryStatusById[handId] = 'succeeded';
+        delete state.handAnalysisHistoryErrorById[handId];
+      })
+      .addCase(fetchHandAnalysisHistory.rejected, (state, action) => {
+        const handId = String(action.meta.arg.handId);
+        state.handAnalysisHistoryStatusById[handId] = 'failed';
+        state.handAnalysisHistoryErrorById[handId] = action.payload || 'Nie udało się pobrać historii analiz rozdania.';
       })
       .addCase(fetchSessionMonths.pending, (state, action) => {
         const query = normalizeSessionQuery(action.meta.arg);
@@ -1737,15 +1849,15 @@ const pokerSlice = createSlice({
       })
       .addCase(fetchSessionHands.pending, (state, action) => {
         const sessionId = String(action.meta.arg.sessionId);
-        const { handRanking = '', sortBy = 'date', sortOrder = 'desc', cursor = null } = action.meta.arg;
-        const queryKey = createSessionHandsQueryKey({ sessionId, handRanking, sortBy, sortOrder });
+        const { handRanking = '', handAnalysis = 'all', sortBy = 'date', sortOrder = 'desc', cursor = null } = action.meta.arg;
+        const queryKey = createSessionHandsQueryKey({ sessionId, handRanking, handAnalysis, sortBy, sortOrder });
         const existing = state.sessionHandsById[sessionId];
         state.sessionHandsById[sessionId] = (!cursor && existing?.queryKey !== queryKey)
           ? {
-            items: [], nextCursor: null, datasetRevision: null, queryKey, handRanking, sortBy, sortOrder,
+            items: [], nextCursor: null, datasetRevision: null, queryKey, handRanking, handAnalysis, sortBy, sortOrder,
             status: 'loading', error: null,
           }
-          : { ...(existing || { items: [], nextCursor: null, datasetRevision: null, queryKey, handRanking, sortBy, sortOrder }), status: 'loading', error: null };
+          : { ...(existing || { items: [], nextCursor: null, datasetRevision: null, queryKey, handRanking, handAnalysis, sortBy, sortOrder }), status: 'loading', error: null };
         touchSessionHandPage(state, sessionId);
       })
       .addCase(fetchSessionHands.fulfilled, (state, action) => {
@@ -1765,6 +1877,7 @@ const pokerSlice = createSlice({
           datasetRevision: action.payload.datasetRevision || state.dataset.datasetRevision,
           queryKey: action.payload.queryKey,
           handRanking: action.payload.handRanking || '',
+          handAnalysis: action.payload.handAnalysis === 'has' ? 'has' : 'all',
           sortBy: action.payload.sortBy || 'date',
           sortOrder: action.payload.sortOrder || 'desc',
         };
@@ -1964,7 +2077,10 @@ const pokerSlice = createSlice({
         const history = Array.isArray(state.aiAnalyses[report.handId]) ? state.aiAnalyses[report.handId] : [];
         history.push(report);
         state.aiAnalyses[report.handId] = history;
+        state.handAnalysisHistoryStatusById[report.handId] = 'succeeded';
+        delete state.handAnalysisHistoryErrorById[report.handId];
         localStorage.setItem(AI_ANALYSES_CACHE_KEY, JSON.stringify(state.aiAnalyses));
+        state.sessionAnalysisMetadataVersion += 1;
       })
       .addCase(analyzeHandWithAI.rejected, (state, action) => {
         state.loadingAI = false;
@@ -1984,13 +2100,31 @@ const pokerSlice = createSlice({
         history.push(report);
         state.sessionAiAnalyses[report.sessionId] = history;
         state.selectedSessionAnalysisReportIdBySessionId[report.sessionId] = report.reportId;
-        localStorage.setItem(SESSION_AI_ANALYSES_CACHE_KEY, JSON.stringify(state.sessionAiAnalyses));
+        state.sessionAnalysisHistoryStatusById[report.sessionId] = 'succeeded';
+        delete state.sessionAnalysisHistoryErrorById[report.sessionId];
+        state.sessionAnalysisMetadataVersion += 1;
       })
       .addCase(analyzeSessionWithAI.rejected, (state, action) => {
         const sessionId = action.meta.arg.sessionId;
         state.sessionAnalysisStatusById[sessionId] = 'failed';
         state.sessionAnalysisErrorById[sessionId] = action.payload;
         if (action.payload?.code === 'DATASET_REVISION_MISMATCH') state.datasetRefreshNotice = 'Dane zmieniły się podczas działania. Odświeżyliśmy dataset — ponów analizę ręcznie.';
+      })
+      .addCase(fetchSessionAnalysisHistory.pending, (state, action) => {
+        const sessionId = String(action.meta.arg.sessionId);
+        state.sessionAnalysisHistoryStatusById[sessionId] = 'loading';
+        delete state.sessionAnalysisHistoryErrorById[sessionId];
+      })
+      .addCase(fetchSessionAnalysisHistory.fulfilled, (state, action) => {
+        const { sessionId, reports } = action.payload;
+        state.sessionAiAnalyses[sessionId] = reports;
+        state.sessionAnalysisHistoryStatusById[sessionId] = 'succeeded';
+        delete state.sessionAnalysisHistoryErrorById[sessionId];
+      })
+      .addCase(fetchSessionAnalysisHistory.rejected, (state, action) => {
+        const sessionId = String(action.meta.arg.sessionId);
+        state.sessionAnalysisHistoryStatusById[sessionId] = 'failed';
+        state.sessionAnalysisHistoryErrorById[sessionId] = action.payload || 'Nie udało się pobrać historii raportów sesji.';
       })
       .addCase(fetchSessionGroupPreview.pending, (state, action) => {
         state.sessionGroupPreview = {
@@ -2070,12 +2204,16 @@ const pokerSlice = createSlice({
           sessionCacheKey: SESSION_AI_ANALYSES_CACHE_KEY,
           sessionGroupCacheKey: SESSION_GROUP_AI_ANALYSES_CACHE_KEY,
           playerCacheKey: PLAYER_AI_ANALYSES_CACHE_KEY,
+          includeSessionAnalyses: false,
         });
         state.aiAnalyses = normalized.handAnalyses;
-        state.sessionAiAnalyses = normalized.sessionAnalyses;
-        Object.entries(state.selectedSessionAnalysisReportIdBySessionId).forEach(([sessionId, reportId]) => {
-          if (!(state.sessionAiAnalyses[sessionId] || []).some((report) => report.reportId === reportId)) {
-            delete state.selectedSessionAnalysisReportIdBySessionId[sessionId];
+        // Pełne raporty sesji są lazy-loadowane i zwalniane przez akordeon.
+        // Synchronizacja cache'u (np. po analizie ręki w tle) nie może jednak
+        // wyczyścić raportu, który użytkownik właśnie czyta.
+        Object.keys(state.sessionAnalysisHistoryStatusById).forEach((sessionId) => {
+          if (!Object.hasOwn(state.sessionAiAnalyses, sessionId)) {
+            delete state.sessionAnalysisHistoryStatusById[sessionId];
+            delete state.sessionAnalysisHistoryErrorById[sessionId];
           }
         });
         state.sessionGroupAiAnalyses = normalized.sessionGroupAnalyses;
@@ -2095,6 +2233,7 @@ const pokerSlice = createSlice({
 
 export const {
   clearSessionGroupPreview,
+  releaseSessionAnalysisHistory,
   clearDatasetRefreshNotice,
   closeOpenedHand,
   selectHand,

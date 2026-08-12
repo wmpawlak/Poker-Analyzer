@@ -98,14 +98,17 @@ export const applyAiAnalysesCache = ({
   sessionCacheKey,
   sessionGroupCacheKey,
   playerCacheKey,
+  includeSessionAnalyses = true,
 } = {}) => {
   const normalized = normalizeAiAnalysesCache(cache) || createEmptyAiAnalysesCache();
+  const applied = includeSessionAnalyses ? normalized : { ...normalized, sessionAnalyses: {} };
   if (storage) {
-    storage.setItem(handCacheKey, JSON.stringify(normalized.handAnalyses));
-    storage.setItem(sessionCacheKey, JSON.stringify(normalized.sessionAnalyses));
-    storage.setItem(sessionGroupCacheKey, JSON.stringify(normalized.sessionGroupAnalyses));
-    if (playerCacheKey) storage.setItem(playerCacheKey, JSON.stringify(normalized.playerAnalyses));
+    storage.setItem(handCacheKey, JSON.stringify(applied.handAnalyses));
+    if (includeSessionAnalyses) storage.setItem(sessionCacheKey, JSON.stringify(applied.sessionAnalyses));
+    else storage.removeItem(sessionCacheKey);
+    storage.setItem(sessionGroupCacheKey, JSON.stringify(applied.sessionGroupAnalyses));
+    if (playerCacheKey) storage.setItem(playerCacheKey, JSON.stringify(applied.playerAnalyses));
   }
-  return normalized;
+  return applied;
 };
 

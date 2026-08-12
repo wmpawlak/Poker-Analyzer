@@ -5,6 +5,7 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import { createApiApp } from '../server/app.js';
 import {
+  createSessionHandsResponse,
   createSessionMonthsResponse,
   createSessionsResponse,
 } from '../server/dataQueries.js';
@@ -151,6 +152,41 @@ test('zakres dat przecina miesiąc, a pusty zakres i dataset zwracają pusty ind
     sessions: { cash: [], tournament: [] },
     sessionsById: new Map(),
   }, {}).months, []);
+});
+
+test('filtry analiz korzystają z cache, zwracają metadane i łączą się przez przecięcie', () => {
+  const snapshot = createSnapshot();
+  const cache = {
+    handAnalyses: {
+      'august-pair': [{ reportId: 'hand-report' }],
+      'august-flush': [{ reportId: 'hand-report-tournament' }],
+    },
+    sessionAnalyses: {
+      'cash-august': [{ reportId: 'current-report', fingerprint: 'fingerprint-cash-august', datasetRevision: 'months-revision' }],
+      'cash-july': [{ reportId: 'stale-report', fingerprint: 'old-fingerprint', datasetRevision: 'old-revision' }],
+    },
+  };
+  const options = { aiAnalysesCache: cache };
+
+  const withReports = createSessionsResponse(snapshot, { gameType: 'cash', sessionAnalysis: 'has' }, options);
+  assert.deepEqual(withReports.sessions.map((session) => session.id), ['cash-august', 'cash-july']);
+  assert.deepEqual(withReports.sessions.map((session) => [session.sessionAnalysisStatus, session.sessionAnalysisReportId, session.analyzedHandsCount]), [
+    ['current', 'current-report', 1],
+    ['stale', null, 0],
+  ]);
+
+  const intersection = createSessionsResponse(snapshot, {
+    gameType: 'cash', sessionAnalysis: 'has', handAnalysis: 'has',
+  }, options);
+  assert.deepEqual(intersection.sessions.map((session) => session.id), ['cash-august']);
+
+  const months = createSessionMonthsResponse(snapshot, { gameType: 'both', handAnalysis: 'has' }, options);
+  assert.deepEqual(months.months.map((month) => month.key), ['2026-08']);
+
+  const hands = createSessionHandsResponse(snapshot, 'cash-august', { handAnalysis: 'has' }, options);
+  assert.deepEqual(hands.hands.map((hand) => hand.id), ['august-pair']);
+  assert.deepEqual(hands.hands.map((hand) => hand.hasAnalysis), [true]);
+  assert.equal(hands.handAnalysis, 'has');
 });
 
 test('API miesiąca przecina filtry i zachowuje stary kontrakt bez month', async (t) => {

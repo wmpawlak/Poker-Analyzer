@@ -32,6 +32,11 @@ import {
   validatePlayerAnalysis,
   validatePlayerAnalysisInput,
 } from '../../src/ai/playerAnalysisContract.js';
+import {
+  buildTrainingAnswerKeyBatchInput,
+  buildTrainingAnswerKeyPrompt,
+  trainingAnswerKeyResponseSchema,
+} from '../training/answerKeyContract.js';
 
 const providerAdapters = {
   gemini: analyzeWithGemini,
@@ -225,6 +230,51 @@ export const analyzeSessionGroupWithModel = async ({
     model: getPublicAiModel(definition),
     fingerprint: validatedGroup.fingerprint,
     analysis: validatedAnalysis,
+  };
+};
+
+export const analyzeTrainingAnswerKeysWithModel = async ({
+  modelId,
+  input,
+  environment,
+  fetchImpl = globalThis.fetch,
+  logger,
+}) => {
+  const definition = getAiModelDefinition(modelId);
+  if (!definition) {
+    throw new AiServiceError(`Nieznany model AI: ${modelId || 'brak'}.`, {
+      status: 400, code: 'AI_UNKNOWN_MODEL',
+    });
+  }
+  let validatedInput;
+  try {
+    validatedInput = buildTrainingAnswerKeyBatchInput(input?.spots);
+  } catch (error) {
+    throw new AiServiceError(error.message, {
+      status: 400, code: error.code || 'AI_INVALID_TRAINING_BATCH', cause: error,
+    });
+  }
+  if (!isModelConfigured(definition, environment)) {
+    throw new AiServiceError(`Model ${definition.name} nie jest skonfigurowany na serwerze.`, {
+      status: 503, code: 'AI_MODEL_NOT_CONFIGURED',
+    });
+  }
+
+  const adapter = providerAdapters[definition.provider];
+  const response = await adapter({
+    modelId: definition.id,
+    apiKey: environment[definition.environmentKey],
+    prompt: buildTrainingAnswerKeyPrompt(validatedInput),
+    schema: trainingAnswerKeyResponseSchema,
+    schemaName: 'poker_training_answer_keys',
+    maxOutputTokens: 32_000,
+    reasoningEffort: 'high',
+    fetchImpl,
+    logger,
+  });
+  return {
+    model: getPublicAiModel(definition),
+    response,
   };
 };
 

@@ -27,5 +27,7 @@ dist-ssr
 data/.cache/
 data/poker/**/*.tmp
 data/poker/**/*.staging
+data/.poker-training-v1.json.*.tmp
 data/inbox/*.txt
 data/inbox/**/*.tmp
+data/poker-training-v1.json

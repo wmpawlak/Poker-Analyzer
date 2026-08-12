@@ -250,7 +250,10 @@ export const SessionGroupAnalysisView = ({
 
   const decorateCandidate = useCallback((session) => {
     const reports = Array.isArray(reportsBySession[session.id]) ? reportsBySession[session.id] : [];
-    const currentReport = [...reports].reverse().find((report) => isCurrentReport(report, session, datasetRevision)) || null;
+    const currentReport = [...reports].reverse().find((report) => isCurrentReport(report, session, datasetRevision))
+      || (session.sessionAnalysisStatus === 'current' && session.sessionAnalysisReportId
+        ? { reportId: session.sessionAnalysisReportId }
+        : null);
     return { ...session, gameType: typeOf(session), currentReport };
   }, [datasetRevision, reportsBySession]);
   const requestedSelectedIds = useMemo(

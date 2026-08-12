@@ -19,6 +19,8 @@ export default defineConfig({
         '**/data/poker/**',
         '**/data/poker-ai-analyses-v1.json',
         '**/data/poker-ai-analyses-v1.json.*.tmp',
+        '**/data/poker-training-v1.json',
+        '**/data/.poker-training-v1.json.*.tmp',
       ],
     },
   },

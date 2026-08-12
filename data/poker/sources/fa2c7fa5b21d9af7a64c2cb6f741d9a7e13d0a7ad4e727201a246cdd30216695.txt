@@ -1,0 +1,5418 @@
+CoinPoker Hand #108166800274: NLH (₮0.05/₮0.10) 2026/08/10 16:52:33 CEST
+Table '200897' 6-max Seat #5 is the button
+Seat 1: 2bb96d44 (₮12.28 in chips)
+Seat 2: 4246f896 (₮33.99 in chips)
+Seat 3: f86c6c8f (₮11.37 in chips)
+Seat 4: Hero (₮10 in chips)
+Seat 5: 594dc4b8 (₮10.73 in chips)
+Seat 6: 864859f7 (₮10 in chips)
+864859f7: posts small blind ₮0.05
+2bb96d44: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 2bb96d44
+Dealt to 4246f896
+Dealt to f86c6c8f
+Dealt to Hero [Ah 9h]
+Dealt to 594dc4b8
+Dealt to 864859f7
+Hero: AUTOBB ₮0.10
+4246f896: folds
+f86c6c8f: folds
+Hero: raises ₮0.05 to ₮0.15
+594dc4b8: calls ₮0.25
+864859f7: calls ₮0.20
+2bb96d44: calls ₮0.15
+*** FLOP *** [5s 9c Td]
+864859f7: checks
+2bb96d44: checks
+Hero: bets ₮0.55
+594dc4b8: calls ₮0.55
+864859f7: calls ₮0.55
+2bb96d44: folds
+*** TURN *** [5s 9c Td] [8h]
+864859f7: checks
+Hero: bets ₮1.99
+594dc4b8: folds
+864859f7: folds
+Hero: RETURN ₮1.99
+*** SHOWDOWN ***
+Hero collected ₮2.51 from pot
+*** SUMMARY ***
+Total pot ₮2.65 | Rake ₮0.13 | Splash Fee ₮0.01
+Hand was run once
+Board [ 5s 9c Td 8h ]
+Game ended: 2026/08/10 16:53:31 CEST
+Seat 1: 2bb96d44 folded on the Flop
+Seat 2: 4246f896 folded before Flop (didn't bet)
+Seat 3: f86c6c8f folded before Flop (didn't bet)
+Seat 4: Hero showed [Ah 9h] and won (₮2.51)
+Seat 5: 594dc4b8 folded on the Turn
+Seat 6: 864859f7 folded on the Turn
+
+
+CoinPoker Hand #108166800275: NLH (₮0.05/₮0.10) 2026/08/10 16:53:36 CEST
+Table '200897' 6-max Seat #6 is the button
+Seat 1: 9d015cee (₮12.03 in chips)
+Seat 2: 565d46fa (₮33.99 in chips)
+Seat 3: 7c758faa (₮11.37 in chips)
+Seat 4: Hero (₮11.71 in chips)
+Seat 5: 2a0458e2 (₮10 in chips)
+Seat 6: 17449b43 (₮10 in chips)
+9d015cee: posts small blind ₮0.05
+565d46fa: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 9d015cee
+Dealt to 565d46fa
+Dealt to 7c758faa
+Dealt to Hero [5h 3c]
+Dealt to 2a0458e2
+Dealt to 17449b43
+7c758faa: raises ₮0.15 to ₮0.25
+Hero: folds
+2a0458e2: folds
+17449b43: folds
+9d015cee: folds
+565d46fa: folds
+7c758faa: RETURN ₮0.15
+*** SHOWDOWN ***
+7c758faa collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 16:53:52 CEST
+Seat 1: 9d015cee folded before Flop (didn't bet)
+Seat 2: 565d46fa folded before Flop (didn't bet)
+Seat 3: 7c758faa won (₮0.24)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 2a0458e2 folded before Flop (didn't bet)
+Seat 6: 17449b43 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800276: NLH (₮0.05/₮0.10) 2026/08/10 16:53:57 CEST
+Table '200897' 6-max Seat #1 is the button
+Seat 1: c8942f06 (₮11.98 in chips)
+Seat 2: 54cb2fe7 (₮33.89 in chips)
+Seat 3: fb84a084 (₮11.51 in chips)
+Seat 4: Hero (₮11.71 in chips)
+Seat 5: 4fa808c2 (₮10 in chips)
+Seat 6: 7ba837bc (₮10 in chips)
+54cb2fe7: posts small blind ₮0.05
+fb84a084: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to c8942f06
+Dealt to 54cb2fe7
+Dealt to fb84a084
+Dealt to Hero [As 5d]
+Dealt to 4fa808c2
+Dealt to 7ba837bc
+Hero: folds
+4fa808c2: folds
+7ba837bc: raises ₮0.15 to ₮0.25
+c8942f06: folds
+54cb2fe7: folds
+fb84a084: calls ₮0.15
+*** FLOP *** [Jd 9d Qd]
+fb84a084: checks
+7ba837bc: bets ₮0.28
+fb84a084: folds
+7ba837bc: RETURN ₮0.28
+*** SHOWDOWN ***
+7ba837bc collected ₮0.51 from pot
+*** SUMMARY ***
+Total pot ₮0.55 | Rake ₮0.03 | Splash Fee ₮0.01
+Hand was run once
+Board [ Jd 9d Qd ]
+Game ended: 2026/08/10 16:55:13 CEST
+Seat 1: c8942f06 folded before Flop (didn't bet)
+Seat 2: 54cb2fe7 folded before Flop (didn't bet)
+Seat 3: fb84a084 folded on the Flop
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 4fa808c2 folded before Flop (didn't bet)
+Seat 6: 7ba837bc won (₮0.51)
+
+
+CoinPoker Hand #108166800277: NLH (₮0.05/₮0.10) 2026/08/10 16:55:18 CEST
+Table '200897' 6-max Seat #2 is the button
+Seat 1: 64c4c9e0 (₮11.98 in chips)
+Seat 2: 1b43fb6a (₮33.84 in chips)
+Seat 4: Hero (₮11.71 in chips)
+Seat 5: dc6944b1 (₮10 in chips)
+Seat 6: 4c961d25 (₮10.26 in chips)
+Hero: posts small blind ₮0.05
+dc6944b1: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 64c4c9e0
+Dealt to 1b43fb6a
+Dealt to Hero [7c Jc]
+Dealt to dc6944b1
+Dealt to 4c961d25
+4c961d25: raises ₮0.15 to ₮0.25
+64c4c9e0: folds
+1b43fb6a: folds
+Hero: raises ₮0.30 to ₮0.55
+dc6944b1: calls ₮0.45
+4c961d25: calls ₮0.30
+*** FLOP *** [5h 3s Kd]
+Hero: checks
+dc6944b1: bets ₮0.69
+4c961d25: calls ₮0.69
+Hero: folds
+*** TURN *** [5h 3s Kd] [Qc]
+dc6944b1: checks
+4c961d25: checks
+*** RIVER *** [5h 3s Kd Qc] [2s]
+dc6944b1: ALLIN ₮8.76
+4c961d25: folds
+dc6944b1: RETURN ₮8.76
+*** SHOWDOWN ***
+dc6944b1 collected ₮2.87 from pot
+*** SUMMARY ***
+Total pot ₮3.03 | Rake ₮0.15 | Splash Fee ₮0.01
+Hand was run once
+Board [ 5h 3s Kd Qc 2s ]
+Game ended: 2026/08/10 16:56:35 CEST
+Seat 1: 64c4c9e0 folded before Flop (didn't bet)
+Seat 2: 1b43fb6a folded before Flop (didn't bet)
+Seat 4: Hero folded on the Flop
+Seat 5: dc6944b1 won (₮2.87)
+Seat 6: 4c961d25 folded on the River
+
+
+CoinPoker Hand #108166800278: NLH (₮0.05/₮0.10) 2026/08/10 16:56:40 CEST
+Table '200897' 6-max Seat #4 is the button
+Seat 1: 990059b5 (₮11.98 in chips)
+Seat 2: 6e4c7b68 (₮33.84 in chips)
+Seat 4: Hero (₮11.16 in chips)
+Seat 5: 1276f6c2 (₮11.63 in chips)
+Seat 6: 256a5f1e (₮10 in chips)
+1276f6c2: posts small blind ₮0.05
+256a5f1e: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 990059b5
+Dealt to 6e4c7b68
+Dealt to Hero [7c 9c]
+Dealt to 1276f6c2
+Dealt to 256a5f1e
+990059b5: folds
+6e4c7b68: folds
+Hero: raises ₮0.20 to ₮0.30
+1276f6c2: folds
+256a5f1e: calls ₮0.20
+*** FLOP *** [8c Qh 5h]
+256a5f1e: checks
+Hero: bets ₮0.65
+256a5f1e: folds
+Hero: RETURN ₮0.65
+*** SHOWDOWN ***
+Hero collected ₮0.61 from pot
+*** SUMMARY ***
+Total pot ₮0.65 | Rake ₮0.03 | Splash Fee ₮0.01
+Hand was run once
+Board [ 8c Qh 5h ]
+Game ended: 2026/08/10 16:57:13 CEST
+Seat 1: 990059b5 folded before Flop (didn't bet)
+Seat 2: 6e4c7b68 folded before Flop (didn't bet)
+Seat 4: Hero showed [7c 9c] and won (₮0.61)
+Seat 5: 1276f6c2 folded before Flop (didn't bet)
+Seat 6: 256a5f1e folded on the Flop
+
+
+CoinPoker Hand #108166800279: NLH (₮0.05/₮0.10) 2026/08/10 16:57:18 CEST
+Table '200897' 6-max Seat #5 is the button
+Seat 1: f9227cb1 (₮11.98 in chips)
+Seat 2: c2763660 (₮33.84 in chips)
+Seat 4: Hero (₮11.47 in chips)
+Seat 5: 87fd4b8e (₮11.58 in chips)
+Seat 6: 08b1a8b4 (₮10 in chips)
+08b1a8b4: posts small blind ₮0.05
+f9227cb1: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to f9227cb1
+Dealt to c2763660
+Dealt to Hero [Kh 9d]
+Dealt to 87fd4b8e
+Dealt to 08b1a8b4
+c2763660: folds
+Hero: raises ₮0.10 to ₮0.20
+87fd4b8e: folds
+08b1a8b4: folds
+f9227cb1: folds
+Hero: RETURN ₮0.10
+*** SHOWDOWN ***
+Hero collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 16:57:48 CEST
+Seat 1: f9227cb1 folded before Flop (didn't bet)
+Seat 2: c2763660 folded before Flop (didn't bet)
+Seat 4: Hero showed [Kh 9d] and won (₮0.24)
+Seat 5: 87fd4b8e folded before Flop (didn't bet)
+Seat 6: 08b1a8b4 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800280: NLH (₮0.05/₮0.10) 2026/08/10 16:57:53 CEST
+Table '200897' 6-max Seat #6 is the button
+Seat 1: 0cce792a (₮11.88 in chips)
+Seat 2: 65a36983 (₮33.84 in chips)
+Seat 4: Hero (₮11.61 in chips)
+Seat 5: fab79a3d (₮11.58 in chips)
+Seat 6: d6ee16c3 (₮10 in chips)
+0cce792a: posts small blind ₮0.05
+65a36983: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 0cce792a
+Dealt to 65a36983
+Dealt to Hero [Th Qh]
+Dealt to fab79a3d
+Dealt to d6ee16c3
+Hero: raises ₮0.15 to ₮0.25
+fab79a3d: folds
+d6ee16c3: folds
+0cce792a: folds
+65a36983: folds
+Hero: RETURN ₮0.15
+*** SHOWDOWN ***
+Hero collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 16:58:17 CEST
+Seat 1: 0cce792a folded before Flop (didn't bet)
+Seat 2: 65a36983 folded before Flop (didn't bet)
+Seat 4: Hero showed [Th Qh] and won (₮0.24)
+Seat 5: fab79a3d folded before Flop (didn't bet)
+Seat 6: d6ee16c3 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800281: NLH (₮0.05/₮0.10) 2026/08/10 16:58:22 CEST
+Table '200897' 6-max Seat #1 is the button
+Seat 1: 727ded26 (₮11.83 in chips)
+Seat 2: 8f256213 (₮33.74 in chips)
+Seat 4: Hero (₮11.75 in chips)
+Seat 5: 0906feb3 (₮11.58 in chips)
+Seat 6: 803610ff (₮10 in chips)
+8f256213: posts small blind ₮0.05
+Hero: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 727ded26
+Dealt to 8f256213
+Dealt to Hero [8c 4h]
+Dealt to 0906feb3
+Dealt to 803610ff
+0906feb3: raises ₮0.12 to ₮0.22
+803610ff: raises ₮0.59 to ₮0.81
+727ded26: folds
+8f256213: folds
+Hero: folds
+0906feb3: calls ₮0.59
+*** FLOP *** [Qd 8s 4d]
+0906feb3: checks
+803610ff: bets ₮0.89
+0906feb3: folds
+803610ff: RETURN ₮0.89
+*** SHOWDOWN ***
+803610ff collected ₮1.67 from pot
+*** SUMMARY ***
+Total pot ₮1.77 | Rake ₮0.09 | Splash Fee ₮0.01
+Hand was run once
+Board [ Qd 8s 4d ]
+Game ended: 2026/08/10 16:59:12 CEST
+Seat 1: 727ded26 folded before Flop (didn't bet)
+Seat 2: 8f256213 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 0906feb3 folded on the Flop
+Seat 6: 803610ff won (₮1.67)
+
+
+CoinPoker Hand #108166800282: NLH (₮0.05/₮0.10) 2026/08/10 16:59:17 CEST
+Table '200897' 6-max Seat #2 is the button
+Seat 1: 801dc6de (₮11.83 in chips)
+Seat 2: 26a4d260 (₮33.69 in chips)
+Seat 4: Hero (₮11.65 in chips)
+Seat 5: ef9f4848 (₮10.77 in chips)
+Seat 6: 6e1121e1 (₮10.86 in chips)
+Hero: posts small blind ₮0.05
+ef9f4848: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 801dc6de
+Dealt to 26a4d260
+Dealt to Hero [Qc 6h]
+Dealt to ef9f4848
+Dealt to 6e1121e1
+6e1121e1: folds
+801dc6de: folds
+26a4d260: raises ₮0.10 to ₮0.20
+Hero: folds
+ef9f4848: calls ₮0.10
+*** FLOP *** [4s Kc 4c]
+ef9f4848: bets ₮0.20
+26a4d260: folds
+ef9f4848: RETURN ₮0.20
+*** SHOWDOWN ***
+ef9f4848 collected ₮0.42 from pot
+*** SUMMARY ***
+Total pot ₮0.45 | Rake ₮0.02 | Splash Fee ₮0.01
+Hand was run once
+Board [ 4s Kc 4c ]
+Game ended: 2026/08/10 16:59:44 CEST
+Seat 1: 801dc6de folded before Flop (didn't bet)
+Seat 2: 26a4d260 folded on the Flop
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: ef9f4848 won (₮0.42)
+Seat 6: 6e1121e1 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800283: NLH (₮0.05/₮0.10) 2026/08/10 16:59:49 CEST
+Table '200897' 6-max Seat #4 is the button
+Seat 1: d30679e7 (₮11.83 in chips)
+Seat 2: 5d509d57 (₮33.49 in chips)
+Seat 4: Hero (₮11.60 in chips)
+Seat 5: 57cffe52 (₮10.99 in chips)
+Seat 6: de51a8f5 (₮10.86 in chips)
+57cffe52: posts small blind ₮0.05
+de51a8f5: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to d30679e7
+Dealt to 5d509d57
+Dealt to Hero [5h Kc]
+Dealt to 57cffe52
+Dealt to de51a8f5
+d30679e7: folds
+5d509d57: folds
+Hero: folds
+57cffe52: calls ₮0.05
+de51a8f5: raises ₮0.15 to ₮0.25
+57cffe52: folds
+de51a8f5: RETURN ₮0.15
+*** SHOWDOWN ***
+de51a8f5 collected ₮0.19 from pot
+*** SUMMARY ***
+Total pot ₮0.20 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:00:13 CEST
+Seat 1: d30679e7 folded before Flop (didn't bet)
+Seat 2: 5d509d57 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 57cffe52 folded before Flop (didn't bet)
+Seat 6: de51a8f5 won (₮0.19)
+
+
+CoinPoker Hand #108166800284: NLH (₮0.05/₮0.10) 2026/08/10 17:00:18 CEST
+Table '200897' 6-max Seat #5 is the button
+Seat 1: 4fa70d30 (₮11.83 in chips)
+Seat 2: 603a4a18 (₮33.49 in chips)
+Seat 4: Hero (₮11.60 in chips)
+Seat 5: 71ea9e70 (₮10.89 in chips)
+Seat 6: c43f3bf3 (₮10.95 in chips)
+c43f3bf3: posts small blind ₮0.05
+4fa70d30: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 4fa70d30
+Dealt to 603a4a18
+Dealt to Hero [Js 9d]
+Dealt to 71ea9e70
+Dealt to c43f3bf3
+603a4a18: folds
+Hero: folds
+71ea9e70: raises ₮0.12 to ₮0.22
+c43f3bf3: folds
+4fa70d30: calls ₮0.12
+*** FLOP *** [Tc 8c 9h]
+4fa70d30: checks
+71ea9e70: checks
+*** TURN *** [Tc 8c 9h] [5c]
+4fa70d30: checks
+71ea9e70: checks
+*** RIVER *** [Tc 8c 9h 5c] [6s]
+4fa70d30: checks
+71ea9e70: checks
+*** SHOWDOWN ***
+4fa70d30: shows [Qc 9s] (One Pair)
+4fa70d30 collected ₮0.46 from pot
+71ea9e70: mucks hand
+*** SUMMARY ***
+Total pot ₮0.49 | Rake ₮0.02 | Splash Fee ₮0.01
+Hand was run once
+Board [ Tc 8c 9h 5c 6s ]
+Game ended: 2026/08/10 17:00:54 CEST
+Seat 1: 4fa70d30 showed [Qc 9s] and won (₮0.46) with One Pair
+Seat 2: 603a4a18 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 71ea9e70 didn't show
+Seat 6: c43f3bf3 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800285: NLH (₮0.05/₮0.10) 2026/08/10 17:01:00 CEST
+Table '200897' 6-max Seat #6 is the button
+Seat 1: 862a2c53 (₮12.07 in chips)
+Seat 2: deb85c8a (₮33.49 in chips)
+Seat 4: Hero (₮11.60 in chips)
+Seat 5: c17ce966 (₮10.67 in chips)
+Seat 6: cfe444b7 (₮10.90 in chips)
+862a2c53: posts small blind ₮0.05
+deb85c8a: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 862a2c53
+Dealt to deb85c8a
+Dealt to Hero [7h 5s]
+Dealt to c17ce966
+Dealt to cfe444b7
+Hero: folds
+c17ce966: folds
+cfe444b7: raises ₮0.15 to ₮0.25
+862a2c53: folds
+deb85c8a: calls ₮0.15
+*** FLOP *** [3s 8s 6c]
+deb85c8a: bets ₮0.28
+cfe444b7: calls ₮0.28
+*** TURN *** [3s 8s 6c] [2c]
+deb85c8a: bets ₮0.83
+cfe444b7: folds
+deb85c8a: RETURN ₮0.83
+*** SHOWDOWN ***
+deb85c8a collected ₮1.04 from pot
+*** SUMMARY ***
+Total pot ₮1.11 | Rake ₮0.06 | Splash Fee ₮0.01
+Hand was run once
+Board [ 3s 8s 6c 2c ]
+Game ended: 2026/08/10 17:01:47 CEST
+Seat 1: 862a2c53 folded before Flop (didn't bet)
+Seat 2: deb85c8a won (₮1.04)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: c17ce966 folded before Flop (didn't bet)
+Seat 6: cfe444b7 folded on the Turn
+
+
+CoinPoker Hand #108166800286: NLH (₮0.05/₮0.10) 2026/08/10 17:01:52 CEST
+Table '200897' 6-max Seat #1 is the button
+Seat 1: f855109d (₮12.02 in chips)
+Seat 2: 93f90b65 (₮34 in chips)
+Seat 3: f23e33d7 (₮10 in chips)
+Seat 4: Hero (₮11.60 in chips)
+Seat 5: 63a26822 (₮10.67 in chips)
+Seat 6: a0b42938 (₮10.37 in chips)
+93f90b65: posts small blind ₮0.05
+f23e33d7: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to f855109d
+Dealt to 93f90b65
+Dealt to f23e33d7
+Dealt to Hero [9c As]
+Dealt to 63a26822
+Dealt to a0b42938
+Hero: calls ₮0.10
+63a26822: calls ₮0.10
+a0b42938: folds
+f855109d: raises ₮0.46 to ₮0.56
+93f90b65: folds
+f23e33d7: folds
+Hero: folds
+63a26822: folds
+f855109d: RETURN ₮0.46
+*** SHOWDOWN ***
+f855109d collected ₮0.44 from pot
+*** SUMMARY ***
+Total pot ₮0.45 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:02:10 CEST
+Seat 1: f855109d won (₮0.44)
+Seat 2: 93f90b65 folded before Flop (didn't bet)
+Seat 3: f23e33d7 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 63a26822 folded before Flop (didn't bet)
+Seat 6: a0b42938 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800287: NLH (₮0.05/₮0.10) 2026/08/10 17:02:15 CEST
+Table '200897' 6-max Seat #2 is the button
+Seat 1: bbbf0659 (₮12.36 in chips)
+Seat 2: 0510c44b (₮33.95 in chips)
+Seat 3: 0b374888 (₮10 in chips)
+Seat 4: Hero (₮11.50 in chips)
+Seat 5: 056b9fba (₮10.57 in chips)
+Seat 6: f2e827c7 (₮10.37 in chips)
+0b374888: posts small blind ₮0.05
+Hero: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to bbbf0659
+Dealt to 0510c44b
+Dealt to 0b374888
+Dealt to Hero [7d 3d]
+Dealt to 056b9fba
+Dealt to f2e827c7
+056b9fba: raises ₮0.12 to ₮0.22
+f2e827c7: folds
+bbbf0659: folds
+0510c44b: folds
+0b374888: folds
+Hero: folds
+056b9fba: RETURN ₮0.12
+*** SHOWDOWN ***
+056b9fba collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:02:47 CEST
+Seat 1: bbbf0659 folded before Flop (didn't bet)
+Seat 2: 0510c44b folded before Flop (didn't bet)
+Seat 3: 0b374888 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 056b9fba won (₮0.24)
+Seat 6: f2e827c7 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800288: NLH (₮0.05/₮0.10) 2026/08/10 17:02:52 CEST
+Table '200897' 6-max Seat #3 is the button
+Seat 1: 9ad44de5 (₮12.36 in chips)
+Seat 2: 7a1a4af0 (₮33.95 in chips)
+Seat 3: da8aaa97 (₮10 in chips)
+Seat 4: Hero (₮11.40 in chips)
+Seat 5: ad75d19c (₮10.71 in chips)
+Seat 6: 4a12a4c2 (₮10.37 in chips)
+Hero: posts small blind ₮0.05
+ad75d19c: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 9ad44de5
+Dealt to 7a1a4af0
+Dealt to da8aaa97
+Dealt to Hero [8c 8h]
+Dealt to ad75d19c
+Dealt to 4a12a4c2
+4a12a4c2: folds
+9ad44de5: folds
+7a1a4af0: raises ₮0.10 to ₮0.20
+da8aaa97: folds
+Hero: raises ₮0.37 to ₮0.57
+ad75d19c: folds
+7a1a4af0: folds
+Hero: RETURN ₮0.37
+*** SHOWDOWN ***
+Hero collected ₮0.49 from pot
+*** SUMMARY ***
+Total pot ₮0.50 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:04:04 CEST
+Seat 1: 9ad44de5 folded before Flop (didn't bet)
+Seat 2: 7a1a4af0 folded before Flop (didn't bet)
+Seat 3: da8aaa97 folded before Flop (didn't bet)
+Seat 4: Hero showed [8c 8h] and won (₮0.49)
+Seat 5: ad75d19c folded before Flop (didn't bet)
+Seat 6: 4a12a4c2 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800289: NLH (₮0.05/₮0.10) 2026/08/10 17:04:09 CEST
+Table '200897' 6-max Seat #4 is the button
+Seat 1: d70d8e80 (₮12.36 in chips)
+Seat 2: 1bfad17f (₮33.75 in chips)
+Seat 3: 4c9673d3 (₮10 in chips)
+Seat 4: Hero (₮11.69 in chips)
+Seat 5: 34df1524 (₮10.61 in chips)
+Seat 6: cd12a925 (₮10.37 in chips)
+34df1524: posts small blind ₮0.05
+cd12a925: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to d70d8e80
+Dealt to 1bfad17f
+Dealt to 4c9673d3
+Dealt to Hero [3h 4s]
+Dealt to 34df1524
+Dealt to cd12a925
+d70d8e80: folds
+1bfad17f: raises ₮0.10 to ₮0.20
+4c9673d3: folds
+Hero: folds
+34df1524: folds
+cd12a925: calls ₮0.10
+*** FLOP *** [4d 6s Qc]
+cd12a925: checks
+1bfad17f: bets ₮0.22
+cd12a925: calls ₮0.22
+*** TURN *** [4d 6s Qc] [7s]
+cd12a925: checks
+1bfad17f: checks
+*** RIVER *** [4d 6s Qc 7s] [Tc]
+cd12a925: checks
+1bfad17f: checks
+*** SHOWDOWN ***
+cd12a925: shows [Kh Kc] (One Pair)
+cd12a925 collected ₮0.84 from pot
+1bfad17f: mucks hand
+*** SUMMARY ***
+Total pot ₮0.89 | Rake ₮0.04 | Splash Fee ₮0.01
+Hand was run once
+Board [ 4d 6s Qc 7s Tc ]
+Game ended: 2026/08/10 17:05:00 CEST
+Seat 1: d70d8e80 folded before Flop (didn't bet)
+Seat 2: 1bfad17f didn't show
+Seat 3: 4c9673d3 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 34df1524 folded before Flop (didn't bet)
+Seat 6: cd12a925 showed [Kh Kc] and won (₮0.84) with One Pair
+
+
+CoinPoker Hand #108166800290: NLH (₮0.05/₮0.10) 2026/08/10 17:05:06 CEST
+Table '200897' 6-max Seat #5 is the button
+Seat 1: 6207cb17 (₮12.36 in chips)
+Seat 2: 1ea63e67 (₮33.33 in chips)
+Seat 3: 39c3e1e1 (₮10 in chips)
+Seat 4: Hero (₮11.69 in chips)
+Seat 5: c7fe1208 (₮10.56 in chips)
+Seat 6: c7066688 (₮10.79 in chips)
+c7066688: posts small blind ₮0.05
+6207cb17: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 6207cb17
+Dealt to 1ea63e67
+Dealt to 39c3e1e1
+Dealt to Hero [3c Tc]
+Dealt to c7fe1208
+Dealt to c7066688
+1ea63e67: folds
+39c3e1e1: raises ₮0.12 to ₮0.22
+Hero: folds
+c7fe1208: raises ₮0.38 to ₮0.60
+c7066688: folds
+6207cb17: folds
+39c3e1e1: folds
+c7fe1208: RETURN ₮0.38
+*** SHOWDOWN ***
+c7fe1208 collected ₮0.58 from pot
+*** SUMMARY ***
+Total pot ₮0.59 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:05:32 CEST
+Seat 1: 6207cb17 folded before Flop (didn't bet)
+Seat 2: 1ea63e67 folded before Flop (didn't bet)
+Seat 3: 39c3e1e1 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: c7fe1208 won (₮0.58)
+Seat 6: c7066688 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800291: NLH (₮0.05/₮0.10) 2026/08/10 17:05:37 CEST
+Table '200897' 6-max Seat #6 is the button
+Seat 1: 64c5e851 (₮12.26 in chips)
+Seat 2: f61530eb (₮33.33 in chips)
+Seat 3: e92bac33 (₮10 in chips)
+Seat 4: Hero (₮11.69 in chips)
+Seat 5: eec0f272 (₮10.92 in chips)
+Seat 6: 0309b05a (₮10.74 in chips)
+64c5e851: posts small blind ₮0.05
+f61530eb: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 64c5e851
+Dealt to f61530eb
+Dealt to e92bac33
+Dealt to Hero [8h Kh]
+Dealt to eec0f272
+Dealt to 0309b05a
+e92bac33: folds
+Hero: raises ₮0.15 to ₮0.25
+eec0f272: folds
+0309b05a: folds
+64c5e851: folds
+f61530eb: calls ₮0.15
+*** FLOP *** [5d 5c 8s]
+f61530eb: checks
+Hero: bets ₮0.41
+f61530eb: folds
+Hero: RETURN ₮0.41
+*** SHOWDOWN ***
+Hero collected ₮0.51 from pot
+*** SUMMARY ***
+Total pot ₮0.55 | Rake ₮0.03 | Splash Fee ₮0.01
+Hand was run once
+Board [ 5d 5c 8s ]
+Game ended: 2026/08/10 17:06:31 CEST
+Seat 1: 64c5e851 folded before Flop (didn't bet)
+Seat 2: f61530eb folded on the Flop
+Seat 3: e92bac33 folded before Flop (didn't bet)
+Seat 4: Hero showed [8h Kh] and won (₮0.51)
+Seat 5: eec0f272 folded before Flop (didn't bet)
+Seat 6: 0309b05a folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800292: NLH (₮0.05/₮0.10) 2026/08/10 17:06:35 CEST
+Table '200897' 6-max Seat #1 is the button
+Seat 1: 67532d21 (₮12.21 in chips)
+Seat 2: cc8ee795 (₮33.08 in chips)
+Seat 3: cb37cd34 (₮10 in chips)
+Seat 4: Hero (₮11.95 in chips)
+Seat 5: 68f00e82 (₮10.92 in chips)
+Seat 6: 414e3e95 (₮10.74 in chips)
+cc8ee795: posts small blind ₮0.05
+cb37cd34: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 67532d21
+Dealt to cc8ee795
+Dealt to cb37cd34
+Dealt to Hero [4s 8c]
+Dealt to 68f00e82
+Dealt to 414e3e95
+Hero: folds
+68f00e82: folds
+414e3e95: folds
+67532d21: folds
+cc8ee795: folds
+cb37cd34: RETURN ₮0.05
+*** SHOWDOWN ***
+cb37cd34 collected ₮0.09 from pot
+*** SUMMARY ***
+Total pot ₮0.10 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:06:58 CEST
+Seat 1: 67532d21 folded before Flop (didn't bet)
+Seat 2: cc8ee795 folded before Flop (didn't bet)
+Seat 3: cb37cd34 won (₮0.09)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 68f00e82 folded before Flop (didn't bet)
+Seat 6: 414e3e95 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800293: NLH (₮0.05/₮0.10) 2026/08/10 17:07:03 CEST
+Table '200897' 6-max Seat #2 is the button
+Seat 1: d048136b (₮12.21 in chips)
+Seat 2: 8555cc98 (₮33.03 in chips)
+Seat 3: c069aff6 (₮10.04 in chips)
+Seat 4: Hero (₮11.95 in chips)
+Seat 5: 75f47284 (₮10.92 in chips)
+Seat 6: c3d545e3 (₮10.74 in chips)
+c069aff6: posts small blind ₮0.05
+Hero: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to d048136b
+Dealt to 8555cc98
+Dealt to c069aff6
+Dealt to Hero [3d 9s]
+Dealt to 75f47284
+Dealt to c3d545e3
+75f47284: folds
+c3d545e3: raises ₮0.15 to ₮0.25
+d048136b: raises ₮0.62 to ₮0.87
+8555cc98: calls ₮0.87
+c069aff6: folds
+Hero: folds
+c3d545e3: calls ₮0.62
+*** FLOP *** [2s 6c 6d]
+c3d545e3: checks
+d048136b: bets ₮2.21
+8555cc98: folds
+c3d545e3: folds
+d048136b: RETURN ₮2.21
+*** SHOWDOWN ***
+d048136b collected ₮2.61 from pot
+*** SUMMARY ***
+Total pot ₮2.76 | Rake ₮0.14 | Splash Fee ₮0.01
+Hand was run once
+Board [ 2s 6c 6d ]
+Game ended: 2026/08/10 17:07:57 CEST
+Seat 1: d048136b won (₮2.61)
+Seat 2: 8555cc98 folded on the Flop
+Seat 3: c069aff6 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 75f47284 folded before Flop (didn't bet)
+Seat 6: c3d545e3 folded on the Flop
+
+
+CoinPoker Hand #108166800294: NLH (₮0.05/₮0.10) 2026/08/10 17:08:02 CEST
+Table '200897' 6-max Seat #3 is the button
+Seat 6: 7b90ab97 (₮10 in chips)
+Seat 1: 4c2cfa12 (₮13.95 in chips)
+Seat 2: da926d9a (₮32.16 in chips)
+Seat 3: a19dacdd (₮10 in chips)
+Seat 4: Hero (₮11.85 in chips)
+Seat 5: 938f1095 (₮10.92 in chips)
+Hero: posts small blind ₮0.05
+938f1095: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 7b90ab97
+Dealt to 4c2cfa12
+Dealt to da926d9a
+Dealt to a19dacdd
+Dealt to Hero [4h Qc]
+Dealt to 938f1095
+7b90ab97: folds
+4c2cfa12: raises ₮0.15 to ₮0.25
+da926d9a: folds
+a19dacdd: folds
+Hero: folds
+938f1095: folds
+4c2cfa12: RETURN ₮0.15
+*** SHOWDOWN ***
+4c2cfa12 collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:08:33 CEST
+Seat 6: 7b90ab97 folded before Flop (didn't bet)
+Seat 1: 4c2cfa12 won (₮0.24)
+Seat 2: da926d9a folded before Flop (didn't bet)
+Seat 3: a19dacdd folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 938f1095 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800295: NLH (₮0.05/₮0.10) 2026/08/10 17:08:38 CEST
+Table '200897' 6-max Seat #4 is the button
+Seat 1: ba44678c (₮14.09 in chips)
+Seat 2: e318eb02 (₮32.16 in chips)
+Seat 3: ff57afc1 (₮10 in chips)
+Seat 4: Hero (₮11.80 in chips)
+Seat 5: c9514ce5 (₮10.82 in chips)
+Seat 6: 0bdce793 (₮10 in chips)
+c9514ce5: posts small blind ₮0.05
+0bdce793: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to ba44678c
+Dealt to e318eb02
+Dealt to ff57afc1
+Dealt to Hero [8s 7c]
+Dealt to c9514ce5
+Dealt to 0bdce793
+ba44678c: folds
+e318eb02: raises ₮0.10 to ₮0.20
+ff57afc1: folds
+Hero: folds
+c9514ce5: calls ₮0.15
+0bdce793: folds
+*** FLOP *** [5h 7d 4h]
+c9514ce5: bets ₮0.21
+e318eb02: calls ₮0.21
+*** TURN *** [5h 7d 4h] [2c]
+c9514ce5: checks
+e318eb02: checks
+*** RIVER *** [5h 7d 4h 2c] [Tc]
+c9514ce5: bets ₮0.28
+e318eb02: folds
+c9514ce5: RETURN ₮0.28
+*** SHOWDOWN ***
+c9514ce5 collected ₮0.86 from pot
+*** SUMMARY ***
+Total pot ₮0.92 | Rake ₮0.05 | Splash Fee ₮0.01
+Hand was run once
+Board [ 5h 7d 4h 2c Tc ]
+Game ended: 2026/08/10 17:09:52 CEST
+Seat 1: ba44678c folded before Flop (didn't bet)
+Seat 2: e318eb02 folded on the River
+Seat 3: ff57afc1 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: c9514ce5 won (₮0.86)
+Seat 6: 0bdce793 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800296: NLH (₮0.05/₮0.10) 2026/08/10 17:09:57 CEST
+Table '200897' 6-max Seat #5 is the button
+Seat 1: c8d2c9b1 (₮14.09 in chips)
+Seat 2: fca03d96 (₮31.75 in chips)
+Seat 3: 468bb046 (₮10 in chips)
+Seat 4: Hero (₮11.80 in chips)
+Seat 5: faae978e (₮11.27 in chips)
+Seat 6: 3350fbc8 (₮10 in chips)
+3350fbc8: posts small blind ₮0.05
+c8d2c9b1: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to c8d2c9b1
+Dealt to fca03d96
+Dealt to 468bb046
+Dealt to Hero [Ad Qc]
+Dealt to faae978e
+Dealt to 3350fbc8
+fca03d96: folds
+468bb046: folds
+Hero: raises ₮0.20 to ₮0.30
+faae978e: folds
+3350fbc8: folds
+c8d2c9b1: folds
+Hero: RETURN ₮0.20
+*** SHOWDOWN ***
+Hero collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:10:21 CEST
+Seat 1: c8d2c9b1 folded before Flop (didn't bet)
+Seat 2: fca03d96 folded before Flop (didn't bet)
+Seat 3: 468bb046 folded before Flop (didn't bet)
+Seat 4: Hero showed [Ad Qc] and won (₮0.24)
+Seat 5: faae978e folded before Flop (didn't bet)
+Seat 6: 3350fbc8 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800297: NLH (₮0.05/₮0.10) 2026/08/10 17:10:26 CEST
+Table '200897' 6-max Seat #6 is the button
+Seat 1: 4cc0a728 (₮13.99 in chips)
+Seat 2: 9ba994c9 (₮31.75 in chips)
+Seat 3: 94ca4a38 (₮10 in chips)
+Seat 4: Hero (₮11.94 in chips)
+Seat 5: 1fe089cd (₮11.27 in chips)
+Seat 6: 8531c45a (₮10 in chips)
+4cc0a728: posts small blind ₮0.05
+9ba994c9: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 4cc0a728
+Dealt to 9ba994c9
+Dealt to 94ca4a38
+Dealt to Hero [6c 4s]
+Dealt to 1fe089cd
+Dealt to 8531c45a
+94ca4a38: folds
+Hero: folds
+1fe089cd: folds
+8531c45a: folds
+4cc0a728: folds
+9ba994c9: RETURN ₮0.05
+*** SHOWDOWN ***
+9ba994c9 collected ₮0.09 from pot
+*** SUMMARY ***
+Total pot ₮0.10 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:10:38 CEST
+Seat 1: 4cc0a728 folded before Flop (didn't bet)
+Seat 2: 9ba994c9 won (₮0.09)
+Seat 3: 94ca4a38 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 1fe089cd folded before Flop (didn't bet)
+Seat 6: 8531c45a folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800298: NLH (₮0.05/₮0.10) 2026/08/10 17:10:43 CEST
+Table '200897' 6-max Seat #1 is the button
+Seat 1: b9ff7642 (₮13.94 in chips)
+Seat 2: 90409b82 (₮31.79 in chips)
+Seat 3: 104c95b3 (₮10 in chips)
+Seat 4: Hero (₮11.94 in chips)
+Seat 5: 39f9a693 (₮11.27 in chips)
+Seat 6: 134d0293 (₮10 in chips)
+90409b82: posts small blind ₮0.05
+104c95b3: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to b9ff7642
+Dealt to 90409b82
+Dealt to 104c95b3
+Dealt to Hero [Kc 6h]
+Dealt to 39f9a693
+Dealt to 134d0293
+Hero: folds
+39f9a693: folds
+134d0293: raises ₮0.10 to ₮0.20
+b9ff7642: folds
+90409b82: calls ₮0.15
+104c95b3: folds
+*** FLOP *** [8d 6d 3s]
+90409b82: checks
+134d0293: bets ₮0.12
+90409b82: calls ₮0.12
+*** TURN *** [8d 6d 3s] [3d]
+90409b82: checks
+134d0293: bets ₮0.76
+90409b82: folds
+134d0293: RETURN ₮0.76
+*** SHOWDOWN ***
+134d0293 collected ₮0.69 from pot
+*** SUMMARY ***
+Total pot ₮0.74 | Rake ₮0.04 | Splash Fee ₮0.01
+Hand was run once
+Board [ 8d 6d 3s 3d ]
+Game ended: 2026/08/10 17:11:52 CEST
+Seat 1: b9ff7642 folded before Flop (didn't bet)
+Seat 2: 90409b82 folded on the Turn
+Seat 3: 104c95b3 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 39f9a693 folded before Flop (didn't bet)
+Seat 6: 134d0293 won (₮0.69)
+
+
+CoinPoker Hand #108166800299: NLH (₮0.05/₮0.10) 2026/08/10 17:11:57 CEST
+Table '200897' 6-max Seat #2 is the button
+Seat 1: bcad402a (₮13.94 in chips)
+Seat 2: 279bfd41 (₮31.47 in chips)
+Seat 3: 0b4d7b32 (₮10 in chips)
+Seat 4: Hero (₮11.94 in chips)
+Seat 5: df07ef14 (₮11.27 in chips)
+Seat 6: 219a6a30 (₮10.37 in chips)
+0b4d7b32: posts small blind ₮0.05
+Hero: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to bcad402a
+Dealt to 279bfd41
+Dealt to 0b4d7b32
+Dealt to Hero [4s Qh]
+Dealt to df07ef14
+Dealt to 219a6a30
+df07ef14: raises ₮0.15 to ₮0.25
+219a6a30: folds
+bcad402a: folds
+279bfd41: folds
+0b4d7b32: folds
+Hero: folds
+df07ef14: RETURN ₮0.15
+*** SHOWDOWN ***
+df07ef14 collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:12:41 CEST
+Seat 1: bcad402a folded before Flop (didn't bet)
+Seat 2: 279bfd41 folded before Flop (didn't bet)
+Seat 3: 0b4d7b32 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: df07ef14 won (₮0.24)
+Seat 6: 219a6a30 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800300: NLH (₮0.05/₮0.10) 2026/08/10 17:12:46 CEST
+Table '200897' 6-max Seat #3 is the button
+Seat 1: 1ffa01d0 (₮13.94 in chips)
+Seat 2: 05305f48 (₮31.47 in chips)
+Seat 3: 622125aa (₮10 in chips)
+Seat 4: Hero (₮11.84 in chips)
+Seat 5: aec27185 (₮11.41 in chips)
+Seat 6: cc52f29f (₮10.37 in chips)
+Hero: posts small blind ₮0.05
+aec27185: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 1ffa01d0
+Dealt to 05305f48
+Dealt to 622125aa
+Dealt to Hero [Qd 5d]
+Dealt to aec27185
+Dealt to cc52f29f
+cc52f29f: folds
+1ffa01d0: folds
+05305f48: folds
+622125aa: folds
+Hero: raises ₮0.15 to ₮0.25
+aec27185: raises ₮0.48 to ₮0.73
+Hero: folds
+aec27185: RETURN ₮0.48
+*** SHOWDOWN ***
+aec27185 collected ₮0.49 from pot
+*** SUMMARY ***
+Total pot ₮0.50 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:13:36 CEST
+Seat 1: 1ffa01d0 folded before Flop (didn't bet)
+Seat 2: 05305f48 folded before Flop (didn't bet)
+Seat 3: 622125aa folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: aec27185 won (₮0.49)
+Seat 6: cc52f29f folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800301: NLH (₮0.05/₮0.10) 2026/08/10 17:13:41 CEST
+Table '200897' 6-max Seat #4 is the button
+Seat 1: d2a88089 (₮13.94 in chips)
+Seat 2: baf499d6 (₮31.47 in chips)
+Seat 3: ddad0238 (₮10 in chips)
+Seat 4: Hero (₮11.59 in chips)
+Seat 5: b1fe5f03 (₮11.65 in chips)
+Seat 6: 9682512f (₮10.37 in chips)
+b1fe5f03: posts small blind ₮0.05
+9682512f: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to d2a88089
+Dealt to baf499d6
+Dealt to ddad0238
+Dealt to Hero [Jd Tc]
+Dealt to b1fe5f03
+Dealt to 9682512f
+d2a88089: folds
+baf499d6: folds
+ddad0238: folds
+Hero: raises ₮0.30 to ₮0.40
+b1fe5f03: folds
+9682512f: folds
+Hero: RETURN ₮0.30
+*** SHOWDOWN ***
+Hero collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:14:24 CEST
+Seat 1: d2a88089 folded before Flop (didn't bet)
+Seat 2: baf499d6 folded before Flop (didn't bet)
+Seat 3: ddad0238 folded before Flop (didn't bet)
+Seat 4: Hero showed [Jd Tc] and won (₮0.24)
+Seat 5: b1fe5f03 folded before Flop (didn't bet)
+Seat 6: 9682512f folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800302: NLH (₮0.05/₮0.10) 2026/08/10 17:14:29 CEST
+Table '200897' 6-max Seat #5 is the button
+Seat 1: 1cfdb874 (₮13.94 in chips)
+Seat 2: b5c2d8a7 (₮31.47 in chips)
+Seat 3: 6b2c76a3 (₮10 in chips)
+Seat 4: Hero (₮11.73 in chips)
+Seat 5: f26fb82a (₮11.60 in chips)
+Seat 6: 6fb0ffa4 (₮10.27 in chips)
+6fb0ffa4: posts small blind ₮0.05
+1cfdb874: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 1cfdb874
+Dealt to b5c2d8a7
+Dealt to 6b2c76a3
+Dealt to Hero [Tc 8d]
+Dealt to f26fb82a
+Dealt to 6fb0ffa4
+b5c2d8a7: raises ₮0.15 to ₮0.25
+6b2c76a3: folds
+Hero: folds
+f26fb82a: folds
+6fb0ffa4: folds
+1cfdb874: calls ₮0.15
+*** FLOP *** [4c Jh Th]
+1cfdb874: checks
+b5c2d8a7: bets ₮0.28
+1cfdb874: folds
+b5c2d8a7: RETURN ₮0.28
+*** SHOWDOWN ***
+b5c2d8a7 collected ₮0.51 from pot
+*** SUMMARY ***
+Total pot ₮0.55 | Rake ₮0.03 | Splash Fee ₮0.01
+Hand was run once
+Board [ 4c Jh Th ]
+Game ended: 2026/08/10 17:15:10 CEST
+Seat 1: 1cfdb874 folded on the Flop
+Seat 2: b5c2d8a7 won (₮0.51)
+Seat 3: 6b2c76a3 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: f26fb82a folded before Flop (didn't bet)
+Seat 6: 6fb0ffa4 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800303: NLH (₮0.05/₮0.10) 2026/08/10 17:15:15 CEST
+Table '200897' 6-max Seat #6 is the button
+Seat 1: d68d2173 (₮13.69 in chips)
+Seat 2: 2eb275fd (₮31.73 in chips)
+Seat 3: 1edca9ee (₮10 in chips)
+Seat 4: Hero (₮11.73 in chips)
+Seat 5: 0f77203e (₮11.60 in chips)
+Seat 6: d560a299 (₮10.22 in chips)
+d68d2173: posts small blind ₮0.05
+2eb275fd: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to d68d2173
+Dealt to 2eb275fd
+Dealt to 1edca9ee
+Dealt to Hero [2s Jd]
+Dealt to 0f77203e
+Dealt to d560a299
+1edca9ee: folds
+Hero: folds
+0f77203e: folds
+d560a299: raises ₮0.10 to ₮0.20
+d68d2173: folds
+2eb275fd: folds
+d560a299: RETURN ₮0.10
+*** SHOWDOWN ***
+d560a299 collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:15:29 CEST
+Seat 1: d68d2173 folded before Flop (didn't bet)
+Seat 2: 2eb275fd folded before Flop (didn't bet)
+Seat 3: 1edca9ee folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 0f77203e folded before Flop (didn't bet)
+Seat 6: d560a299 won (₮0.24)
+
+
+CoinPoker Hand #108166800304: NLH (₮0.05/₮0.10) 2026/08/10 17:15:34 CEST
+Table '200897' 6-max Seat #1 is the button
+Seat 1: 40101fb2 (₮13.64 in chips)
+Seat 2: 4e1240af (₮31.63 in chips)
+Seat 3: a8a51507 (₮10 in chips)
+Seat 4: Hero (₮11.73 in chips)
+Seat 5: 54aa5620 (₮11.60 in chips)
+Seat 6: 53f2f288 (₮10.36 in chips)
+4e1240af: posts small blind ₮0.05
+a8a51507: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 40101fb2
+Dealt to 4e1240af
+Dealt to a8a51507
+Dealt to Hero [5h Js]
+Dealt to 54aa5620
+Dealt to 53f2f288
+Hero: folds
+54aa5620: folds
+53f2f288: folds
+40101fb2: raises ₮0.15 to ₮0.25
+4e1240af: folds
+a8a51507: folds
+40101fb2: RETURN ₮0.15
+*** SHOWDOWN ***
+40101fb2 collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:16:05 CEST
+Seat 1: 40101fb2 won (₮0.24)
+Seat 2: 4e1240af folded before Flop (didn't bet)
+Seat 3: a8a51507 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 54aa5620 folded before Flop (didn't bet)
+Seat 6: 53f2f288 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800305: NLH (₮0.05/₮0.10) 2026/08/10 17:16:10 CEST
+Table '200897' 6-max Seat #2 is the button
+Seat 1: 2a6ae165 (₮13.78 in chips)
+Seat 2: ad52ce13 (₮31.58 in chips)
+Seat 3: bf90dbcb (₮10 in chips)
+Seat 4: Hero (₮11.73 in chips)
+Seat 5: 4a21e6eb (₮11.60 in chips)
+Seat 6: 866155d9 (₮10.36 in chips)
+bf90dbcb: posts small blind ₮0.05
+Hero: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 2a6ae165
+Dealt to ad52ce13
+Dealt to bf90dbcb
+Dealt to Hero [Kd Jh]
+Dealt to 4a21e6eb
+Dealt to 866155d9
+4a21e6eb: folds
+866155d9: folds
+2a6ae165: folds
+ad52ce13: folds
+bf90dbcb: folds
+Hero: RETURN ₮0.05
+*** SHOWDOWN ***
+Hero collected ₮0.09 from pot
+*** SUMMARY ***
+Total pot ₮0.10 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:16:35 CEST
+Seat 1: 2a6ae165 folded before Flop (didn't bet)
+Seat 2: ad52ce13 folded before Flop (didn't bet)
+Seat 3: bf90dbcb folded before Flop (didn't bet)
+Seat 4: Hero showed [Kd Jh] and won (₮0.09)
+Seat 5: 4a21e6eb folded before Flop (didn't bet)
+Seat 6: 866155d9 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800306: NLH (₮0.05/₮0.10) 2026/08/10 17:16:41 CEST
+Table '200897' 6-max Seat #3 is the button
+Seat 1: 1aded52d (₮13.78 in chips)
+Seat 2: 31d70cc4 (₮31.58 in chips)
+Seat 3: b31899ae (₮10 in chips)
+Seat 4: Hero (₮11.77 in chips)
+Seat 5: 075f95f7 (₮11.60 in chips)
+Seat 6: 81cb3a7b (₮10.36 in chips)
+Hero: posts small blind ₮0.05
+075f95f7: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 1aded52d
+Dealt to 31d70cc4
+Dealt to b31899ae
+Dealt to Hero [As 9d]
+Dealt to 075f95f7
+Dealt to 81cb3a7b
+81cb3a7b: folds
+1aded52d: folds
+31d70cc4: folds
+b31899ae: folds
+Hero: calls ₮0.05
+075f95f7: checks
+*** FLOP *** [5h Qd 4s]
+Hero: checks
+075f95f7: checks
+*** TURN *** [5h Qd 4s] [Js]
+Hero: bets ₮0.20
+075f95f7: folds
+Hero: RETURN ₮0.20
+*** SHOWDOWN ***
+Hero collected ₮0.18 from pot
+*** SUMMARY ***
+Total pot ₮0.20 | Rake ₮0.01 | Splash Fee ₮0.01
+Hand was run once
+Board [ 5h Qd 4s Js ]
+Game ended: 2026/08/10 17:17:43 CEST
+Seat 1: 1aded52d folded before Flop (didn't bet)
+Seat 2: 31d70cc4 folded before Flop (didn't bet)
+Seat 3: b31899ae folded before Flop (didn't bet)
+Seat 4: Hero showed [As 9d] and won (₮0.18)
+Seat 5: 075f95f7 folded on the Turn
+Seat 6: 81cb3a7b folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800307: NLH (₮0.05/₮0.10) 2026/08/10 17:17:48 CEST
+Table '200897' 6-max Seat #4 is the button
+Seat 1: 0e5d2938 (₮13.78 in chips)
+Seat 2: e68f4d26 (₮31.58 in chips)
+Seat 3: 5e6b4122 (₮10 in chips)
+Seat 4: Hero (₮11.85 in chips)
+Seat 5: d6143884 (₮11.50 in chips)
+Seat 6: 4669be98 (₮10.36 in chips)
+d6143884: posts small blind ₮0.05
+4669be98: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 0e5d2938
+Dealt to e68f4d26
+Dealt to 5e6b4122
+Dealt to Hero [6c Ah]
+Dealt to d6143884
+Dealt to 4669be98
+0e5d2938: folds
+e68f4d26: folds
+5e6b4122: folds
+Hero: raises ₮0.15 to ₮0.25
+d6143884: folds
+4669be98: calls ₮0.15
+*** FLOP *** [Js 4c 8d]
+4669be98: checks
+Hero: bets ₮0.33
+4669be98: folds
+Hero: RETURN ₮0.33
+*** SHOWDOWN ***
+Hero collected ₮0.51 from pot
+*** SUMMARY ***
+Total pot ₮0.55 | Rake ₮0.03 | Splash Fee ₮0.01
+Hand was run once
+Board [ Js 4c 8d ]
+Game ended: 2026/08/10 17:18:31 CEST
+Seat 1: 0e5d2938 folded before Flop (didn't bet)
+Seat 2: e68f4d26 folded before Flop (didn't bet)
+Seat 3: 5e6b4122 folded before Flop (didn't bet)
+Seat 4: Hero showed [6c Ah] and won (₮0.51)
+Seat 5: d6143884 folded before Flop (didn't bet)
+Seat 6: 4669be98 folded on the Flop
+
+
+CoinPoker Hand #108166800308: NLH (₮0.05/₮0.10) 2026/08/10 17:18:36 CEST
+Table '200897' 6-max Seat #5 is the button
+Seat 1: cb8c7477 (₮13.78 in chips)
+Seat 2: 8aa1d8d7 (₮31.58 in chips)
+Seat 3: d3da1d41 (₮10 in chips)
+Seat 4: Hero (₮12.11 in chips)
+Seat 5: cabed40f (₮11.45 in chips)
+Seat 6: cb302657 (₮10.11 in chips)
+cb302657: posts small blind ₮0.05
+cb8c7477: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to cb8c7477
+Dealt to 8aa1d8d7
+Dealt to d3da1d41
+Dealt to Hero [Jc 7d]
+Dealt to cabed40f
+Dealt to cb302657
+8aa1d8d7: raises ₮0.10 to ₮0.20
+d3da1d41: folds
+Hero: folds
+cabed40f: calls ₮0.20
+cb302657: folds
+cb8c7477: folds
+*** FLOP *** [6h Kd 6s]
+8aa1d8d7: checks
+cabed40f: checks
+*** TURN *** [6h Kd 6s] [Ah]
+8aa1d8d7: bets ₮0.28
+cabed40f: calls ₮0.28
+*** RIVER *** [6h Kd 6s Ah] [As]
+8aa1d8d7: checks
+cabed40f: checks
+*** SHOWDOWN ***
+cabed40f: shows [Qh Kc] (Two Pair)
+cabed40f collected ₮1.04 from pot
+8aa1d8d7: shows [Jd Td] (Two Pair)
+*** SUMMARY ***
+Total pot ₮1.11 | Rake ₮0.06 | Splash Fee ₮0.01
+Hand was run once
+Board [ 6h Kd 6s Ah As ]
+Game ended: 2026/08/10 17:19:51 CEST
+Seat 1: cb8c7477 folded before Flop (didn't bet)
+Seat 2: 8aa1d8d7 showed [Jd Td] and lost with Two Pair
+Seat 3: d3da1d41 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: cabed40f showed [Qh Kc] and won (₮1.04) with Two Pair
+Seat 6: cb302657 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800309: NLH (₮0.05/₮0.10) 2026/08/10 17:19:57 CEST
+Table '200897' 6-max Seat #6 is the button
+Seat 1: 06e3ad14 (₮13.68 in chips)
+Seat 2: c0e6c72d (₮31.10 in chips)
+Seat 3: fdd2bed6 (₮10 in chips)
+Seat 4: Hero (₮12.11 in chips)
+Seat 5: 77fbf1d9 (₮12.01 in chips)
+Seat 6: 04385952 (₮10.06 in chips)
+06e3ad14: posts small blind ₮0.05
+c0e6c72d: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 06e3ad14
+Dealt to c0e6c72d
+Dealt to fdd2bed6
+Dealt to Hero [Ks 8s]
+Dealt to 77fbf1d9
+Dealt to 04385952
+fdd2bed6: folds
+Hero: calls ₮0.10
+77fbf1d9: folds
+04385952: folds
+06e3ad14: folds
+c0e6c72d: checks
+*** FLOP *** [6c As 9s]
+c0e6c72d: checks
+Hero: bets ₮0.19
+c0e6c72d: folds
+Hero: RETURN ₮0.19
+*** SHOWDOWN ***
+Hero collected ₮0.23 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0.01 | Splash Fee ₮0.01
+Hand was run once
+Board [ 6c As 9s ]
+Game ended: 2026/08/10 17:20:50 CEST
+Seat 1: 06e3ad14 folded before Flop (didn't bet)
+Seat 2: c0e6c72d folded on the Flop
+Seat 3: fdd2bed6 folded before Flop (didn't bet)
+Seat 4: Hero showed [Ks 8s] and won (₮0.23)
+Seat 5: 77fbf1d9 folded before Flop (didn't bet)
+Seat 6: 04385952 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800310: NLH (₮0.05/₮0.10) 2026/08/10 17:20:55 CEST
+Table '200897' 6-max Seat #1 is the button
+Seat 1: 421779c7 (₮13.63 in chips)
+Seat 2: 3baf041b (₮31 in chips)
+Seat 3: 2de621f8 (₮10 in chips)
+Seat 4: Hero (₮12.24 in chips)
+Seat 5: effd4013 (₮12.01 in chips)
+Seat 6: 0aad1f34 (₮10.06 in chips)
+3baf041b: posts small blind ₮0.05
+2de621f8: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 421779c7
+Dealt to 3baf041b
+Dealt to 2de621f8
+Dealt to Hero [Js 4c]
+Dealt to effd4013
+Dealt to 0aad1f34
+Hero: folds
+effd4013: folds
+0aad1f34: folds
+421779c7: raises ₮0.15 to ₮0.25
+3baf041b: folds
+2de621f8: calls ₮0.15
+*** FLOP *** [6c 5h 2h]
+2de621f8: checks
+421779c7: bets ₮0.18
+2de621f8: folds
+421779c7: RETURN ₮0.18
+*** SHOWDOWN ***
+421779c7 collected ₮0.51 from pot
+*** SUMMARY ***
+Total pot ₮0.55 | Rake ₮0.03 | Splash Fee ₮0.01
+Hand was run once
+Board [ 6c 5h 2h ]
+Game ended: 2026/08/10 17:21:40 CEST
+Seat 1: 421779c7 won (₮0.51)
+Seat 2: 3baf041b folded before Flop (didn't bet)
+Seat 3: 2de621f8 folded on the Flop
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: effd4013 folded before Flop (didn't bet)
+Seat 6: 0aad1f34 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800311: NLH (₮0.05/₮0.10) 2026/08/10 17:21:45 CEST
+Table '200897' 6-max Seat #2 is the button
+Seat 1: 77ba5572 (₮13.89 in chips)
+Seat 2: c700cd4f (₮30.95 in chips)
+Seat 3: a21f3bd6 (₮10 in chips)
+Seat 4: Hero (₮12.24 in chips)
+Seat 5: 15224227 (₮12.01 in chips)
+Seat 6: ce8137ee (₮10.06 in chips)
+a21f3bd6: posts small blind ₮0.05
+Hero: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 77ba5572
+Dealt to c700cd4f
+Dealt to a21f3bd6
+Dealt to Hero [Tc 3c]
+Dealt to 15224227
+Dealt to ce8137ee
+15224227: folds
+ce8137ee: raises ₮0.10 to ₮0.20
+77ba5572: folds
+c700cd4f: folds
+a21f3bd6: folds
+Hero: calls ₮0.10
+*** FLOP *** [7d Qc Ts]
+Hero: bets ₮0.23
+ce8137ee: folds
+Hero: RETURN ₮0.23
+*** SHOWDOWN ***
+Hero collected ₮0.42 from pot
+*** SUMMARY ***
+Total pot ₮0.45 | Rake ₮0.02 | Splash Fee ₮0.01
+Hand was run once
+Board [ 7d Qc Ts ]
+Game ended: 2026/08/10 17:22:35 CEST
+Seat 1: 77ba5572 folded before Flop (didn't bet)
+Seat 2: c700cd4f folded before Flop (didn't bet)
+Seat 3: a21f3bd6 folded before Flop (didn't bet)
+Seat 4: Hero showed [Tc 3c] and won (₮0.42)
+Seat 5: 15224227 folded before Flop (didn't bet)
+Seat 6: ce8137ee folded on the Flop
+
+
+CoinPoker Hand #108166800312: NLH (₮0.05/₮0.10) 2026/08/10 17:22:40 CEST
+Table '200897' 6-max Seat #3 is the button
+Seat 1: f8cbaa3e (₮13.89 in chips)
+Seat 2: 16b57b78 (₮30.95 in chips)
+Seat 3: 998669c1 (₮10 in chips)
+Seat 4: Hero (₮12.46 in chips)
+Seat 5: 90b14360 (₮12.01 in chips)
+Seat 6: fd87098b (₮10 in chips)
+Hero: posts small blind ₮0.05
+90b14360: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to f8cbaa3e
+Dealt to 16b57b78
+Dealt to 998669c1
+Dealt to Hero [Kh Ad]
+Dealt to 90b14360
+Dealt to fd87098b
+fd87098b: folds
+f8cbaa3e: folds
+16b57b78: folds
+998669c1: folds
+Hero: raises ₮0.30 to ₮0.40
+90b14360: folds
+Hero: RETURN ₮0.30
+*** SHOWDOWN ***
+Hero collected ₮0.19 from pot
+*** SUMMARY ***
+Total pot ₮0.20 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:23:02 CEST
+Seat 1: f8cbaa3e folded before Flop (didn't bet)
+Seat 2: 16b57b78 folded before Flop (didn't bet)
+Seat 3: 998669c1 folded before Flop (didn't bet)
+Seat 4: Hero showed [Kh Ad] and won (₮0.19)
+Seat 5: 90b14360 folded before Flop (didn't bet)
+Seat 6: fd87098b folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800313: NLH (₮0.05/₮0.10) 2026/08/10 17:23:07 CEST
+Table '200897' 6-max Seat #4 is the button
+Seat 1: fb01315b (₮13.89 in chips)
+Seat 2: ab6e320d (₮30.95 in chips)
+Seat 3: 6de228f8 (₮10 in chips)
+Seat 4: Hero (₮12.55 in chips)
+Seat 5: 990d3308 (₮11.91 in chips)
+Seat 6: d07a5b8a (₮10 in chips)
+990d3308: posts small blind ₮0.05
+d07a5b8a: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to fb01315b
+Dealt to ab6e320d
+Dealt to 6de228f8
+Dealt to Hero [6c Kh]
+Dealt to 990d3308
+Dealt to d07a5b8a
+fb01315b: folds
+ab6e320d: folds
+6de228f8: folds
+Hero: folds
+990d3308: folds
+d07a5b8a: RETURN ₮0.05
+*** SHOWDOWN ***
+d07a5b8a collected ₮0.09 from pot
+*** SUMMARY ***
+Total pot ₮0.10 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:23:33 CEST
+Seat 1: fb01315b folded before Flop (didn't bet)
+Seat 2: ab6e320d folded before Flop (didn't bet)
+Seat 3: 6de228f8 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 990d3308 folded before Flop (didn't bet)
+Seat 6: d07a5b8a won (₮0.09)
+
+
+CoinPoker Hand #108166800314: NLH (₮0.05/₮0.10) 2026/08/10 17:23:38 CEST
+Table '200897' 6-max Seat #5 is the button
+Seat 1: bef93503 (₮13.89 in chips)
+Seat 2: e7cf6f4b (₮30.95 in chips)
+Seat 3: 9870930b (₮10 in chips)
+Seat 4: Hero (₮12.55 in chips)
+Seat 5: 76994343 (₮11.86 in chips)
+Seat 6: 20904e69 (₮10.04 in chips)
+20904e69: posts small blind ₮0.05
+bef93503: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to bef93503
+Dealt to e7cf6f4b
+Dealt to 9870930b
+Dealt to Hero [6s Kc]
+Dealt to 76994343
+Dealt to 20904e69
+e7cf6f4b: folds
+9870930b: folds
+Hero: folds
+76994343: folds
+20904e69: raises ₮0.20 to ₮0.30
+bef93503: folds
+20904e69: RETURN ₮0.20
+*** SHOWDOWN ***
+20904e69 collected ₮0.19 from pot
+*** SUMMARY ***
+Total pot ₮0.20 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:24:35 CEST
+Seat 1: bef93503 folded before Flop (didn't bet)
+Seat 2: e7cf6f4b folded before Flop (didn't bet)
+Seat 3: 9870930b folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 76994343 folded before Flop (didn't bet)
+Seat 6: 20904e69 won (₮0.19)
+
+
+CoinPoker Hand #108166800315: NLH (₮0.05/₮0.10) 2026/08/10 17:24:40 CEST
+Table '200897' 6-max Seat #6 is the button
+Seat 1: 9c689cb8 (₮13.79 in chips)
+Seat 2: 106cd44b (₮30.95 in chips)
+Seat 3: 2a85ae27 (₮10 in chips)
+Seat 4: Hero (₮12.55 in chips)
+Seat 5: d7fe68dd (₮11.86 in chips)
+Seat 6: 4672e453 (₮10.13 in chips)
+9c689cb8: posts small blind ₮0.05
+106cd44b: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 9c689cb8
+Dealt to 106cd44b
+Dealt to 2a85ae27
+Dealt to Hero [3h Qh]
+Dealt to d7fe68dd
+Dealt to 4672e453
+2a85ae27: folds
+Hero: folds
+d7fe68dd: folds
+4672e453: folds
+9c689cb8: folds
+106cd44b: RETURN ₮0.05
+*** SHOWDOWN ***
+106cd44b collected ₮0.09 from pot
+*** SUMMARY ***
+Total pot ₮0.10 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:24:59 CEST
+Seat 1: 9c689cb8 folded before Flop (didn't bet)
+Seat 2: 106cd44b won (₮0.09)
+Seat 3: 2a85ae27 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: d7fe68dd folded before Flop (didn't bet)
+Seat 6: 4672e453 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800316: NLH (₮0.05/₮0.10) 2026/08/10 17:25:04 CEST
+Table '200897' 6-max Seat #1 is the button
+Seat 1: b7dd1b43 (₮13.74 in chips)
+Seat 2: 45d0bbe9 (₮30.99 in chips)
+Seat 3: 1cd0672c (₮10 in chips)
+Seat 4: Hero (₮12.55 in chips)
+Seat 5: c88c167b (₮11.86 in chips)
+Seat 6: 09457186 (₮10.13 in chips)
+45d0bbe9: posts small blind ₮0.05
+1cd0672c: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to b7dd1b43
+Dealt to 45d0bbe9
+Dealt to 1cd0672c
+Dealt to Hero [As 5d]
+Dealt to c88c167b
+Dealt to 09457186
+Hero: folds
+c88c167b: raises ₮0.15 to ₮0.25
+09457186: raises ₮0.49 to ₮0.74
+b7dd1b43: folds
+45d0bbe9: folds
+1cd0672c: folds
+c88c167b: calls ₮0.49
+*** FIRST FLOP *** [7d 4s 6h]
+c88c167b: checks
+09457186: checks
+*** FIRST TURN *** [7d 4s 6h] [6d]
+c88c167b: checks
+09457186: bets ₮1.22
+c88c167b: raises ₮1.84 to ₮3.06
+09457186: ALLIN ₮8.17
+c88c167b: calls ₮6.33
+*** FIRST RIVER *** [7d 4s 6h 6d] [Qs]
+*** SECOND RIVER *** [7d 4s 6h 6d] [Jh]
+*** FIRST SHOWDOWN ***
+c88c167b: shows [7c 7h] (Full House)
+c88c167b collected ₮9.70 from pot
+09457186: shows [Ts Th] (Two Pair)
+*** SECOND SHOWDOWN ***
+c88c167b: shows [7c 7h] (Full House)
+c88c167b collected ₮9.70 from pot
+09457186: shows [Ts Th] (Two Pair)
+*** SUMMARY ***
+Total pot ₮20.41 | Rake ₮1 | Splash Fee ₮0.01
+Hand was run two times
+FIRST Board [ 7d 4s 6h 6d Qs ]
+SECOND Board [ 7d 4s 6h 6d Jh ]
+Game ended: 2026/08/10 17:27:17 CEST
+Seat 1: b7dd1b43 folded before Flop (didn't bet)
+Seat 2: 45d0bbe9 folded before Flop (didn't bet)
+Seat 3: 1cd0672c folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: c88c167b showed [7c 7h] and won (₮9.70) with Full House, and won (₮9.70) with Full House
+Seat 6: 09457186 showed [Ts Th] and lost with Two Pair, and lost with Two Pair
+
+
+CoinPoker Hand #108166800317: NLH (₮0.05/₮0.10) 2026/08/10 17:27:24 CEST
+Table '200897' 6-max Seat #2 is the button
+Seat 1: fbf4b2f6 (₮13.74 in chips)
+Seat 2: a31e92e7 (₮30.94 in chips)
+Seat 3: d206ed96 (₮10 in chips)
+Seat 4: Hero (₮12.55 in chips)
+Seat 5: cb98f4b4 (₮21.13 in chips)
+Seat 6: 67dfe102 (₮10 in chips)
+d206ed96: posts small blind ₮0.05
+Hero: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to fbf4b2f6
+Dealt to a31e92e7
+Dealt to d206ed96
+Dealt to Hero [3c Ts]
+Dealt to cb98f4b4
+Dealt to 67dfe102
+cb98f4b4: folds
+67dfe102: folds
+fbf4b2f6: folds
+a31e92e7: raises ₮0.10 to ₮0.20
+d206ed96: folds
+Hero: folds
+a31e92e7: RETURN ₮0.10
+*** SHOWDOWN ***
+a31e92e7 collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:27:47 CEST
+Seat 1: fbf4b2f6 folded before Flop (didn't bet)
+Seat 2: a31e92e7 won (₮0.24)
+Seat 3: d206ed96 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: cb98f4b4 folded before Flop (didn't bet)
+Seat 6: 67dfe102 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800318: NLH (₮0.05/₮0.10) 2026/08/10 17:27:52 CEST
+Table '200897' 6-max Seat #3 is the button
+Seat 1: 84dee102 (₮13.74 in chips)
+Seat 2: 78de5c94 (₮31.08 in chips)
+Seat 3: 4b361af0 (₮10 in chips)
+Seat 4: Hero (₮12.45 in chips)
+Seat 5: 5726e375 (₮21.13 in chips)
+Seat 6: 49ca008f (₮10 in chips)
+Hero: posts small blind ₮0.05
+5726e375: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 84dee102
+Dealt to 78de5c94
+Dealt to 4b361af0
+Dealt to Hero [Qh Jc]
+Dealt to 5726e375
+Dealt to 49ca008f
+49ca008f: folds
+84dee102: folds
+78de5c94: folds
+4b361af0: raises ₮0.12 to ₮0.22
+Hero: calls ₮0.17
+5726e375: calls ₮0.12
+*** FLOP *** [5h 2h Ah]
+Hero: bets ₮0.66
+5726e375: calls ₮0.66
+4b361af0: folds
+*** TURN *** [5h 2h Ah] [6c]
+Hero: checks
+5726e375: checks
+*** RIVER *** [5h 2h Ah 6c] [4d]
+Hero: bets ₮0.99
+5726e375: calls ₮0.99
+*** SHOWDOWN ***
+5726e375: shows [9s As] (One Pair)
+5726e375 collected ₮3.75 from pot
+Hero: shows [Qh Jc] (High Card)
+*** SUMMARY ***
+Total pot ₮3.96 | Rake ₮0.20 | Splash Fee ₮0.01
+Hand was run once
+Board [ 5h 2h Ah 6c 4d ]
+Game ended: 2026/08/10 17:29:33 CEST
+Seat 1: 84dee102 folded before Flop (didn't bet)
+Seat 2: 78de5c94 folded before Flop (didn't bet)
+Seat 3: 4b361af0 folded on the Flop
+Seat 4: Hero showed [Qh Jc] and lost with High Card
+Seat 5: 5726e375 showed [9s As] and won (₮3.75) with One Pair
+Seat 6: 49ca008f folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800319: NLH (₮0.05/₮0.10) 2026/08/10 17:29:40 CEST
+Table '200897' 6-max Seat #4 is the button
+Seat 1: 416588bc (₮13.74 in chips)
+Seat 2: 0746c4a2 (₮31.08 in chips)
+Seat 3: dfe14300 (₮10 in chips)
+Seat 4: Hero (₮10.58 in chips)
+Seat 5: 682f60e7 (₮23.01 in chips)
+Seat 6: 054ac95d (₮10 in chips)
+682f60e7: posts small blind ₮0.05
+054ac95d: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 416588bc
+Dealt to 0746c4a2
+Dealt to dfe14300
+Dealt to Hero [5c 9h]
+Dealt to 682f60e7
+Dealt to 054ac95d
+416588bc: folds
+0746c4a2: folds
+dfe14300: raises ₮0.12 to ₮0.22
+Hero: folds
+682f60e7: calls ₮0.17
+054ac95d: folds
+*** FLOP *** [3s 4c 7d]
+682f60e7: checks
+dfe14300: checks
+*** TURN *** [3s 4c 7d] [6h]
+682f60e7: checks
+dfe14300: checks
+*** RIVER *** [3s 4c 7d 6h] [Ah]
+682f60e7: bets ₮0.35
+dfe14300: folds
+682f60e7: RETURN ₮0.35
+*** SHOWDOWN ***
+682f60e7 collected ₮0.50 from pot
+*** SUMMARY ***
+Total pot ₮0.54 | Rake ₮0.03 | Splash Fee ₮0.01
+Hand was run once
+Board [ 3s 4c 7d 6h Ah ]
+Game ended: 2026/08/10 17:30:48 CEST
+Seat 1: 416588bc folded before Flop (didn't bet)
+Seat 2: 0746c4a2 folded before Flop (didn't bet)
+Seat 3: dfe14300 folded on the River
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 682f60e7 won (₮0.50)
+Seat 6: 054ac95d folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800320: NLH (₮0.05/₮0.10) 2026/08/10 17:30:54 CEST
+Table '200897' 6-max Seat #5 is the button
+Seat 3: 0cf6c017 (₮10 in chips)
+Seat 1: e7417888 (₮13.74 in chips)
+Seat 2: 31ecc9b8 (₮31.08 in chips)
+Seat 4: Hero (₮10.58 in chips)
+Seat 5: e41e18e6 (₮23.29 in chips)
+Seat 6: 00567ef4 (₮10 in chips)
+00567ef4: posts small blind ₮0.05
+e7417888: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 0cf6c017
+Dealt to e7417888
+Dealt to 31ecc9b8
+Dealt to Hero [2d Ts]
+Dealt to e41e18e6
+Dealt to 00567ef4
+31ecc9b8: raises ₮0.15 to ₮0.25
+0cf6c017: folds
+Hero: folds
+e41e18e6: folds
+00567ef4: folds
+e7417888: folds
+31ecc9b8: RETURN ₮0.15
+*** SHOWDOWN ***
+31ecc9b8 collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:31:09 CEST
+Seat 3: 0cf6c017 folded before Flop (didn't bet)
+Seat 1: e7417888 folded before Flop (didn't bet)
+Seat 2: 31ecc9b8 won (₮0.24)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: e41e18e6 folded before Flop (didn't bet)
+Seat 6: 00567ef4 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800321: NLH (₮0.05/₮0.10) 2026/08/10 17:31:14 CEST
+Table '200897' 6-max Seat #6 is the button
+Seat 1: 5ff574ef (₮13.64 in chips)
+Seat 2: 2a8f9cc6 (₮31.22 in chips)
+Seat 4: Hero (₮10.58 in chips)
+Seat 5: 937c7d82 (₮23.29 in chips)
+Seat 6: cda8f35f (₮10 in chips)
+5ff574ef: posts small blind ₮0.05
+2a8f9cc6: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 5ff574ef
+Dealt to 2a8f9cc6
+Dealt to Hero [3d Ac]
+Dealt to 937c7d82
+Dealt to cda8f35f
+Hero: folds
+937c7d82: raises ₮0.15 to ₮0.25
+cda8f35f: raises ₮0.49 to ₮0.74
+5ff574ef: folds
+2a8f9cc6: folds
+937c7d82: calls ₮0.49
+*** FLOP *** [As Tc 2d]
+937c7d82: checks
+cda8f35f: bets ₮0.41
+937c7d82: calls ₮0.41
+*** TURN *** [As Tc 2d] [Qh]
+937c7d82: checks
+cda8f35f: checks
+*** RIVER *** [As Tc 2d Qh] [9h]
+937c7d82: bets ₮1.06
+cda8f35f: ALLIN ₮8.85
+937c7d82: folds
+cda8f35f: RETURN ₮7.79
+*** SHOWDOWN ***
+cda8f35f collected ₮4.33 from pot
+*** SUMMARY ***
+Total pot ₮4.57 | Rake ₮0.23 | Splash Fee ₮0.01
+Hand was run once
+Board [ As Tc 2d Qh 9h ]
+Game ended: 2026/08/10 17:32:16 CEST
+Seat 1: 5ff574ef folded before Flop (didn't bet)
+Seat 2: 2a8f9cc6 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 937c7d82 folded on the River
+Seat 6: cda8f35f won (₮4.33)
+
+
+CoinPoker Hand #108166800322: NLH (₮0.05/₮0.10) 2026/08/10 17:32:21 CEST
+Table '200897' 6-max Seat #1 is the button
+Seat 1: 24b75ea4 (₮13.59 in chips)
+Seat 2: 3de38d94 (₮31.12 in chips)
+Seat 3: c9c392a3 (₮10 in chips)
+Seat 4: Hero (₮10.58 in chips)
+Seat 5: 880d0876 (₮21.08 in chips)
+Seat 6: b52eff28 (₮12.12 in chips)
+3de38d94: posts small blind ₮0.05
+c9c392a3: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 24b75ea4
+Dealt to 3de38d94
+Dealt to c9c392a3
+Dealt to Hero [Ad 5c]
+Dealt to 880d0876
+Dealt to b52eff28
+Hero: folds
+880d0876: raises ₮0.12 to ₮0.22
+b52eff28: folds
+24b75ea4: folds
+3de38d94: folds
+c9c392a3: folds
+880d0876: RETURN ₮0.12
+*** SHOWDOWN ***
+880d0876 collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:32:49 CEST
+Seat 1: 24b75ea4 folded before Flop (didn't bet)
+Seat 2: 3de38d94 folded before Flop (didn't bet)
+Seat 3: c9c392a3 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 880d0876 won (₮0.24)
+Seat 6: b52eff28 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800323: NLH (₮0.05/₮0.10) 2026/08/10 17:32:54 CEST
+Table '200897' 6-max Seat #2 is the button
+Seat 1: bb061808 (₮13.59 in chips)
+Seat 2: 0806ce5d (₮31.07 in chips)
+Seat 3: 3b355edb (₮10 in chips)
+Seat 4: Hero (₮10.58 in chips)
+Seat 5: 2d774997 (₮21.22 in chips)
+Seat 6: ebe3cf82 (₮12.12 in chips)
+3b355edb: posts small blind ₮0.05
+Hero: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to bb061808
+Dealt to 0806ce5d
+Dealt to 3b355edb
+Dealt to Hero [7d Ad]
+Dealt to 2d774997
+Dealt to ebe3cf82
+2d774997: raises ₮0.12 to ₮0.22
+ebe3cf82: folds
+bb061808: folds
+0806ce5d: calls ₮0.22
+3b355edb: folds
+Hero: calls ₮0.12
+*** FLOP *** [6c 4h 2c]
+Hero: checks
+2d774997: checks
+0806ce5d: checks
+*** TURN *** [6c 4h 2c] [3h]
+Hero: bets ₮0.20
+2d774997: folds
+0806ce5d: calls ₮0.20
+*** RIVER *** [6c 4h 2c 3h] [Td]
+Hero: bets ₮0.37
+0806ce5d: calls ₮0.37
+*** SHOWDOWN ***
+0806ce5d: shows [As 4s] (One Pair)
+0806ce5d collected ₮1.75 from pot
+Hero: shows [7d Ad] (High Card)
+*** SUMMARY ***
+Total pot ₮1.85 | Rake ₮0.09 | Splash Fee ₮0.01
+Hand was run once
+Board [ 6c 4h 2c 3h Td ]
+Game ended: 2026/08/10 17:34:44 CEST
+Seat 1: bb061808 folded before Flop (didn't bet)
+Seat 2: 0806ce5d showed [As 4s] and won (₮1.75) with One Pair
+Seat 3: 3b355edb folded before Flop (didn't bet)
+Seat 4: Hero showed [7d Ad] and lost with High Card
+Seat 5: 2d774997 folded on the Turn
+Seat 6: ebe3cf82 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800324: NLH (₮0.05/₮0.10) 2026/08/10 17:34:50 CEST
+Table '200897' 6-max Seat #3 is the button
+Seat 1: 0cf0bbdd (₮13.59 in chips)
+Seat 2: 5e45fe25 (₮32.03 in chips)
+Seat 3: 92d0931c (₮10 in chips)
+Seat 4: Hero (₮9.79 in chips)
+Seat 5: 0aec40b3 (₮21 in chips)
+Seat 6: 1d29efb5 (₮12.12 in chips)
+Hero: posts small blind ₮0.05
+0aec40b3: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 0cf0bbdd
+Dealt to 5e45fe25
+Dealt to 92d0931c
+Dealt to Hero [9c 7d]
+Dealt to 0aec40b3
+Dealt to 1d29efb5
+1d29efb5: folds
+0cf0bbdd: folds
+5e45fe25: folds
+92d0931c: raises ₮0.15 to ₮0.25
+Hero: folds
+0aec40b3: folds
+92d0931c: RETURN ₮0.15
+*** SHOWDOWN ***
+92d0931c collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:35:06 CEST
+Seat 1: 0cf0bbdd folded before Flop (didn't bet)
+Seat 2: 5e45fe25 folded before Flop (didn't bet)
+Seat 3: 92d0931c won (₮0.24)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 0aec40b3 folded before Flop (didn't bet)
+Seat 6: 1d29efb5 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800325: NLH (₮0.05/₮0.10) 2026/08/10 17:35:11 CEST
+Table '200897' 6-max Seat #4 is the button
+Seat 1: f499dfb9 (₮13.59 in chips)
+Seat 2: 9b763c43 (₮32.03 in chips)
+Seat 3: 9ef45fba (₮10.14 in chips)
+Seat 4: Hero (₮9.74 in chips)
+Seat 5: b53b8022 (₮20.90 in chips)
+Seat 6: 64804187 (₮12.12 in chips)
+b53b8022: posts small blind ₮0.05
+64804187: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to f499dfb9
+Dealt to 9b763c43
+Dealt to 9ef45fba
+Dealt to Hero [2d Kc]
+Dealt to b53b8022
+Dealt to 64804187
+f499dfb9: raises ₮0.15 to ₮0.25
+9b763c43: folds
+9ef45fba: folds
+Hero: folds
+b53b8022: folds
+64804187: calls ₮0.15
+*** FLOP *** [9h 6d 7s]
+64804187: checks
+f499dfb9: bets ₮0.28
+64804187: raises ₮0.56 to ₮0.84
+f499dfb9: calls ₮0.56
+*** TURN *** [9h 6d 7s] [Td]
+64804187: bets ₮0.66
+f499dfb9: calls ₮0.66
+*** RIVER *** [9h 6d 7s Td] [8c]
+64804187: checks
+f499dfb9: ALLIN ₮11.84
+64804187: folds
+f499dfb9: RETURN ₮11.84
+*** SHOWDOWN ***
+f499dfb9 collected ₮3.36 from pot
+*** SUMMARY ***
+Total pot ₮3.55 | Rake ₮0.18 | Splash Fee ₮0.01
+Hand was run once
+Board [ 9h 6d 7s Td 8c ]
+Game ended: 2026/08/10 17:36:24 CEST
+Seat 1: f499dfb9 won (₮3.36)
+Seat 2: 9b763c43 folded before Flop (didn't bet)
+Seat 3: 9ef45fba folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: b53b8022 folded before Flop (didn't bet)
+Seat 6: 64804187 folded on the River
+
+
+CoinPoker Hand #108166800326: NLH (₮0.05/₮0.10) 2026/08/10 17:36:28 CEST
+Table '200897' 6-max Seat #5 is the button
+Seat 1: 69b5fb25 (₮15.20 in chips)
+Seat 2: f542fb64 (₮32.03 in chips)
+Seat 3: 73bd2b13 (₮10.14 in chips)
+Seat 4: Hero (₮9.74 in chips)
+Seat 5: f56e897b (₮20.85 in chips)
+Seat 6: c115e04a (₮10.37 in chips)
+c115e04a: posts small blind ₮0.05
+69b5fb25: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 69b5fb25
+Dealt to f542fb64
+Dealt to 73bd2b13
+Dealt to Hero [Jh 6c]
+Dealt to f56e897b
+Dealt to c115e04a
+f542fb64: folds
+73bd2b13: folds
+Hero: folds
+f56e897b: folds
+c115e04a: folds
+69b5fb25: RETURN ₮0.05
+*** SHOWDOWN ***
+69b5fb25 collected ₮0.09 from pot
+*** SUMMARY ***
+Total pot ₮0.10 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:36:38 CEST
+Seat 1: 69b5fb25 won (₮0.09)
+Seat 2: f542fb64 folded before Flop (didn't bet)
+Seat 3: 73bd2b13 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: f56e897b folded before Flop (didn't bet)
+Seat 6: c115e04a folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800327: NLH (₮0.05/₮0.10) 2026/08/10 17:36:43 CEST
+Table '200897' 6-max Seat #6 is the button
+Seat 1: be8b03de (₮15.24 in chips)
+Seat 2: 2f13b752 (₮32.03 in chips)
+Seat 3: 6b055be3 (₮10.14 in chips)
+Seat 4: Hero (₮9.74 in chips)
+Seat 5: 8bc63825 (₮20.85 in chips)
+Seat 6: 140466cf (₮10.32 in chips)
+be8b03de: posts small blind ₮0.05
+2f13b752: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to be8b03de
+Dealt to 2f13b752
+Dealt to 6b055be3
+Dealt to Hero [8d 7h]
+Dealt to 8bc63825
+Dealt to 140466cf
+6b055be3: folds
+Hero: folds
+8bc63825: raises ₮0.15 to ₮0.25
+140466cf: folds
+be8b03de: folds
+2f13b752: calls ₮0.15
+*** FLOP *** [7d 3h 8c]
+2f13b752: checks
+8bc63825: bets ₮0.23
+2f13b752: folds
+8bc63825: RETURN ₮0.23
+*** SHOWDOWN ***
+8bc63825 collected ₮0.51 from pot
+*** SUMMARY ***
+Total pot ₮0.55 | Rake ₮0.03 | Splash Fee ₮0.01
+Hand was run once
+Board [ 7d 3h 8c ]
+Game ended: 2026/08/10 17:37:19 CEST
+Seat 1: be8b03de folded before Flop (didn't bet)
+Seat 2: 2f13b752 folded on the Flop
+Seat 3: 6b055be3 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 8bc63825 won (₮0.51)
+Seat 6: 140466cf folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800328: NLH (₮0.05/₮0.10) 2026/08/10 17:37:24 CEST
+Table '200897' 6-max Seat #1 is the button
+Seat 2: f6fb1b59 (₮31.78 in chips)
+Seat 1: 6ddad944 (₮15.19 in chips)
+Seat 3: 58c3ffce (₮10.14 in chips)
+Seat 4: Hero (₮9.74 in chips)
+Seat 5: c866df7e (₮21.11 in chips)
+Seat 6: 8863ff0d (₮10.32 in chips)
+f6fb1b59: posts small blind ₮0.05
+58c3ffce: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to f6fb1b59
+Dealt to 6ddad944
+Dealt to 58c3ffce
+Dealt to Hero [Jh Ts]
+Dealt to c866df7e
+Dealt to 8863ff0d
+Hero: folds
+c866df7e: folds
+8863ff0d: raises ₮0.10 to ₮0.20
+6ddad944: folds
+f6fb1b59: folds
+58c3ffce: calls ₮0.10
+*** FLOP *** [2c 7s 5d]
+58c3ffce: checks
+8863ff0d: bets ₮0.11
+58c3ffce: calls ₮0.11
+*** TURN *** [2c 7s 5d] [9s]
+58c3ffce: checks
+8863ff0d: checks
+*** RIVER *** [2c 7s 5d 9s] [Ac]
+58c3ffce: checks
+8863ff0d: checks
+*** SHOWDOWN ***
+58c3ffce: shows [Kh 5h] (One Pair)
+58c3ffce collected ₮0.63 from pot
+8863ff0d: mucks hand
+*** SUMMARY ***
+Total pot ₮0.67 | Rake ₮0.03 | Splash Fee ₮0.01
+Hand was run once
+Board [ 2c 7s 5d 9s Ac ]
+Game ended: 2026/08/10 17:38:03 CEST
+Seat 2: f6fb1b59 folded before Flop (didn't bet)
+Seat 1: 6ddad944 folded before Flop (didn't bet)
+Seat 3: 58c3ffce showed [Kh 5h] and won (₮0.63) with One Pair
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: c866df7e folded before Flop (didn't bet)
+Seat 6: 8863ff0d didn't show
+
+
+CoinPoker Hand #108166800329: NLH (₮0.05/₮0.10) 2026/08/10 17:38:09 CEST
+Table '200897' 6-max Seat #3 is the button
+Seat 1: 5a36f2a6 (₮15.19 in chips)
+Seat 3: 550135a4 (₮10.46 in chips)
+Seat 4: Hero (₮9.74 in chips)
+Seat 5: 9298eaf6 (₮21.11 in chips)
+Seat 6: dc12e091 (₮10.01 in chips)
+Hero: posts small blind ₮0.05
+9298eaf6: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 5a36f2a6
+Dealt to 550135a4
+Dealt to Hero [Qh 5d]
+Dealt to 9298eaf6
+Dealt to dc12e091
+dc12e091: folds
+5a36f2a6: folds
+550135a4: folds
+Hero: calls ₮0.05
+9298eaf6: checks
+*** FLOP *** [9c 7h 6d]
+Hero: checks
+9298eaf6: checks
+*** TURN *** [9c 7h 6d] [9d]
+Hero: bets ₮0.10
+9298eaf6: calls ₮0.10
+*** RIVER *** [9c 7h 6d 9d] [5c]
+Hero: bets ₮0.30
+9298eaf6: folds
+Hero: RETURN ₮0.30
+*** SHOWDOWN ***
+Hero collected ₮0.37 from pot
+*** SUMMARY ***
+Total pot ₮0.40 | Rake ₮0.02 | Splash Fee ₮0.01
+Hand was run once
+Board [ 9c 7h 6d 9d 5c ]
+Game ended: 2026/08/10 17:39:18 CEST
+Seat 1: 5a36f2a6 folded before Flop (didn't bet)
+Seat 3: 550135a4 folded before Flop (didn't bet)
+Seat 4: Hero showed [Qh 5d] and won (₮0.37)
+Seat 5: 9298eaf6 folded on the River
+Seat 6: dc12e091 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800330: NLH (₮0.05/₮0.10) 2026/08/10 17:39:23 CEST
+Table '200897' 6-max Seat #4 is the button
+Seat 1: 58561fd7 (₮15.19 in chips)
+Seat 3: e81d0eed (₮10.46 in chips)
+Seat 4: Hero (₮10 in chips)
+Seat 5: ff20ac8c (₮20.91 in chips)
+Seat 6: 1cff6935 (₮10.01 in chips)
+ff20ac8c: posts small blind ₮0.05
+1cff6935: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 58561fd7
+Dealt to e81d0eed
+Dealt to Hero [Qs Jc]
+Dealt to ff20ac8c
+Dealt to 1cff6935
+58561fd7: folds
+e81d0eed: folds
+Hero: raises ₮0.25 to ₮0.35
+ff20ac8c: folds
+1cff6935: raises ₮1.15 to ₮1.50
+Hero: folds
+1cff6935: RETURN ₮1.15
+*** SHOWDOWN ***
+1cff6935 collected ₮0.74 from pot
+*** SUMMARY ***
+Total pot ₮0.75 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:40:07 CEST
+Seat 1: 58561fd7 folded before Flop (didn't bet)
+Seat 3: e81d0eed folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: ff20ac8c folded before Flop (didn't bet)
+Seat 6: 1cff6935 won (₮0.74)
+
+
+CoinPoker Hand #108166800331: NLH (₮0.05/₮0.10) 2026/08/10 17:40:11 CEST
+Table '200897' 6-max Seat #5 is the button
+Seat 1: 5de969e8 (₮15.19 in chips)
+Seat 3: e41071cd (₮10.46 in chips)
+Seat 4: Hero (₮9.65 in chips)
+Seat 5: 9a6bf71a (₮20.86 in chips)
+Seat 6: 485e8399 (₮10.40 in chips)
+485e8399: posts small blind ₮0.05
+5de969e8: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 5de969e8
+Dealt to e41071cd
+Dealt to Hero [Kc Kh]
+Dealt to 9a6bf71a
+Dealt to 485e8399
+e41071cd: folds
+Hero: raises ₮0.25 to ₮0.35
+9a6bf71a: calls ₮0.35
+485e8399: folds
+5de969e8: calls ₮0.25
+*** FLOP *** [3d Tc 8s]
+5de969e8: checks
+Hero: bets ₮0.42
+9a6bf71a: folds
+5de969e8: folds
+Hero: RETURN ₮0.42
+*** SHOWDOWN ***
+Hero collected ₮1.03 from pot
+*** SUMMARY ***
+Total pot ₮1.10 | Rake ₮0.06 | Splash Fee ₮0.01
+Hand was run once
+Board [ 3d Tc 8s ]
+Game ended: 2026/08/10 17:40:46 CEST
+Seat 1: 5de969e8 folded on the Flop
+Seat 3: e41071cd folded before Flop (didn't bet)
+Seat 4: Hero showed [Kc Kh] and won (₮1.03)
+Seat 5: 9a6bf71a folded on the Flop
+Seat 6: 485e8399 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800332: NLH (₮0.05/₮0.10) 2026/08/10 17:40:50 CEST
+Table '200897' 6-max Seat #6 is the button
+Seat 1: c4d50847 (₮14.84 in chips)
+Seat 2: 6e964736 (₮10 in chips)
+Seat 3: 31de88b8 (₮10.46 in chips)
+Seat 4: Hero (₮10.33 in chips)
+Seat 5: 0c07004a (₮20.51 in chips)
+Seat 6: b56e66ff (₮10.35 in chips)
+c4d50847: posts small blind ₮0.05
+6e964736: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to c4d50847
+Dealt to 6e964736
+Dealt to 31de88b8
+Dealt to Hero [2h Ts]
+Dealt to 0c07004a
+Dealt to b56e66ff
+31de88b8: raises ₮0.15 to ₮0.25
+Hero: folds
+0c07004a: calls ₮0.25
+b56e66ff: folds
+c4d50847: folds
+6e964736: folds
+*** FLOP *** [Qc Js 2c]
+31de88b8: bets ₮0.21
+0c07004a: folds
+31de88b8: RETURN ₮0.21
+*** SHOWDOWN ***
+31de88b8 collected ₮0.61 from pot
+*** SUMMARY ***
+Total pot ₮0.65 | Rake ₮0.03 | Splash Fee ₮0.01
+Hand was run once
+Board [ Qc Js 2c ]
+Game ended: 2026/08/10 17:41:25 CEST
+Seat 1: c4d50847 folded before Flop (didn't bet)
+Seat 2: 6e964736 folded before Flop (didn't bet)
+Seat 3: 31de88b8 won (₮0.61)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 0c07004a folded on the Flop
+Seat 6: b56e66ff folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800333: NLH (₮0.05/₮0.10) 2026/08/10 17:41:30 CEST
+Table '200897' 6-max Seat #1 is the button
+Seat 1: be4a0652 (₮14.79 in chips)
+Seat 2: 61458960 (₮10 in chips)
+Seat 3: 234934a5 (₮10.82 in chips)
+Seat 4: Hero (₮10.33 in chips)
+Seat 5: 3affe26f (₮20.26 in chips)
+Seat 6: 14ebef4e (₮10.35 in chips)
+61458960: posts small blind ₮0.05
+234934a5: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to be4a0652
+Dealt to 61458960
+Dealt to 234934a5
+Dealt to Hero [6h 8h]
+Dealt to 3affe26f
+Dealt to 14ebef4e
+Hero: folds
+3affe26f: raises ₮0.15 to ₮0.25
+14ebef4e: folds
+be4a0652: folds
+61458960: folds
+234934a5: folds
+3affe26f: RETURN ₮0.15
+*** SHOWDOWN ***
+3affe26f collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:41:49 CEST
+Seat 1: be4a0652 folded before Flop (didn't bet)
+Seat 2: 61458960 folded before Flop (didn't bet)
+Seat 3: 234934a5 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 3affe26f won (₮0.24)
+Seat 6: 14ebef4e folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800334: NLH (₮0.05/₮0.10) 2026/08/10 17:41:54 CEST
+Table '200897' 6-max Seat #2 is the button
+Seat 1: a3d9b680 (₮14.79 in chips)
+Seat 2: 033ef8ae (₮10 in chips)
+Seat 3: 386720cf (₮10.72 in chips)
+Seat 4: Hero (₮10.33 in chips)
+Seat 5: 84071aa0 (₮20.40 in chips)
+Seat 6: 8c45a748 (₮10.35 in chips)
+386720cf: posts small blind ₮0.05
+Hero: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to a3d9b680
+Dealt to 033ef8ae
+Dealt to 386720cf
+Dealt to Hero [8d 3h]
+Dealt to 84071aa0
+Dealt to 8c45a748
+84071aa0: folds
+8c45a748: folds
+a3d9b680: folds
+033ef8ae: raises ₮0.15 to ₮0.25
+386720cf: raises ₮1 to ₮1.25
+Hero: folds
+033ef8ae: folds
+386720cf: RETURN ₮1
+*** SHOWDOWN ***
+386720cf collected ₮0.59 from pot
+*** SUMMARY ***
+Total pot ₮0.60 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:42:19 CEST
+Seat 1: a3d9b680 folded before Flop (didn't bet)
+Seat 2: 033ef8ae folded before Flop (didn't bet)
+Seat 3: 386720cf won (₮0.59)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 84071aa0 folded before Flop (didn't bet)
+Seat 6: 8c45a748 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800335: NLH (₮0.05/₮0.10) 2026/08/10 17:42:24 CEST
+Table '200897' 6-max Seat #3 is the button
+Seat 1: c1710977 (₮14.79 in chips)
+Seat 2: 792b365e (₮10 in chips)
+Seat 3: dc72d09d (₮11.06 in chips)
+Seat 4: Hero (₮10.23 in chips)
+Seat 5: f64817d6 (₮20.40 in chips)
+Seat 6: b2addb49 (₮10.35 in chips)
+Hero: posts small blind ₮0.05
+f64817d6: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to c1710977
+Dealt to 792b365e
+Dealt to dc72d09d
+Dealt to Hero [4c 9d]
+Dealt to f64817d6
+Dealt to b2addb49
+b2addb49: folds
+c1710977: folds
+792b365e: folds
+dc72d09d: raises ₮0.15 to ₮0.25
+Hero: folds
+f64817d6: folds
+dc72d09d: RETURN ₮0.15
+*** SHOWDOWN ***
+dc72d09d collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:42:38 CEST
+Seat 1: c1710977 folded before Flop (didn't bet)
+Seat 2: 792b365e folded before Flop (didn't bet)
+Seat 3: dc72d09d won (₮0.24)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: f64817d6 folded before Flop (didn't bet)
+Seat 6: b2addb49 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800336: NLH (₮0.05/₮0.10) 2026/08/10 17:42:43 CEST
+Table '200897' 6-max Seat #4 is the button
+Seat 1: 728cfc8d (₮14.79 in chips)
+Seat 2: 57afcb7c (₮10 in chips)
+Seat 3: 167cc663 (₮11.20 in chips)
+Seat 4: Hero (₮10.18 in chips)
+Seat 5: ef86e4d9 (₮20.30 in chips)
+Seat 6: 3235c35b (₮10.35 in chips)
+ef86e4d9: posts small blind ₮0.05
+3235c35b: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 728cfc8d
+Dealt to 57afcb7c
+Dealt to 167cc663
+Dealt to Hero [Kd 3s]
+Dealt to ef86e4d9
+Dealt to 3235c35b
+728cfc8d: folds
+57afcb7c: folds
+167cc663: folds
+Hero: folds
+ef86e4d9: folds
+3235c35b: RETURN ₮0.05
+*** SHOWDOWN ***
+3235c35b collected ₮0.09 from pot
+*** SUMMARY ***
+Total pot ₮0.10 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:42:51 CEST
+Seat 1: 728cfc8d folded before Flop (didn't bet)
+Seat 2: 57afcb7c folded before Flop (didn't bet)
+Seat 3: 167cc663 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: ef86e4d9 folded before Flop (didn't bet)
+Seat 6: 3235c35b won (₮0.09)
+
+
+CoinPoker Hand #108166800337: NLH (₮0.05/₮0.10) 2026/08/10 17:42:56 CEST
+Table '200897' 6-max Seat #5 is the button
+Seat 1: 1f6b4acb (₮14.79 in chips)
+Seat 2: 000612bb (₮10 in chips)
+Seat 3: ba63077d (₮11.20 in chips)
+Seat 4: Hero (₮10.18 in chips)
+Seat 5: cfb3c5eb (₮20.25 in chips)
+Seat 6: ea64d262 (₮10.39 in chips)
+ea64d262: posts small blind ₮0.05
+1f6b4acb: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 1f6b4acb
+Dealt to 000612bb
+Dealt to ba63077d
+Dealt to Hero [9d 5c]
+Dealt to cfb3c5eb
+Dealt to ea64d262
+000612bb: folds
+ba63077d: raises ₮0.15 to ₮0.25
+Hero: folds
+cfb3c5eb: folds
+ea64d262: folds
+1f6b4acb: folds
+ba63077d: RETURN ₮0.15
+*** SHOWDOWN ***
+ba63077d collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:43:09 CEST
+Seat 1: 1f6b4acb folded before Flop (didn't bet)
+Seat 2: 000612bb folded before Flop (didn't bet)
+Seat 3: ba63077d won (₮0.24)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: cfb3c5eb folded before Flop (didn't bet)
+Seat 6: ea64d262 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800338: NLH (₮0.05/₮0.10) 2026/08/10 17:43:14 CEST
+Table '200897' 6-max Seat #6 is the button
+Seat 1: 55e0bf58 (₮14.69 in chips)
+Seat 2: e9ebe6b4 (₮10 in chips)
+Seat 3: 8d38160a (₮11.34 in chips)
+Seat 4: Hero (₮10.18 in chips)
+Seat 5: 2572d835 (₮20.25 in chips)
+Seat 6: e10f2b21 (₮10.34 in chips)
+55e0bf58: posts small blind ₮0.05
+e9ebe6b4: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 55e0bf58
+Dealt to e9ebe6b4
+Dealt to 8d38160a
+Dealt to Hero [9c 8h]
+Dealt to 2572d835
+Dealt to e10f2b21
+8d38160a: folds
+Hero: folds
+2572d835: folds
+e10f2b21: raises ₮0.10 to ₮0.20
+55e0bf58: folds
+e9ebe6b4: folds
+e10f2b21: RETURN ₮0.10
+*** SHOWDOWN ***
+e10f2b21 collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:43:39 CEST
+Seat 1: 55e0bf58 folded before Flop (didn't bet)
+Seat 2: e9ebe6b4 folded before Flop (didn't bet)
+Seat 3: 8d38160a folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 2572d835 folded before Flop (didn't bet)
+Seat 6: e10f2b21 won (₮0.24)
+
+
+CoinPoker Hand #108166800339: NLH (₮0.05/₮0.10) 2026/08/10 17:43:44 CEST
+Table '200897' 6-max Seat #1 is the button
+Seat 1: 8d4e693f (₮14.64 in chips)
+Seat 2: a946d701 (₮10 in chips)
+Seat 3: d8b938ff (₮11.34 in chips)
+Seat 4: Hero (₮10.18 in chips)
+Seat 5: a634f2f6 (₮20.25 in chips)
+Seat 6: a3053ab5 (₮10.48 in chips)
+a946d701: posts small blind ₮0.05
+d8b938ff: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 8d4e693f
+Dealt to a946d701
+Dealt to d8b938ff
+Dealt to Hero [4d 8d]
+Dealt to a634f2f6
+Dealt to a3053ab5
+Hero: folds
+a634f2f6: folds
+a3053ab5: folds
+8d4e693f: raises ₮0.15 to ₮0.25
+a946d701: folds
+d8b938ff: calls ₮0.15
+*** FLOP *** [7c 4s 6h]
+d8b938ff: checks
+8d4e693f: checks
+*** TURN *** [7c 4s 6h] [5s]
+d8b938ff: checks
+8d4e693f: checks
+*** RIVER *** [7c 4s 6h 5s] [Qh]
+d8b938ff: bets ₮0.18
+8d4e693f: folds
+d8b938ff: RETURN ₮0.18
+*** SHOWDOWN ***
+d8b938ff collected ₮0.51 from pot
+*** SUMMARY ***
+Total pot ₮0.55 | Rake ₮0.03 | Splash Fee ₮0.01
+Hand was run once
+Board [ 7c 4s 6h 5s Qh ]
+Game ended: 2026/08/10 17:44:33 CEST
+Seat 1: 8d4e693f folded on the River
+Seat 2: a946d701 folded before Flop (didn't bet)
+Seat 3: d8b938ff won (₮0.51)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: a634f2f6 folded before Flop (didn't bet)
+Seat 6: a3053ab5 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800340: NLH (₮0.05/₮0.10) 2026/08/10 17:44:38 CEST
+Table '200897' 6-max Seat #2 is the button
+Seat 1: eb009962 (₮14.39 in chips)
+Seat 2: 8060b5e0 (₮10 in chips)
+Seat 3: 4a5ca838 (₮11.60 in chips)
+Seat 4: Hero (₮10.18 in chips)
+Seat 5: 970bec47 (₮20.25 in chips)
+Seat 6: 946e1557 (₮10.48 in chips)
+4a5ca838: posts small blind ₮0.05
+Hero: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to eb009962
+Dealt to 8060b5e0
+Dealt to 4a5ca838
+Dealt to Hero [Ts Td]
+Dealt to 970bec47
+Dealt to 946e1557
+970bec47: folds
+946e1557: raises ₮0.10 to ₮0.20
+eb009962: folds
+8060b5e0: folds
+4a5ca838: raises ₮0.80 to ₮1
+Hero: calls ₮0.90
+946e1557: folds
+*** FLOP *** [Kc 2s 6s]
+4a5ca838: bets ₮0.73
+Hero: raises ₮3.66 to ₮4.39
+4a5ca838: folds
+Hero: RETURN ₮3.66
+*** SHOWDOWN ***
+Hero collected ₮3.47 from pot
+*** SUMMARY ***
+Total pot ₮3.66 | Rake ₮0.18 | Splash Fee ₮0.01
+Hand was run once
+Board [ Kc 2s 6s ]
+Game ended: 2026/08/10 17:45:29 CEST
+Seat 1: eb009962 folded before Flop (didn't bet)
+Seat 2: 8060b5e0 folded before Flop (didn't bet)
+Seat 3: 4a5ca838 folded on the Flop
+Seat 4: Hero showed [Ts Td] and won (₮3.47)
+Seat 5: 970bec47 folded before Flop (didn't bet)
+Seat 6: 946e1557 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800341: NLH (₮0.05/₮0.10) 2026/08/10 17:45:34 CEST
+Table '200897' 6-max Seat #3 is the button
+Seat 2: f446ba3e (₮10 in chips)
+Seat 3: 29c1466e (₮10 in chips)
+Seat 4: Hero (₮11.92 in chips)
+Seat 5: 025c6600 (₮20.25 in chips)
+Seat 6: 5eea2c37 (₮10.28 in chips)
+Hero: posts small blind ₮0.05
+025c6600: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to f446ba3e
+Dealt to 29c1466e
+Dealt to Hero [4d 9d]
+Dealt to 025c6600
+Dealt to 5eea2c37
+5eea2c37: folds
+f446ba3e: folds
+29c1466e: folds
+Hero: folds
+025c6600: RETURN ₮0.05
+*** SHOWDOWN ***
+025c6600 collected ₮0.09 from pot
+*** SUMMARY ***
+Total pot ₮0.10 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:46:02 CEST
+Seat 2: f446ba3e folded before Flop (didn't bet)
+Seat 3: 29c1466e folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 025c6600 won (₮0.09)
+Seat 6: 5eea2c37 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800342: NLH (₮0.05/₮0.10) 2026/08/10 17:46:07 CEST
+Table '200897' 6-max Seat #4 is the button
+Seat 2: 30986010 (₮10 in chips)
+Seat 3: b5cac502 (₮10 in chips)
+Seat 4: Hero (₮11.87 in chips)
+Seat 5: 7bd342cc (₮20.29 in chips)
+Seat 6: 04b6120a (₮10.28 in chips)
+7bd342cc: posts small blind ₮0.05
+04b6120a: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 30986010
+Dealt to b5cac502
+Dealt to Hero [Jh 4s]
+Dealt to 7bd342cc
+Dealt to 04b6120a
+30986010: folds
+b5cac502: raises ₮0.15 to ₮0.25
+Hero: folds
+7bd342cc: folds
+04b6120a: calls ₮0.15
+*** FLOP *** [Kc 5d 6c]
+04b6120a: checks
+b5cac502: bets ₮0.28
+04b6120a: raises ₮0.66 to ₮0.94
+b5cac502: calls ₮0.66
+*** TURN *** [Kc 5d 6c] [Jc]
+04b6120a: bets ₮0.71
+b5cac502: calls ₮0.71
+*** RIVER *** [Kc 5d 6c Jc] [Th]
+04b6120a: bets ₮2.89
+b5cac502: calls ₮2.89
+*** SHOWDOWN ***
+04b6120a: shows [7c 4c] (Flush)
+04b6120a collected ₮9.14 from pot
+b5cac502: mucks hand
+*** SUMMARY ***
+Total pot ₮9.63 | Rake ₮0.48 | Splash Fee ₮0.01
+Hand was run once
+Board [ Kc 5d 6c Jc Th ]
+Game ended: 2026/08/10 17:47:33 CEST
+Seat 2: 30986010 folded before Flop (didn't bet)
+Seat 3: b5cac502 didn't show
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 7bd342cc folded before Flop (didn't bet)
+Seat 6: 04b6120a showed [7c 4c] and won (₮9.14) with Flush
+
+
+CoinPoker Hand #108166800343: NLH (₮0.05/₮0.10) 2026/08/10 17:47:40 CEST
+Table '200897' 6-max Seat #5 is the button
+Seat 1: ae538f9d (₮10 in chips)
+Seat 2: 6c7f932c (₮10 in chips)
+Seat 3: 92a99b68 (₮10 in chips)
+Seat 4: Hero (₮11.87 in chips)
+Seat 5: 3f3c0b93 (₮20.24 in chips)
+Seat 6: 967a588e (₮14.63 in chips)
+967a588e: posts small blind ₮0.05
+ae538f9d: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to ae538f9d
+Dealt to 6c7f932c
+Dealt to 92a99b68
+Dealt to Hero [Qs 6s]
+Dealt to 3f3c0b93
+Dealt to 967a588e
+6c7f932c: folds
+92a99b68: folds
+Hero: folds
+3f3c0b93: raises ₮0.15 to ₮0.25
+967a588e: folds
+ae538f9d: calls ₮0.15
+*** FLOP *** [3c 3d Qh]
+ae538f9d: checks
+3f3c0b93: bets ₮0.18
+ae538f9d: folds
+3f3c0b93: RETURN ₮0.18
+*** SHOWDOWN ***
+3f3c0b93 collected ₮0.51 from pot
+*** SUMMARY ***
+Total pot ₮0.55 | Rake ₮0.03 | Splash Fee ₮0.01
+Hand was run once
+Board [ 3c 3d Qh ]
+Game ended: 2026/08/10 17:48:13 CEST
+Seat 1: ae538f9d folded on the Flop
+Seat 2: 6c7f932c folded before Flop (didn't bet)
+Seat 3: 92a99b68 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 3f3c0b93 won (₮0.51)
+Seat 6: 967a588e folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800344: NLH (₮0.05/₮0.10) 2026/08/10 17:48:18 CEST
+Table '200897' 6-max Seat #6 is the button
+Seat 1: 62fe4a0b (₮10 in chips)
+Seat 2: 94d510ad (₮10 in chips)
+Seat 3: fe536054 (₮10 in chips)
+Seat 4: Hero (₮11.87 in chips)
+Seat 5: a40162cb (₮20.50 in chips)
+Seat 6: f0ba8ea6 (₮14.58 in chips)
+62fe4a0b: posts small blind ₮0.05
+94d510ad: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 62fe4a0b
+Dealt to 94d510ad
+Dealt to fe536054
+Dealt to Hero [6s 7c]
+Dealt to a40162cb
+Dealt to f0ba8ea6
+fe536054: raises ₮0.15 to ₮0.25
+Hero: folds
+a40162cb: calls ₮0.25
+f0ba8ea6: folds
+62fe4a0b: folds
+94d510ad: calls ₮0.15
+*** FLOP *** [9s 2c Js]
+94d510ad: checks
+fe536054: checks
+a40162cb: bets ₮0.57
+94d510ad: calls ₮0.57
+fe536054: calls ₮0.57
+*** TURN *** [9s 2c Js] [8h]
+94d510ad: checks
+fe536054: checks
+a40162cb: bets ₮1.78
+94d510ad: folds
+fe536054: folds
+a40162cb: RETURN ₮1.78
+*** SHOWDOWN ***
+a40162cb collected ₮2.37 from pot
+*** SUMMARY ***
+Total pot ₮2.51 | Rake ₮0.13 | Splash Fee ₮0.01
+Hand was run once
+Board [ 9s 2c Js 8h ]
+Game ended: 2026/08/10 17:49:42 CEST
+Seat 1: 62fe4a0b folded before Flop (didn't bet)
+Seat 2: 94d510ad folded on the Turn
+Seat 3: fe536054 folded on the Turn
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: a40162cb won (₮2.37)
+Seat 6: f0ba8ea6 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800345: NLH (₮0.05/₮0.10) 2026/08/10 17:49:47 CEST
+Table '200897' 6-max Seat #1 is the button
+Seat 1: f0d6bc8f (₮10 in chips)
+Seat 2: c2b0c6d7 (₮10 in chips)
+Seat 3: 18694a14 (₮10 in chips)
+Seat 4: Hero (₮11.87 in chips)
+Seat 5: 4e59256a (₮22.05 in chips)
+Seat 6: bbffd86a (₮14.58 in chips)
+c2b0c6d7: posts small blind ₮0.05
+18694a14: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to f0d6bc8f
+Dealt to c2b0c6d7
+Dealt to 18694a14
+Dealt to Hero [Tc Kc]
+Dealt to 4e59256a
+Dealt to bbffd86a
+Hero: raises ₮0.20 to ₮0.30
+4e59256a: folds
+bbffd86a: folds
+f0d6bc8f: folds
+c2b0c6d7: folds
+18694a14: folds
+Hero: RETURN ₮0.20
+*** SHOWDOWN ***
+Hero collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:50:15 CEST
+Seat 1: f0d6bc8f folded before Flop (didn't bet)
+Seat 2: c2b0c6d7 folded before Flop (didn't bet)
+Seat 3: 18694a14 folded before Flop (didn't bet)
+Seat 4: Hero showed [Tc Kc] and won (₮0.24)
+Seat 5: 4e59256a folded before Flop (didn't bet)
+Seat 6: bbffd86a folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800346: NLH (₮0.05/₮0.10) 2026/08/10 17:50:20 CEST
+Table '200897' 6-max Seat #2 is the button
+Seat 1: c8103fb9 (₮10 in chips)
+Seat 2: e5e049b6 (₮10 in chips)
+Seat 3: 6eb972e1 (₮10 in chips)
+Seat 4: Hero (₮12.01 in chips)
+Seat 5: 601285eb (₮22.05 in chips)
+Seat 6: 9a57e1fa (₮14.58 in chips)
+6eb972e1: posts small blind ₮0.05
+Hero: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to c8103fb9
+Dealt to e5e049b6
+Dealt to 6eb972e1
+Dealt to Hero [2d 8c]
+Dealt to 601285eb
+Dealt to 9a57e1fa
+601285eb: folds
+9a57e1fa: folds
+c8103fb9: folds
+e5e049b6: folds
+6eb972e1: raises ₮0.20 to ₮0.30
+Hero: folds
+6eb972e1: RETURN ₮0.20
+*** SHOWDOWN ***
+6eb972e1 collected ₮0.19 from pot
+*** SUMMARY ***
+Total pot ₮0.20 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:50:29 CEST
+Seat 1: c8103fb9 folded before Flop (didn't bet)
+Seat 2: e5e049b6 folded before Flop (didn't bet)
+Seat 3: 6eb972e1 won (₮0.19)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 601285eb folded before Flop (didn't bet)
+Seat 6: 9a57e1fa folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800347: NLH (₮0.05/₮0.10) 2026/08/10 17:50:34 CEST
+Table '200897' 6-max Seat #3 is the button
+Seat 1: 134cb423 (₮10 in chips)
+Seat 2: b68f24fd (₮10 in chips)
+Seat 3: 3ac2c9bf (₮10.09 in chips)
+Seat 4: Hero (₮11.91 in chips)
+Seat 5: b206dc0b (₮22.05 in chips)
+Seat 6: df018f2d (₮14.58 in chips)
+Hero: posts small blind ₮0.05
+b206dc0b: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 134cb423
+Dealt to b68f24fd
+Dealt to 3ac2c9bf
+Dealt to Hero [7s 8h]
+Dealt to b206dc0b
+Dealt to df018f2d
+df018f2d: folds
+134cb423: raises ₮0.15 to ₮0.25
+b68f24fd: folds
+3ac2c9bf: folds
+Hero: folds
+b206dc0b: raises ₮0.92 to ₮1.17
+134cb423: folds
+b206dc0b: RETURN ₮0.92
+*** SHOWDOWN ***
+b206dc0b collected ₮0.54 from pot
+*** SUMMARY ***
+Total pot ₮0.55 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:50:59 CEST
+Seat 1: 134cb423 folded before Flop (didn't bet)
+Seat 2: b68f24fd folded before Flop (didn't bet)
+Seat 3: 3ac2c9bf folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: b206dc0b won (₮0.54)
+Seat 6: df018f2d folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800348: NLH (₮0.05/₮0.10) 2026/08/10 17:51:04 CEST
+Table '200897' 6-max Seat #4 is the button
+Seat 1: c4fb553e (₮10 in chips)
+Seat 2: b6609632 (₮10 in chips)
+Seat 3: 788cba2d (₮10.09 in chips)
+Seat 4: Hero (₮11.86 in chips)
+Seat 5: c9209c6d (₮22.34 in chips)
+Seat 6: bc259721 (₮14.58 in chips)
+c9209c6d: posts small blind ₮0.05
+bc259721: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to c4fb553e
+Dealt to b6609632
+Dealt to 788cba2d
+Dealt to Hero [5d 3h]
+Dealt to c9209c6d
+Dealt to bc259721
+c4fb553e: folds
+b6609632: folds
+788cba2d: folds
+Hero: folds
+c9209c6d: folds
+bc259721: RETURN ₮0.05
+*** SHOWDOWN ***
+bc259721 collected ₮0.09 from pot
+*** SUMMARY ***
+Total pot ₮0.10 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:51:24 CEST
+Seat 1: c4fb553e folded before Flop (didn't bet)
+Seat 2: b6609632 folded before Flop (didn't bet)
+Seat 3: 788cba2d folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: c9209c6d folded before Flop (didn't bet)
+Seat 6: bc259721 won (₮0.09)
+
+
+CoinPoker Hand #108166800349: NLH (₮0.05/₮0.10) 2026/08/10 17:51:29 CEST
+Table '200897' 6-max Seat #5 is the button
+Seat 1: fdabe1ea (₮10 in chips)
+Seat 2: 21dd4974 (₮10 in chips)
+Seat 3: 9154360c (₮10.09 in chips)
+Seat 4: Hero (₮11.86 in chips)
+Seat 5: 07c8b15d (₮22.29 in chips)
+Seat 6: 8b0984da (₮14.62 in chips)
+8b0984da: posts small blind ₮0.05
+fdabe1ea: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to fdabe1ea
+Dealt to 21dd4974
+Dealt to 9154360c
+Dealt to Hero [Jd 4h]
+Dealt to 07c8b15d
+Dealt to 8b0984da
+21dd4974: folds
+9154360c: raises ₮0.15 to ₮0.25
+Hero: folds
+07c8b15d: folds
+8b0984da: folds
+fdabe1ea: folds
+9154360c: RETURN ₮0.15
+*** SHOWDOWN ***
+9154360c collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:51:45 CEST
+Seat 1: fdabe1ea folded before Flop (didn't bet)
+Seat 2: 21dd4974 folded before Flop (didn't bet)
+Seat 3: 9154360c won (₮0.24)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 07c8b15d folded before Flop (didn't bet)
+Seat 6: 8b0984da folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800350: NLH (₮0.05/₮0.10) 2026/08/10 17:51:50 CEST
+Table '200897' 6-max Seat #6 is the button
+Seat 1: 9af2f572 (₮10 in chips)
+Seat 2: c3b92472 (₮10 in chips)
+Seat 3: 3c98c990 (₮10.23 in chips)
+Seat 4: Hero (₮11.86 in chips)
+Seat 5: ed01f77d (₮22.29 in chips)
+Seat 6: 424977d7 (₮14.57 in chips)
+9af2f572: posts small blind ₮0.05
+c3b92472: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 9af2f572
+Dealt to c3b92472
+Dealt to 3c98c990
+Dealt to Hero [3s 9h]
+Dealt to ed01f77d
+Dealt to 424977d7
+3c98c990: folds
+Hero: folds
+ed01f77d: folds
+424977d7: folds
+9af2f572: folds
+c3b92472: RETURN ₮0.05
+*** SHOWDOWN ***
+c3b92472 collected ₮0.09 from pot
+*** SUMMARY ***
+Total pot ₮0.10 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:52:03 CEST
+Seat 1: 9af2f572 folded before Flop (didn't bet)
+Seat 2: c3b92472 won (₮0.09)
+Seat 3: 3c98c990 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: ed01f77d folded before Flop (didn't bet)
+Seat 6: 424977d7 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800351: NLH (₮0.05/₮0.10) 2026/08/10 17:52:08 CEST
+Table '200897' 6-max Seat #1 is the button
+Seat 1: 835ce0cb (₮10 in chips)
+Seat 2: 5cc80296 (₮10.04 in chips)
+Seat 3: 8bd46246 (₮10.23 in chips)
+Seat 4: Hero (₮11.86 in chips)
+Seat 5: 3e370e43 (₮22.29 in chips)
+Seat 6: 6d52fc9f (₮14.57 in chips)
+5cc80296: posts small blind ₮0.05
+8bd46246: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 835ce0cb
+Dealt to 5cc80296
+Dealt to 8bd46246
+Dealt to Hero [Js 8s]
+Dealt to 3e370e43
+Dealt to 6d52fc9f
+Hero: folds
+3e370e43: folds
+6d52fc9f: folds
+835ce0cb: raises ₮0.15 to ₮0.25
+5cc80296: folds
+8bd46246: calls ₮0.15
+*** FLOP *** [Ac 5d 2c]
+8bd46246: checks
+835ce0cb: checks
+*** TURN *** [Ac 5d 2c] [5s]
+8bd46246: checks
+835ce0cb: bets ₮0.41
+8bd46246: folds
+835ce0cb: RETURN ₮0.41
+*** SHOWDOWN ***
+835ce0cb collected ₮0.51 from pot
+*** SUMMARY ***
+Total pot ₮0.55 | Rake ₮0.03 | Splash Fee ₮0.01
+Hand was run once
+Board [ Ac 5d 2c 5s ]
+Game ended: 2026/08/10 17:53:29 CEST
+Seat 1: 835ce0cb won (₮0.51)
+Seat 2: 5cc80296 folded before Flop (didn't bet)
+Seat 3: 8bd46246 folded on the Turn
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 3e370e43 folded before Flop (didn't bet)
+Seat 6: 6d52fc9f folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800352: NLH (₮0.05/₮0.10) 2026/08/10 17:53:34 CEST
+Table '200897' 6-max Seat #2 is the button
+Seat 1: 37612648 (₮10.26 in chips)
+Seat 2: 38f4c9cf (₮10 in chips)
+Seat 3: 6acf5b79 (₮10 in chips)
+Seat 4: Hero (₮11.86 in chips)
+Seat 5: a553b599 (₮22.29 in chips)
+Seat 6: 0f17547c (₮14.57 in chips)
+6acf5b79: posts small blind ₮0.05
+Hero: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 37612648
+Dealt to 38f4c9cf
+Dealt to 6acf5b79
+Dealt to Hero [Qs 7s]
+Dealt to a553b599
+Dealt to 0f17547c
+a553b599: folds
+0f17547c: folds
+37612648: raises ₮0.15 to ₮0.25
+38f4c9cf: folds
+6acf5b79: raises ₮1 to ₮1.25
+Hero: folds
+37612648: folds
+6acf5b79: RETURN ₮1
+*** SHOWDOWN ***
+6acf5b79 collected ₮0.59 from pot
+*** SUMMARY ***
+Total pot ₮0.60 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:54:13 CEST
+Seat 1: 37612648 folded before Flop (didn't bet)
+Seat 2: 38f4c9cf folded before Flop (didn't bet)
+Seat 3: 6acf5b79 won (₮0.59)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: a553b599 folded before Flop (didn't bet)
+Seat 6: 0f17547c folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800353: NLH (₮0.05/₮0.10) 2026/08/10 17:54:18 CEST
+Table '200897' 6-max Seat #3 is the button
+Seat 1: 364eb6c2 (₮10.01 in chips)
+Seat 2: 835bb9ac (₮10 in chips)
+Seat 3: d8a3a352 (₮10.34 in chips)
+Seat 4: Hero (₮11.76 in chips)
+Seat 5: 9d0d31fe (₮22.29 in chips)
+Seat 6: ea65f099 (₮14.57 in chips)
+Hero: posts small blind ₮0.05
+9d0d31fe: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 364eb6c2
+Dealt to 835bb9ac
+Dealt to d8a3a352
+Dealt to Hero [Qs 7c]
+Dealt to 9d0d31fe
+Dealt to ea65f099
+ea65f099: folds
+364eb6c2: raises ₮0.15 to ₮0.25
+835bb9ac: folds
+d8a3a352: raises ₮0.55 to ₮0.80
+Hero: folds
+9d0d31fe: folds
+364eb6c2: folds
+d8a3a352: RETURN ₮0.55
+*** SHOWDOWN ***
+d8a3a352 collected ₮0.64 from pot
+*** SUMMARY ***
+Total pot ₮0.65 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:54:46 CEST
+Seat 1: 364eb6c2 folded before Flop (didn't bet)
+Seat 2: 835bb9ac folded before Flop (didn't bet)
+Seat 3: d8a3a352 won (₮0.64)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 9d0d31fe folded before Flop (didn't bet)
+Seat 6: ea65f099 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800354: NLH (₮0.05/₮0.10) 2026/08/10 17:54:51 CEST
+Table '200897' 6-max Seat #4 is the button
+Seat 1: 6e12a915 (₮10 in chips)
+Seat 2: 523a1af1 (₮10 in chips)
+Seat 3: f5213cc4 (₮10.73 in chips)
+Seat 4: Hero (₮11.71 in chips)
+Seat 5: 9d1fc8b0 (₮22.19 in chips)
+Seat 6: 5cc8ac37 (₮14.57 in chips)
+9d1fc8b0: posts small blind ₮0.05
+5cc8ac37: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 6e12a915
+Dealt to 523a1af1
+Dealt to f5213cc4
+Dealt to Hero [8d Ts]
+Dealt to 9d1fc8b0
+Dealt to 5cc8ac37
+6e12a915: folds
+523a1af1: raises ₮0.10 to ₮0.20
+f5213cc4: folds
+Hero: folds
+9d1fc8b0: folds
+5cc8ac37: folds
+523a1af1: RETURN ₮0.10
+*** SHOWDOWN ***
+523a1af1 collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 17:55:00 CEST
+Seat 1: 6e12a915 folded before Flop (didn't bet)
+Seat 2: 523a1af1 won (₮0.24)
+Seat 3: f5213cc4 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 9d1fc8b0 folded before Flop (didn't bet)
+Seat 6: 5cc8ac37 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800355: NLH (₮0.05/₮0.10) 2026/08/10 17:55:05 CEST
+Table '200897' 6-max Seat #5 is the button
+Seat 1: c15a1edf (₮10 in chips)
+Seat 2: 68e6b878 (₮10.14 in chips)
+Seat 3: 00b017b0 (₮10.73 in chips)
+Seat 4: Hero (₮11.71 in chips)
+Seat 5: 6e73439c (₮22.14 in chips)
+Seat 6: e15d6be3 (₮14.47 in chips)
+e15d6be3: posts small blind ₮0.05
+c15a1edf: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to c15a1edf
+Dealt to 68e6b878
+Dealt to 00b017b0
+Dealt to Hero [5h Td]
+Dealt to 6e73439c
+Dealt to e15d6be3
+68e6b878: folds
+00b017b0: folds
+Hero: folds
+6e73439c: raises ₮0.15 to ₮0.25
+e15d6be3: folds
+c15a1edf: calls ₮0.15
+*** FLOP *** [2d Ks 2h]
+c15a1edf: checks
+6e73439c: checks
+*** TURN *** [2d Ks 2h] [2s]
+c15a1edf: checks
+6e73439c: checks
+*** RIVER *** [2d Ks 2h 2s] [8h]
+c15a1edf: checks
+6e73439c: bets ₮0.36
+c15a1edf: folds
+6e73439c: RETURN ₮0.36
+*** SHOWDOWN ***
+6e73439c collected ₮0.51 from pot
+*** SUMMARY ***
+Total pot ₮0.55 | Rake ₮0.03 | Splash Fee ₮0.01
+Hand was run once
+Board [ 2d Ks 2h 2s 8h ]
+Game ended: 2026/08/10 17:55:40 CEST
+Seat 1: c15a1edf folded on the River
+Seat 2: 68e6b878 folded before Flop (didn't bet)
+Seat 3: 00b017b0 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 6e73439c won (₮0.51)
+Seat 6: e15d6be3 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800356: NLH (₮0.05/₮0.10) 2026/08/10 17:55:45 CEST
+Table '200897' 6-max Seat #6 is the button
+Seat 1: 99bc9c51 (₮10 in chips)
+Seat 2: 4ef79e06 (₮10.14 in chips)
+Seat 3: 6232ba4b (₮10.73 in chips)
+Seat 4: Hero (₮11.71 in chips)
+Seat 5: 2ee907da (₮22.40 in chips)
+Seat 6: 4f8ad1ea (₮14.42 in chips)
+99bc9c51: posts small blind ₮0.05
+4ef79e06: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 99bc9c51
+Dealt to 4ef79e06
+Dealt to 6232ba4b
+Dealt to Hero [2s 9d]
+Dealt to 2ee907da
+Dealt to 4f8ad1ea
+6232ba4b: folds
+Hero: folds
+2ee907da: folds
+4f8ad1ea: raises ₮0.10 to ₮0.20
+99bc9c51: folds
+4ef79e06: calls ₮0.10
+*** FLOP *** [4h 8s 7h]
+4ef79e06: checks
+4f8ad1ea: checks
+*** TURN *** [4h 8s 7h] [Qh]
+4ef79e06: checks
+4f8ad1ea: bets ₮0.34
+4ef79e06: folds
+4f8ad1ea: RETURN ₮0.34
+*** SHOWDOWN ***
+4f8ad1ea collected ₮0.42 from pot
+*** SUMMARY ***
+Total pot ₮0.45 | Rake ₮0.02 | Splash Fee ₮0.01
+Hand was run once
+Board [ 4h 8s 7h Qh ]
+Game ended: 2026/08/10 17:56:50 CEST
+Seat 1: 99bc9c51 folded before Flop (didn't bet)
+Seat 2: 4ef79e06 folded on the Turn
+Seat 3: 6232ba4b folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 2ee907da folded before Flop (didn't bet)
+Seat 6: 4f8ad1ea won (₮0.42)
+
+
+CoinPoker Hand #108166800357: NLH (₮0.05/₮0.10) 2026/08/10 17:56:56 CEST
+Table '200897' 6-max Seat #1 is the button
+Seat 1: 1b2b11be (₮10 in chips)
+Seat 2: 8c521c74 (₮10 in chips)
+Seat 3: 903ad35d (₮10.73 in chips)
+Seat 4: Hero (₮11.71 in chips)
+Seat 5: 05b66203 (₮22.40 in chips)
+Seat 6: 9b4adbb0 (₮14.64 in chips)
+8c521c74: posts small blind ₮0.05
+903ad35d: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 1b2b11be
+Dealt to 8c521c74
+Dealt to 903ad35d
+Dealt to Hero [3h 8d]
+Dealt to 05b66203
+Dealt to 9b4adbb0
+Hero: folds
+05b66203: folds
+9b4adbb0: raises ₮0.10 to ₮0.20
+1b2b11be: folds
+8c521c74: folds
+903ad35d: calls ₮0.10
+*** FLOP *** [4d Kd Ah]
+903ad35d: checks
+9b4adbb0: bets ₮0.11
+903ad35d: calls ₮0.11
+*** TURN *** [4d Kd Ah] [2c]
+903ad35d: checks
+9b4adbb0: checks
+*** RIVER *** [4d Kd Ah 2c] [9s]
+903ad35d: checks
+9b4adbb0: checks
+*** SHOWDOWN ***
+9b4adbb0: shows [Kh Qd] (One Pair)
+9b4adbb0 collected ₮0.63 from pot
+903ad35d: shows [5s 2s] (One Pair)
+*** SUMMARY ***
+Total pot ₮0.67 | Rake ₮0.03 | Splash Fee ₮0.01
+Hand was run once
+Board [ 4d Kd Ah 2c 9s ]
+Game ended: 2026/08/10 17:57:51 CEST
+Seat 1: 1b2b11be folded before Flop (didn't bet)
+Seat 2: 8c521c74 folded before Flop (didn't bet)
+Seat 3: 903ad35d showed [5s 2s] and lost with One Pair
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 05b66203 folded before Flop (didn't bet)
+Seat 6: 9b4adbb0 showed [Kh Qd] and won (₮0.63) with One Pair
+
+
+CoinPoker Hand #108166800358: NLH (₮0.05/₮0.10) 2026/08/10 17:57:57 CEST
+Table '200897' 6-max Seat #2 is the button
+Seat 1: dc48a801 (₮10 in chips)
+Seat 2: 9f6428d1 (₮10 in chips)
+Seat 3: 2169eabc (₮10.42 in chips)
+Seat 4: Hero (₮11.71 in chips)
+Seat 5: 51b63bd3 (₮22.40 in chips)
+Seat 6: f08f4330 (₮14.96 in chips)
+2169eabc: posts small blind ₮0.05
+Hero: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to dc48a801
+Dealt to 9f6428d1
+Dealt to 2169eabc
+Dealt to Hero [Qd Th]
+Dealt to 51b63bd3
+Dealt to f08f4330
+51b63bd3: folds
+f08f4330: folds
+dc48a801: folds
+9f6428d1: raises ₮0.15 to ₮0.25
+2169eabc: folds
+Hero: raises ₮0.55 to ₮0.80
+9f6428d1: calls ₮0.55
+*** FLOP *** [4d Js Ks]
+Hero: bets ₮0.82
+9f6428d1: calls ₮0.82
+*** TURN *** [4d Js Ks] [4h]
+Hero: checks
+9f6428d1: bets ₮1.79
+Hero: calls ₮1.79
+*** RIVER *** [4d Js Ks 4h] [8d]
+Hero: checks
+9f6428d1: ALLIN ₮6.59
+Hero: folds
+9f6428d1: RETURN ₮6.59
+*** SHOWDOWN ***
+9f6428d1 collected ₮6.52 from pot
+*** SUMMARY ***
+Total pot ₮6.87 | Rake ₮0.34 | Splash Fee ₮0.01
+Hand was run once
+Board [ 4d Js Ks 4h 8d ]
+Game ended: 2026/08/10 17:59:12 CEST
+Seat 1: dc48a801 folded before Flop (didn't bet)
+Seat 2: 9f6428d1 won (₮6.52)
+Seat 3: 2169eabc folded before Flop (didn't bet)
+Seat 4: Hero folded on the River
+Seat 5: 51b63bd3 folded before Flop (didn't bet)
+Seat 6: f08f4330 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800359: NLH (₮0.05/₮0.10) 2026/08/10 17:59:17 CEST
+Table '200897' 6-max Seat #3 is the button
+Seat 1: 833cbb54 (₮10 in chips)
+Seat 2: e912bb46 (₮13.11 in chips)
+Seat 3: cddc44df (₮10.37 in chips)
+Seat 4: Hero (₮10 in chips)
+Seat 5: 2a79ae6e (₮22.40 in chips)
+Seat 6: 24ee086a (₮14.96 in chips)
+Hero: posts small blind ₮0.05
+2a79ae6e: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 833cbb54
+Dealt to e912bb46
+Dealt to cddc44df
+Dealt to Hero [2s As]
+Dealt to 2a79ae6e
+Dealt to 24ee086a
+24ee086a: raises ₮0.10 to ₮0.20
+833cbb54: folds
+e912bb46: folds
+cddc44df: folds
+Hero: calls ₮0.15
+2a79ae6e: folds
+*** FLOP *** [Kd Ah 4s]
+Hero: bets ₮0.50
+24ee086a: raises ₮1 to ₮1.50
+Hero: calls ₮1
+*** TURN *** [Kd Ah 4s] [3s]
+Hero: bets ₮3.50
+24ee086a: folds
+Hero: RETURN ₮3.50
+*** SHOWDOWN ***
+Hero collected ₮3.31 from pot
+*** SUMMARY ***
+Total pot ₮3.50 | Rake ₮0.18 | Splash Fee ₮0.01
+Hand was run once
+Board [ Kd Ah 4s 3s ]
+Game ended: 2026/08/10 18:00:18 CEST
+Seat 1: 833cbb54 folded before Flop (didn't bet)
+Seat 2: e912bb46 folded before Flop (didn't bet)
+Seat 3: cddc44df folded before Flop (didn't bet)
+Seat 4: Hero showed [2s As] and won (₮3.31)
+Seat 5: 2a79ae6e folded before Flop (didn't bet)
+Seat 6: 24ee086a folded on the Turn
+
+
+CoinPoker Hand #108166800360: NLH (₮0.05/₮0.10) 2026/08/10 18:00:23 CEST
+Table '200897' 6-max Seat #4 is the button
+Seat 1: 5a1d636d (₮10 in chips)
+Seat 2: 8ea5f1f9 (₮13.11 in chips)
+Seat 3: 49773339 (₮10.37 in chips)
+Seat 4: Hero (₮11.61 in chips)
+Seat 5: a790e34a (₮22.30 in chips)
+Seat 6: 59d9bc1e (₮13.26 in chips)
+a790e34a: posts small blind ₮0.05
+59d9bc1e: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 5a1d636d
+Dealt to 8ea5f1f9
+Dealt to 49773339
+Dealt to Hero [Th 9s]
+Dealt to a790e34a
+Dealt to 59d9bc1e
+5a1d636d: folds
+8ea5f1f9: folds
+49773339: folds
+Hero: raises ₮0.10 to ₮0.20
+a790e34a: folds
+59d9bc1e: calls ₮0.10
+*** FLOP *** [3h 9h Tc]
+59d9bc1e: checks
+Hero: bets ₮0.23
+59d9bc1e: folds
+Hero: RETURN ₮0.23
+*** SHOWDOWN ***
+Hero collected ₮0.42 from pot
+*** SUMMARY ***
+Total pot ₮0.45 | Rake ₮0.02 | Splash Fee ₮0.01
+Hand was run once
+Board [ 3h 9h Tc ]
+Game ended: 2026/08/10 18:00:56 CEST
+Seat 1: 5a1d636d folded before Flop (didn't bet)
+Seat 2: 8ea5f1f9 folded before Flop (didn't bet)
+Seat 3: 49773339 folded before Flop (didn't bet)
+Seat 4: Hero showed [Th 9s] and won (₮0.42)
+Seat 5: a790e34a folded before Flop (didn't bet)
+Seat 6: 59d9bc1e folded on the Flop
+
+
+CoinPoker Hand #108166800361: NLH (₮0.05/₮0.10) 2026/08/10 18:01:01 CEST
+Table '200897' 6-max Seat #5 is the button
+Seat 1: 08b35f71 (₮10 in chips)
+Seat 2: 9acbbc56 (₮13.11 in chips)
+Seat 3: 1251b1d5 (₮10.37 in chips)
+Seat 4: Hero (₮11.83 in chips)
+Seat 5: cdf71bed (₮22.25 in chips)
+Seat 6: ab4a2eae (₮13.06 in chips)
+ab4a2eae: posts small blind ₮0.05
+08b35f71: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 08b35f71
+Dealt to 9acbbc56
+Dealt to 1251b1d5
+Dealt to Hero [Ad 7d]
+Dealt to cdf71bed
+Dealt to ab4a2eae
+9acbbc56: raises ₮0.10 to ₮0.20
+1251b1d5: folds
+Hero: raises ₮0.45 to ₮0.65
+cdf71bed: folds
+ab4a2eae: folds
+08b35f71: folds
+9acbbc56: raises ₮1.80 to ₮2.45
+Hero: ALLIN ₮11.18
+9acbbc56: calls ₮9.38
+*** FLOP *** [Ac Jc 4c]
+*** TURN *** [Ac Jc 4c] [6c]
+*** RIVER *** [Ac Jc 4c 6c] [5c]
+*** SHOWDOWN ***
+Hero: shows [Ad 7d] (Flush)
+Hero collected ₮11.40 from pot
+9acbbc56: shows [As Ah] (Flush)
+9acbbc56 collected ₮11.40 from pot
+*** SUMMARY ***
+Total pot ₮23.81 | Rake ₮1 | Splash Fee ₮0.01
+Hand was run once
+Board [ Ac Jc 4c 6c 5c ]
+Game ended: 2026/08/10 18:01:53 CEST
+Seat 1: 08b35f71 folded before Flop (didn't bet)
+Seat 2: 9acbbc56 showed [As Ah] and won (₮11.40) with Flush
+Seat 3: 1251b1d5 folded before Flop (didn't bet)
+Seat 4: Hero showed [Ad 7d] and won (₮11.40) with Flush
+Seat 5: cdf71bed folded before Flop (didn't bet)
+Seat 6: ab4a2eae folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800362: NLH (₮0.05/₮0.10) 2026/08/10 18:01:59 CEST
+Table '200897' 6-max Seat #6 is the button
+Seat 1: a4d1919b (₮10 in chips)
+Seat 2: 99cb5538 (₮12.68 in chips)
+Seat 3: 1eed1a34 (₮10.37 in chips)
+Seat 4: Hero (₮11.40 in chips)
+Seat 5: 001faab0 (₮22.25 in chips)
+Seat 6: 8e21340e (₮13.01 in chips)
+a4d1919b: posts small blind ₮0.05
+99cb5538: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to a4d1919b
+Dealt to 99cb5538
+Dealt to 1eed1a34
+Dealt to Hero [As 4d]
+Dealt to 001faab0
+Dealt to 8e21340e
+1eed1a34: folds
+Hero: folds
+001faab0: folds
+8e21340e: folds
+a4d1919b: raises ₮0.20 to ₮0.30
+99cb5538: folds
+a4d1919b: RETURN ₮0.20
+*** SHOWDOWN ***
+a4d1919b collected ₮0.19 from pot
+*** SUMMARY ***
+Total pot ₮0.20 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 18:02:10 CEST
+Seat 1: a4d1919b won (₮0.19)
+Seat 2: 99cb5538 folded before Flop (didn't bet)
+Seat 3: 1eed1a34 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 001faab0 folded before Flop (didn't bet)
+Seat 6: 8e21340e folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800363: NLH (₮0.05/₮0.10) 2026/08/10 18:02:15 CEST
+Table '200897' 6-max Seat #1 is the button
+Seat 1: bc78ddc7 (₮10.09 in chips)
+Seat 2: 67cefbca (₮12.58 in chips)
+Seat 3: 623d6815 (₮10.37 in chips)
+Seat 4: Hero (₮11.40 in chips)
+Seat 5: 3e75fe01 (₮22.25 in chips)
+Seat 6: 407c0ef6 (₮13.01 in chips)
+67cefbca: posts small blind ₮0.05
+623d6815: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to bc78ddc7
+Dealt to 67cefbca
+Dealt to 623d6815
+Dealt to Hero [Qs Ac]
+Dealt to 3e75fe01
+Dealt to 407c0ef6
+Hero: raises ₮0.30 to ₮0.40
+3e75fe01: folds
+407c0ef6: folds
+bc78ddc7: folds
+67cefbca: folds
+623d6815: folds
+Hero: RETURN ₮0.30
+*** SHOWDOWN ***
+Hero collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 18:02:32 CEST
+Seat 1: bc78ddc7 folded before Flop (didn't bet)
+Seat 2: 67cefbca folded before Flop (didn't bet)
+Seat 3: 623d6815 folded before Flop (didn't bet)
+Seat 4: Hero showed [Qs Ac] and won (₮0.24)
+Seat 5: 3e75fe01 folded before Flop (didn't bet)
+Seat 6: 407c0ef6 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800364: NLH (₮0.05/₮0.10) 2026/08/10 18:02:36 CEST
+Table '200897' 6-max Seat #2 is the button
+Seat 1: fb2acbd6 (₮10.09 in chips)
+Seat 2: 0144fb81 (₮12.53 in chips)
+Seat 3: 63bd54ef (₮10.27 in chips)
+Seat 4: Hero (₮11.54 in chips)
+Seat 5: 2cafc792 (₮22.25 in chips)
+Seat 6: a772826f (₮13.01 in chips)
+63bd54ef: posts small blind ₮0.05
+Hero: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to fb2acbd6
+Dealt to 0144fb81
+Dealt to 63bd54ef
+Dealt to Hero [7d 6s]
+Dealt to 2cafc792
+Dealt to a772826f
+2cafc792: folds
+a772826f: folds
+fb2acbd6: folds
+0144fb81: raises ₮0.15 to ₮0.25
+63bd54ef: folds
+Hero: calls ₮0.15
+*** FLOP *** [6h 2d Qd]
+Hero: bets ₮0.28
+0144fb81: folds
+Hero: RETURN ₮0.28
+*** SHOWDOWN ***
+Hero collected ₮0.51 from pot
+*** SUMMARY ***
+Total pot ₮0.55 | Rake ₮0.03 | Splash Fee ₮0.01
+Hand was run once
+Board [ 6h 2d Qd ]
+Game ended: 2026/08/10 18:03:11 CEST
+Seat 1: fb2acbd6 folded before Flop (didn't bet)
+Seat 2: 0144fb81 folded on the Flop
+Seat 3: 63bd54ef folded before Flop (didn't bet)
+Seat 4: Hero showed [7d 6s] and won (₮0.51)
+Seat 5: 2cafc792 folded before Flop (didn't bet)
+Seat 6: a772826f folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800365: NLH (₮0.05/₮0.10) 2026/08/10 18:03:16 CEST
+Table '200897' 6-max Seat #3 is the button
+Seat 1: 7fee59b7 (₮10.09 in chips)
+Seat 2: dc40cc9e (₮12.28 in chips)
+Seat 3: d0b020bc (₮10.22 in chips)
+Seat 4: Hero (₮11.80 in chips)
+Seat 5: 59ced056 (₮22.25 in chips)
+Seat 6: 4c2bc0f6 (₮13.01 in chips)
+Hero: posts small blind ₮0.05
+59ced056: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 7fee59b7
+Dealt to dc40cc9e
+Dealt to d0b020bc
+Dealt to Hero [Qh Kh]
+Dealt to 59ced056
+Dealt to 4c2bc0f6
+4c2bc0f6: folds
+7fee59b7: folds
+dc40cc9e: raises ₮0.10 to ₮0.20
+d0b020bc: raises ₮0.60 to ₮0.80
+Hero: calls ₮0.75
+59ced056: folds
+dc40cc9e: folds
+*** FLOP *** [6h 6d 3s]
+Hero: bets ₮0.63
+d0b020bc: calls ₮0.63
+*** TURN *** [6h 6d 3s] [5c]
+Hero: checks
+d0b020bc: checks
+*** RIVER *** [6h 6d 3s 5c] [Js]
+Hero: bets ₮1.05
+d0b020bc: folds
+Hero: RETURN ₮1.05
+*** SHOWDOWN ***
+Hero collected ₮2.99 from pot
+*** SUMMARY ***
+Total pot ₮3.16 | Rake ₮0.16 | Splash Fee ₮0.01
+Hand was run once
+Board [ 6h 6d 3s 5c Js ]
+Game ended: 2026/08/10 18:04:24 CEST
+Seat 1: 7fee59b7 folded before Flop (didn't bet)
+Seat 2: dc40cc9e folded before Flop (didn't bet)
+Seat 3: d0b020bc folded on the River
+Seat 4: Hero showed [Qh Kh] and won (₮2.99)
+Seat 5: 59ced056 folded before Flop (didn't bet)
+Seat 6: 4c2bc0f6 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800366: NLH (₮0.05/₮0.10) 2026/08/10 18:04:29 CEST
+Table '200897' 6-max Seat #4 is the button
+Seat 1: c5b5e5e0 (₮10.09 in chips)
+Seat 2: 9d5308e5 (₮12.08 in chips)
+Seat 3: 24d8208b (₮10 in chips)
+Seat 4: Hero (₮13.36 in chips)
+Seat 5: 29b45304 (₮22.15 in chips)
+Seat 6: c951fcb2 (₮13.01 in chips)
+29b45304: posts small blind ₮0.05
+c951fcb2: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to c5b5e5e0
+Dealt to 9d5308e5
+Dealt to 24d8208b
+Dealt to Hero [Kh 8d]
+Dealt to 29b45304
+Dealt to c951fcb2
+c5b5e5e0: raises ₮0.15 to ₮0.25
+9d5308e5: folds
+24d8208b: folds
+Hero: folds
+29b45304: folds
+c951fcb2: folds
+c5b5e5e0: RETURN ₮0.15
+*** SHOWDOWN ***
+c5b5e5e0 collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 18:04:45 CEST
+Seat 1: c5b5e5e0 won (₮0.24)
+Seat 2: 9d5308e5 folded before Flop (didn't bet)
+Seat 3: 24d8208b folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 29b45304 folded before Flop (didn't bet)
+Seat 6: c951fcb2 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800367: NLH (₮0.05/₮0.10) 2026/08/10 18:04:50 CEST
+Table '200897' 6-max Seat #5 is the button
+Seat 1: 50d1c711 (₮10.23 in chips)
+Seat 2: 81881aed (₮12.08 in chips)
+Seat 3: ddb931be (₮10 in chips)
+Seat 4: Hero (₮13.36 in chips)
+Seat 5: 33d05285 (₮22.10 in chips)
+Seat 6: 1a967700 (₮12.91 in chips)
+1a967700: posts small blind ₮0.05
+50d1c711: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 50d1c711
+Dealt to 81881aed
+Dealt to ddb931be
+Dealt to Hero [6s 6h]
+Dealt to 33d05285
+Dealt to 1a967700
+81881aed: folds
+ddb931be: raises ₮0.15 to ₮0.25
+Hero: calls ₮0.25
+33d05285: folds
+1a967700: folds
+50d1c711: raises ₮1.10 to ₮1.35
+ddb931be: folds
+Hero: calls ₮1.10
+*** FLOP *** [Kd 4d Qh]
+50d1c711: bets ₮1.45
+Hero: folds
+50d1c711: RETURN ₮1.45
+*** SHOWDOWN ***
+50d1c711 collected ₮2.84 from pot
+*** SUMMARY ***
+Total pot ₮3 | Rake ₮0.15 | Splash Fee ₮0.01
+Hand was run once
+Board [ Kd 4d Qh ]
+Game ended: 2026/08/10 18:05:56 CEST
+Seat 1: 50d1c711 won (₮2.84)
+Seat 2: 81881aed folded before Flop (didn't bet)
+Seat 3: ddb931be folded before Flop (didn't bet)
+Seat 4: Hero folded on the Flop
+Seat 5: 33d05285 folded before Flop (didn't bet)
+Seat 6: 1a967700 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800368: NLH (₮0.05/₮0.10) 2026/08/10 18:06:01 CEST
+Table '200897' 6-max Seat #6 is the button
+Seat 1: 818f244d (₮11.72 in chips)
+Seat 2: 789cd6a9 (₮12.08 in chips)
+Seat 3: 3e028e63 (₮10 in chips)
+Seat 4: Hero (₮12.01 in chips)
+Seat 5: 93e7d9e3 (₮22.10 in chips)
+Seat 6: 6a179371 (₮12.86 in chips)
+818f244d: posts small blind ₮0.05
+789cd6a9: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 818f244d
+Dealt to 789cd6a9
+Dealt to 3e028e63
+Dealt to Hero [Td Kd]
+Dealt to 93e7d9e3
+Dealt to 6a179371
+3e028e63: folds
+Hero: raises ₮0.20 to ₮0.30
+93e7d9e3: folds
+6a179371: folds
+818f244d: folds
+789cd6a9: folds
+Hero: RETURN ₮0.20
+*** SHOWDOWN ***
+Hero collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 18:06:13 CEST
+Seat 1: 818f244d folded before Flop (didn't bet)
+Seat 2: 789cd6a9 folded before Flop (didn't bet)
+Seat 3: 3e028e63 folded before Flop (didn't bet)
+Seat 4: Hero showed [Td Kd] and won (₮0.24)
+Seat 5: 93e7d9e3 folded before Flop (didn't bet)
+Seat 6: 6a179371 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800369: NLH (₮0.05/₮0.10) 2026/08/10 18:06:18 CEST
+Table '200897' 6-max Seat #1 is the button
+Seat 1: 0bfa71df (₮11.67 in chips)
+Seat 2: e03b80eb (₮11.98 in chips)
+Seat 3: 5cc96415 (₮10 in chips)
+Seat 4: Hero (₮12.15 in chips)
+Seat 5: 27a2ce28 (₮22.10 in chips)
+Seat 6: eb0de008 (₮12.86 in chips)
+e03b80eb: posts small blind ₮0.05
+5cc96415: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 0bfa71df
+Dealt to e03b80eb
+Dealt to 5cc96415
+Dealt to Hero [7d 9d]
+Dealt to 27a2ce28
+Dealt to eb0de008
+Hero: folds
+27a2ce28: folds
+eb0de008: raises ₮0.10 to ₮0.20
+0bfa71df: folds
+e03b80eb: folds
+5cc96415: folds
+eb0de008: RETURN ₮0.10
+*** SHOWDOWN ***
+eb0de008 collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 18:06:52 CEST
+Seat 1: 0bfa71df folded before Flop (didn't bet)
+Seat 2: e03b80eb folded before Flop (didn't bet)
+Seat 3: 5cc96415 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 27a2ce28 folded before Flop (didn't bet)
+Seat 6: eb0de008 won (₮0.24)
+
+
+CoinPoker Hand #108166800370: NLH (₮0.05/₮0.10) 2026/08/10 18:06:57 CEST
+Table '200897' 6-max Seat #2 is the button
+Seat 1: d0c325b7 (₮11.67 in chips)
+Seat 2: b217edfe (₮11.93 in chips)
+Seat 3: c12d6b3b (₮10 in chips)
+Seat 4: Hero (₮12.15 in chips)
+Seat 5: 3da5569f (₮22.10 in chips)
+Seat 6: bec0e6c7 (₮13 in chips)
+c12d6b3b: posts small blind ₮0.05
+Hero: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to d0c325b7
+Dealt to b217edfe
+Dealt to c12d6b3b
+Dealt to Hero [5c Jd]
+Dealt to 3da5569f
+Dealt to bec0e6c7
+3da5569f: folds
+bec0e6c7: folds
+d0c325b7: raises ₮0.15 to ₮0.25
+b217edfe: folds
+c12d6b3b: folds
+Hero: folds
+d0c325b7: RETURN ₮0.15
+*** SHOWDOWN ***
+d0c325b7 collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 18:07:24 CEST
+Seat 1: d0c325b7 won (₮0.24)
+Seat 2: b217edfe folded before Flop (didn't bet)
+Seat 3: c12d6b3b folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 3da5569f folded before Flop (didn't bet)
+Seat 6: bec0e6c7 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800371: NLH (₮0.05/₮0.10) 2026/08/10 18:07:28 CEST
+Table '200897' 6-max Seat #3 is the button
+Seat 1: 0b5c1d8b (₮11.81 in chips)
+Seat 2: f5befc02 (₮11.93 in chips)
+Seat 3: c1cc7216 (₮10 in chips)
+Seat 4: Hero (₮12.05 in chips)
+Seat 5: 81af8a97 (₮22.10 in chips)
+Seat 6: eee34e14 (₮13 in chips)
+Hero: posts small blind ₮0.05
+81af8a97: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 0b5c1d8b
+Dealt to f5befc02
+Dealt to c1cc7216
+Dealt to Hero [3d Qd]
+Dealt to 81af8a97
+Dealt to eee34e14
+eee34e14: folds
+0b5c1d8b: raises ₮0.15 to ₮0.25
+f5befc02: folds
+c1cc7216: folds
+Hero: folds
+81af8a97: calls ₮0.15
+*** FLOP *** [7h Td Jd]
+81af8a97: bets ₮0.36
+0b5c1d8b: calls ₮0.36
+*** TURN *** [7h Td Jd] [Ah]
+81af8a97: checks
+0b5c1d8b: bets ₮3.55
+81af8a97: folds
+0b5c1d8b: RETURN ₮3.55
+*** SHOWDOWN ***
+0b5c1d8b collected ₮1.20 from pot
+*** SUMMARY ***
+Total pot ₮1.27 | Rake ₮0.06 | Splash Fee ₮0.01
+Hand was run once
+Board [ 7h Td Jd Ah ]
+Game ended: 2026/08/10 18:08:32 CEST
+Seat 1: 0b5c1d8b won (₮1.20)
+Seat 2: f5befc02 folded before Flop (didn't bet)
+Seat 3: c1cc7216 folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: 81af8a97 folded on the Turn
+Seat 6: eee34e14 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800372: NLH (₮0.05/₮0.10) 2026/08/10 18:08:36 CEST
+Table '200897' 6-max Seat #4 is the button
+Seat 1: 53b18d77 (₮12.40 in chips)
+Seat 2: 17bb3bf2 (₮11.93 in chips)
+Seat 3: c4e7266b (₮10 in chips)
+Seat 4: Hero (₮12 in chips)
+Seat 5: b67105fb (₮21.49 in chips)
+Seat 6: 648f20e1 (₮13 in chips)
+b67105fb: posts small blind ₮0.05
+648f20e1: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 53b18d77
+Dealt to 17bb3bf2
+Dealt to c4e7266b
+Dealt to Hero [Ks 2s]
+Dealt to b67105fb
+Dealt to 648f20e1
+53b18d77: folds
+17bb3bf2: raises ₮0.10 to ₮0.20
+c4e7266b: folds
+Hero: folds
+b67105fb: raises ₮0.72 to ₮0.92
+648f20e1: folds
+17bb3bf2: calls ₮0.72
+*** FLOP *** [3d Js Ad]
+b67105fb: bets ₮1.04
+17bb3bf2: calls ₮1.04
+*** TURN *** [3d Js Ad] [Td]
+b67105fb: bets ₮1.58
+17bb3bf2: calls ₮1.58
+*** RIVER *** [3d Js Ad Td] [Jh]
+b67105fb: checks
+17bb3bf2: checks
+*** SHOWDOWN ***
+17bb3bf2: shows [Ac Qh] (Two Pair)
+17bb3bf2 collected ₮6.81 from pot
+b67105fb: shows [Qd Qs] (Two Pair)
+*** SUMMARY ***
+Total pot ₮7.18 | Rake ₮0.36 | Splash Fee ₮0.01
+Hand was run once
+Board [ 3d Js Ad Td Jh ]
+Game ended: 2026/08/10 18:09:30 CEST
+Seat 1: 53b18d77 folded before Flop (didn't bet)
+Seat 2: 17bb3bf2 showed [Ac Qh] and won (₮6.81) with Two Pair
+Seat 3: c4e7266b folded before Flop (didn't bet)
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 5: b67105fb showed [Qd Qs] and lost with Two Pair
+Seat 6: 648f20e1 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800373: NLH (₮0.05/₮0.10) 2026/08/10 18:09:36 CEST
+Table '200897' 6-max Seat #5 is the button
+Seat 1: c0ab3f52 (₮12.40 in chips)
+Seat 2: 9e76c3ba (₮15.20 in chips)
+Seat 3: d6e57673 (₮10 in chips)
+Seat 4: Hero (₮12 in chips)
+Seat 5: dc717812 (₮17.95 in chips)
+Seat 6: 1b5c5c23 (₮12.90 in chips)
+1b5c5c23: posts small blind ₮0.05
+c0ab3f52: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to c0ab3f52
+Dealt to 9e76c3ba
+Dealt to d6e57673
+Dealt to Hero [Js Jc]
+Dealt to dc717812
+Dealt to 1b5c5c23
+9e76c3ba: folds
+d6e57673: folds
+Hero: raises ₮0.15 to ₮0.25
+dc717812: calls ₮0.25
+1b5c5c23: calls ₮0.20
+c0ab3f52: raises ₮1.25 to ₮1.50
+Hero: ALLIN ₮11.75
+dc717812: folds
+1b5c5c23: folds
+c0ab3f52: folds
+Hero: RETURN ₮10.50
+*** SHOWDOWN ***
+Hero collected ₮3.49 from pot
+*** SUMMARY ***
+Total pot ₮3.50 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 18:10:18 CEST
+Seat 1: c0ab3f52 folded before Flop (didn't bet)
+Seat 2: 9e76c3ba folded before Flop (didn't bet)
+Seat 3: d6e57673 folded before Flop (didn't bet)
+Seat 4: Hero showed [Js Jc] and won (₮3.49)
+Seat 5: dc717812 folded before Flop (didn't bet)
+Seat 6: 1b5c5c23 folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108166800374: NLH (₮0.05/₮0.10) 2026/08/10 18:10:23 CEST
+Table '200897' 6-max Seat #6 is the button
+Seat 1: 4f12b894 (₮10.90 in chips)
+Seat 2: 44d3d7ad (₮15.20 in chips)
+Seat 3: bcbe0799 (₮10 in chips)
+Seat 4: Hero (₮13.99 in chips)
+Seat 5: 971c0c7b (₮17.70 in chips)
+Seat 6: 160e6ac9 (₮12.65 in chips)
+4f12b894: posts small blind ₮0.05
+44d3d7ad: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 4f12b894
+Dealt to 44d3d7ad
+Dealt to bcbe0799
+Dealt to Hero [7h 7s]
+Dealt to 971c0c7b
+Dealt to 160e6ac9
+bcbe0799: folds
+Hero: raises ₮0.10 to ₮0.20
+971c0c7b: folds
+160e6ac9: raises ₮0.41 to ₮0.61
+4f12b894: folds
+44d3d7ad: folds
+Hero: calls ₮0.41
+*** FLOP *** [9c 6d 3s]
+Hero: bets ₮0.25
+160e6ac9: calls ₮0.25
+*** TURN *** [9c 6d 3s] [4h]
+Hero: checks
+160e6ac9: checks
+*** RIVER *** [9c 6d 3s 4h] [3c]
+Hero: bets ₮0.94
+160e6ac9: calls ₮0.94
+*** SHOWDOWN ***
+Hero: shows [7h 7s] (Two Pair)
+Hero collected ₮3.55 from pot
+160e6ac9: mucks hand
+*** SUMMARY ***
+Total pot ₮3.75 | Rake ₮0.19 | Splash Fee ₮0.01
+Hand was run once
+Board [ 9c 6d 3s 4h 3c ]
+Game ended: 2026/08/10 18:11:49 CEST
+Seat 1: 4f12b894 folded before Flop (didn't bet)
+Seat 2: 44d3d7ad folded before Flop (didn't bet)
+Seat 3: bcbe0799 folded before Flop (didn't bet)
+Seat 4: Hero showed [7h 7s] and won (₮3.55) with Two Pair
+Seat 5: 971c0c7b folded before Flop (didn't bet)
+Seat 6: 160e6ac9 didn't show
+
+
+CoinPoker Hand #108166800375: NLH (₮0.05/₮0.10) 2026/08/10 18:11:55 CEST
+Table '200897' 6-max Seat #1 is the button
+Seat 4: Hero (₮15.74 in chips)
+Seat 1: e39f0533 (₮10.85 in chips)
+Seat 2: eb5a1a93 (₮15.10 in chips)
+Seat 3: 7022123d (₮10 in chips)
+Seat 5: e4ec9967 (₮17.70 in chips)
+Seat 6: 7216c0f7 (₮10.85 in chips)
+eb5a1a93: posts small blind ₮0.05
+7022123d: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to Hero [8d Td]
+Dealt to e39f0533
+Dealt to eb5a1a93
+Dealt to 7022123d
+Dealt to e4ec9967
+Dealt to 7216c0f7
+Hero: folds
+e4ec9967: folds
+7216c0f7: raises ₮0.10 to ₮0.20
+e39f0533: folds
+eb5a1a93: folds
+7022123d: folds
+7216c0f7: RETURN ₮0.10
+*** SHOWDOWN ***
+7216c0f7 collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/10 18:12:22 CEST
+Seat 4: Hero folded before Flop (didn't bet)
+Seat 1: e39f0533 folded before Flop (didn't bet)
+Seat 2: eb5a1a93 folded before Flop (didn't bet)
+Seat 3: 7022123d folded before Flop (didn't bet)
+Seat 5: e4ec9967 folded before Flop (didn't bet)
+Seat 6: 7216c0f7 won (₮0.24)
+
+
+CoinPoker Hand #108986300004: NLH (₮0.05/₮0.10) 2026/08/11 15:49:41 CEST
+Table '200897' 6-max Seat #2 is the button
+Seat 1: 87fc3c8f (₮5.94 in chips)
+Seat 2: ad971027 (₮10 in chips)
+Seat 3: efac909b (₮10.14 in chips)
+Seat 6: Hero (₮10 in chips)
+efac909b: posts small blind ₮0.05
+Hero: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 87fc3c8f
+Dealt to ad971027
+Dealt to efac909b
+Dealt to Hero [9h Qs]
+87fc3c8f: folds
+ad971027: raises ₮0.15 to ₮0.25
+efac909b: folds
+Hero: raises ₮0.30 to ₮0.55
+ad971027: calls ₮0.30
+*** FLOP *** [As 2s 5s]
+Hero: bets ₮0.86
+ad971027: folds
+Hero: RETURN ₮0.86
+*** SHOWDOWN ***
+Hero collected ₮1.08 from pot
+*** SUMMARY ***
+Total pot ₮1.15 | Rake ₮0.06 | Splash Fee ₮0.01
+Hand was run once
+Board [ As 2s 5s ]
+Game ended: 2026/08/11 15:50:14 CEST
+Seat 1: 87fc3c8f folded before Flop (didn't bet)
+Seat 2: ad971027 folded on the Flop
+Seat 3: efac909b folded before Flop (didn't bet)
+Seat 6: Hero showed [9h Qs] and won (₮1.08)
+
+
+CoinPoker Hand #108986300005: NLH (₮0.05/₮0.10) 2026/08/11 15:50:19 CEST
+Table '200897' 6-max Seat #3 is the button
+Seat 1: 56d0d520 (₮5.94 in chips)
+Seat 2: 4e224803 (₮10 in chips)
+Seat 3: 24bca5b8 (₮10.09 in chips)
+Seat 6: Hero (₮10.53 in chips)
+Hero: posts small blind ₮0.05
+56d0d520: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 56d0d520
+Dealt to 4e224803
+Dealt to 24bca5b8
+Dealt to Hero [Kc Ac]
+4e224803: folds
+24bca5b8: folds
+Hero: raises ₮0.30 to ₮0.40
+56d0d520: calls ₮0.30
+*** FLOP *** [Tc 2c Ad]
+Hero: bets ₮0.20
+56d0d520: raises ₮0.60 to ₮0.80
+Hero: raises ₮0.80 to ₮1.60
+56d0d520: ALLIN ₮4.74
+Hero: calls ₮3.94
+*** TURN *** [Tc 2c Ad] [9s]
+*** RIVER *** [Tc 2c Ad 9s] [8d]
+*** SHOWDOWN ***
+Hero: shows [Kc Ac] (One Pair)
+Hero collected ₮11.28 from pot
+56d0d520: shows [Ah Qc] (One Pair)
+*** SUMMARY ***
+Total pot ₮11.88 | Rake ₮0.59 | Splash Fee ₮0.01
+Hand was run once
+Board [ Tc 2c Ad 9s 8d ]
+Game ended: 2026/08/11 15:51:12 CEST
+Seat 1: 56d0d520 showed [Ah Qc] and lost with One Pair
+Seat 2: 4e224803 folded before Flop (didn't bet)
+Seat 3: 24bca5b8 folded before Flop (didn't bet)
+Seat 6: Hero showed [Kc Ac] and won (₮11.28) with One Pair
+
+
+CoinPoker Hand #108986300006: NLH (₮0.05/₮0.10) 2026/08/11 15:51:18 CEST
+Table '200897' 6-max Seat #6 is the button
+Seat 2: 8ba6bb5f (₮10 in chips)
+Seat 3: 8384c3f6 (₮10.09 in chips)
+Seat 6: Hero (₮15.87 in chips)
+8ba6bb5f: posts small blind ₮0.05
+8384c3f6: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 8ba6bb5f
+Dealt to 8384c3f6
+Dealt to Hero [9c Kd]
+Hero: raises ₮0.10 to ₮0.20
+8ba6bb5f: folds
+8384c3f6: calls ₮0.10
+*** FLOP *** [4d Tc 3c]
+8384c3f6: checks
+Hero: bets ₮0.15
+8384c3f6: folds
+Hero: RETURN ₮0.15
+*** SHOWDOWN ***
+Hero collected ₮0.42 from pot
+*** SUMMARY ***
+Total pot ₮0.45 | Rake ₮0.02 | Splash Fee ₮0.01
+Hand was run once
+Board [ 4d Tc 3c ]
+Game ended: 2026/08/11 15:51:52 CEST
+Seat 2: 8ba6bb5f folded before Flop (didn't bet)
+Seat 3: 8384c3f6 folded on the Flop
+Seat 6: Hero showed [9c Kd] and won (₮0.42)
+
+
+CoinPoker Hand #108986300007: NLH (₮0.05/₮0.10) 2026/08/11 15:51:57 CEST
+Table '200897' 6-max Seat #2 is the button
+Seat 2: 011037cf (₮10 in chips)
+Seat 3: e49927e8 (₮10 in chips)
+Seat 4: be3d9fcd (₮10 in chips)
+Seat 6: Hero (₮16.09 in chips)
+e49927e8: posts small blind ₮0.05
+be3d9fcd: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 011037cf
+Dealt to e49927e8
+Dealt to be3d9fcd
+Dealt to Hero [Jd 3d]
+Hero: folds
+011037cf: raises ₮0.15 to ₮0.25
+e49927e8: folds
+be3d9fcd: folds
+011037cf: RETURN ₮0.15
+*** SHOWDOWN ***
+011037cf collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/11 15:52:20 CEST
+Seat 2: 011037cf won (₮0.24)
+Seat 3: e49927e8 folded before Flop (didn't bet)
+Seat 4: be3d9fcd folded before Flop (didn't bet)
+Seat 6: Hero folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108986300008: NLH (₮0.05/₮0.10) 2026/08/11 15:52:25 CEST
+Table '200897' 6-max Seat #3 is the button
+Seat 2: 8fe76d0d (₮10.14 in chips)
+Seat 3: a927a0b9 (₮10 in chips)
+Seat 4: 7b1d8728 (₮10 in chips)
+Seat 5: 9dc5478a (₮10 in chips)
+Seat 6: Hero (₮16.09 in chips)
+7b1d8728: posts small blind ₮0.05
+9dc5478a: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 8fe76d0d
+Dealt to a927a0b9
+Dealt to 7b1d8728
+Dealt to 9dc5478a
+Dealt to Hero [7h 7c]
+Hero: raises ₮0.20 to ₮0.30
+8fe76d0d: folds
+a927a0b9: folds
+7b1d8728: folds
+9dc5478a: folds
+Hero: RETURN ₮0.20
+*** SHOWDOWN ***
+Hero collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/11 15:52:36 CEST
+Seat 2: 8fe76d0d folded before Flop (didn't bet)
+Seat 3: a927a0b9 folded before Flop (didn't bet)
+Seat 4: 7b1d8728 folded before Flop (didn't bet)
+Seat 5: 9dc5478a folded before Flop (didn't bet)
+Seat 6: Hero showed [7h 7c] and won (₮0.24)
+
+
+CoinPoker Hand #108986300009: NLH (₮0.05/₮0.10) 2026/08/11 15:52:41 CEST
+Table '200897' 6-max Seat #4 is the button
+Seat 2: cb3abfbc (₮10.14 in chips)
+Seat 3: a1b21961 (₮10 in chips)
+Seat 4: 0d51d03b (₮10 in chips)
+Seat 5: d3a4c1b4 (₮10 in chips)
+Seat 6: Hero (₮16.23 in chips)
+d3a4c1b4: posts small blind ₮0.05
+Hero: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to cb3abfbc
+Dealt to a1b21961
+Dealt to 0d51d03b
+Dealt to d3a4c1b4
+Dealt to Hero [4h Tc]
+cb3abfbc: raises ₮0.15 to ₮0.25
+a1b21961: folds
+0d51d03b: folds
+d3a4c1b4: folds
+Hero: folds
+cb3abfbc: RETURN ₮0.15
+*** SHOWDOWN ***
+cb3abfbc collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/11 15:52:57 CEST
+Seat 2: cb3abfbc won (₮0.24)
+Seat 3: a1b21961 folded before Flop (didn't bet)
+Seat 4: 0d51d03b folded before Flop (didn't bet)
+Seat 5: d3a4c1b4 folded before Flop (didn't bet)
+Seat 6: Hero folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108986300010: NLH (₮0.05/₮0.10) 2026/08/11 15:53:03 CEST
+Table '200897' 6-max Seat #5 is the button
+Seat 1: 1e6a8cba (₮10 in chips)
+Seat 2: 15706b1a (₮10.28 in chips)
+Seat 3: 190bc5e0 (₮10 in chips)
+Seat 4: da1b22ac (₮10 in chips)
+Seat 5: 23294e90 (₮10 in chips)
+Seat 6: Hero (₮16.13 in chips)
+Hero: posts small blind ₮0.05
+1e6a8cba: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 1e6a8cba
+Dealt to 15706b1a
+Dealt to 190bc5e0
+Dealt to da1b22ac
+Dealt to 23294e90
+Dealt to Hero [7h 6c]
+15706b1a: raises ₮0.15 to ₮0.25
+190bc5e0: folds
+da1b22ac: folds
+23294e90: folds
+Hero: folds
+1e6a8cba: folds
+15706b1a: RETURN ₮0.15
+*** SHOWDOWN ***
+15706b1a collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/11 15:53:26 CEST
+Seat 1: 1e6a8cba folded before Flop (didn't bet)
+Seat 2: 15706b1a won (₮0.24)
+Seat 3: 190bc5e0 folded before Flop (didn't bet)
+Seat 4: da1b22ac folded before Flop (didn't bet)
+Seat 5: 23294e90 folded before Flop (didn't bet)
+Seat 6: Hero folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108986300011: NLH (₮0.05/₮0.10) 2026/08/11 15:53:31 CEST
+Table '200897' 6-max Seat #6 is the button
+Seat 1: d610c69f (₮10 in chips)
+Seat 2: a6f7d5ed (₮10.42 in chips)
+Seat 3: bd8dc0aa (₮10 in chips)
+Seat 4: f005d24e (₮10 in chips)
+Seat 5: d8bc388a (₮10 in chips)
+Seat 6: Hero (₮16.08 in chips)
+d610c69f: posts small blind ₮0.05
+a6f7d5ed: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to d610c69f
+Dealt to a6f7d5ed
+Dealt to bd8dc0aa
+Dealt to f005d24e
+Dealt to d8bc388a
+Dealt to Hero [9c 9h]
+bd8dc0aa: folds
+f005d24e: folds
+d8bc388a: folds
+Hero: raises ₮0.20 to ₮0.30
+d610c69f: folds
+a6f7d5ed: folds
+Hero: RETURN ₮0.20
+*** SHOWDOWN ***
+Hero collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/11 15:53:46 CEST
+Seat 1: d610c69f folded before Flop (didn't bet)
+Seat 2: a6f7d5ed folded before Flop (didn't bet)
+Seat 3: bd8dc0aa folded before Flop (didn't bet)
+Seat 4: f005d24e folded before Flop (didn't bet)
+Seat 5: d8bc388a folded before Flop (didn't bet)
+Seat 6: Hero showed [9c 9h] and won (₮0.24)
+
+
+CoinPoker Hand #108986300012: NLH (₮0.05/₮0.10) 2026/08/11 15:53:51 CEST
+Table '200897' 6-max Seat #1 is the button
+Seat 1: e23e613b (₮10 in chips)
+Seat 2: 32e3eebe (₮10.32 in chips)
+Seat 3: c1165b00 (₮10 in chips)
+Seat 4: 1e7b7c3b (₮10 in chips)
+Seat 5: 7fad3f65 (₮10 in chips)
+Seat 6: Hero (₮16.22 in chips)
+32e3eebe: posts small blind ₮0.05
+c1165b00: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to e23e613b
+Dealt to 32e3eebe
+Dealt to c1165b00
+Dealt to 1e7b7c3b
+Dealt to 7fad3f65
+Dealt to Hero [Qc As]
+1e7b7c3b: raises ₮0.15 to ₮0.25
+7fad3f65: folds
+Hero: raises ₮0.35 to ₮0.60
+e23e613b: folds
+32e3eebe: folds
+c1165b00: folds
+1e7b7c3b: folds
+Hero: RETURN ₮0.35
+*** SHOWDOWN ***
+Hero collected ₮0.64 from pot
+*** SUMMARY ***
+Total pot ₮0.65 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/11 15:54:20 CEST
+Seat 1: e23e613b folded before Flop (didn't bet)
+Seat 2: 32e3eebe folded before Flop (didn't bet)
+Seat 3: c1165b00 folded before Flop (didn't bet)
+Seat 4: 1e7b7c3b folded before Flop (didn't bet)
+Seat 5: 7fad3f65 folded before Flop (didn't bet)
+Seat 6: Hero showed [Qc As] and won (₮0.64)
+
+
+CoinPoker Hand #108986300013: NLH (₮0.05/₮0.10) 2026/08/11 15:54:25 CEST
+Table '200897' 6-max Seat #2 is the button
+Seat 1: 278e1688 (₮10 in chips)
+Seat 2: 27e84001 (₮10.27 in chips)
+Seat 3: f0d9882b (₮10 in chips)
+Seat 4: 6424ff8f (₮10 in chips)
+Seat 5: 44592d76 (₮10 in chips)
+Seat 6: Hero (₮16.61 in chips)
+f0d9882b: posts small blind ₮0.05
+6424ff8f: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 278e1688
+Dealt to 27e84001
+Dealt to f0d9882b
+Dealt to 6424ff8f
+Dealt to 44592d76
+Dealt to Hero [4c As]
+44592d76: raises ₮0.15 to ₮0.25
+Hero: folds
+278e1688: folds
+27e84001: folds
+f0d9882b: folds
+6424ff8f: folds
+44592d76: RETURN ₮0.15
+*** SHOWDOWN ***
+44592d76 collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/11 15:54:35 CEST
+Seat 1: 278e1688 folded before Flop (didn't bet)
+Seat 2: 27e84001 folded before Flop (didn't bet)
+Seat 3: f0d9882b folded before Flop (didn't bet)
+Seat 4: 6424ff8f folded before Flop (didn't bet)
+Seat 5: 44592d76 won (₮0.24)
+Seat 6: Hero folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108986300014: NLH (₮0.05/₮0.10) 2026/08/11 15:54:40 CEST
+Table '200897' 6-max Seat #3 is the button
+Seat 1: b2f5beb6 (₮10 in chips)
+Seat 2: 2925c2f0 (₮10.27 in chips)
+Seat 3: 30836f36 (₮10 in chips)
+Seat 4: 732d2ea7 (₮10 in chips)
+Seat 5: e24ac512 (₮10.14 in chips)
+Seat 6: Hero (₮16.61 in chips)
+732d2ea7: posts small blind ₮0.05
+e24ac512: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to b2f5beb6
+Dealt to 2925c2f0
+Dealt to 30836f36
+Dealt to 732d2ea7
+Dealt to e24ac512
+Dealt to Hero [4d Qh]
+Hero: folds
+b2f5beb6: folds
+2925c2f0: folds
+30836f36: raises ₮0.15 to ₮0.25
+732d2ea7: folds
+e24ac512: raises ₮0.95 to ₮1.20
+30836f36: folds
+e24ac512: RETURN ₮0.95
+*** SHOWDOWN ***
+e24ac512 collected ₮0.54 from pot
+*** SUMMARY ***
+Total pot ₮0.55 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/11 15:55:06 CEST
+Seat 1: b2f5beb6 folded before Flop (didn't bet)
+Seat 2: 2925c2f0 folded before Flop (didn't bet)
+Seat 3: 30836f36 folded before Flop (didn't bet)
+Seat 4: 732d2ea7 folded before Flop (didn't bet)
+Seat 5: e24ac512 won (₮0.54)
+Seat 6: Hero folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108986300015: NLH (₮0.05/₮0.10) 2026/08/11 15:55:11 CEST
+Table '200897' 6-max Seat #4 is the button
+Seat 1: 5c27bb5a (₮10 in chips)
+Seat 2: 6d59e676 (₮10.27 in chips)
+Seat 3: 30279876 (₮10 in chips)
+Seat 4: c01ef8ec (₮10 in chips)
+Seat 5: 39002d13 (₮10.43 in chips)
+Seat 6: Hero (₮16.61 in chips)
+39002d13: posts small blind ₮0.05
+Hero: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 5c27bb5a
+Dealt to 6d59e676
+Dealt to 30279876
+Dealt to c01ef8ec
+Dealt to 39002d13
+Dealt to Hero [6s 4c]
+5c27bb5a: folds
+6d59e676: raises ₮0.15 to ₮0.25
+30279876: folds
+c01ef8ec: folds
+39002d13: folds
+Hero: folds
+6d59e676: RETURN ₮0.15
+*** SHOWDOWN ***
+6d59e676 collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/11 15:55:36 CEST
+Seat 1: 5c27bb5a folded before Flop (didn't bet)
+Seat 2: 6d59e676 won (₮0.24)
+Seat 3: 30279876 folded before Flop (didn't bet)
+Seat 4: c01ef8ec folded before Flop (didn't bet)
+Seat 5: 39002d13 folded before Flop (didn't bet)
+Seat 6: Hero folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108986300016: NLH (₮0.05/₮0.10) 2026/08/11 15:55:41 CEST
+Table '200897' 6-max Seat #5 is the button
+Seat 1: 9c1e2234 (₮10 in chips)
+Seat 2: 28693c32 (₮10.41 in chips)
+Seat 3: c38e3780 (₮10 in chips)
+Seat 4: cc7a4c03 (₮10 in chips)
+Seat 5: 3ea2349f (₮10.38 in chips)
+Seat 6: Hero (₮16.51 in chips)
+Hero: posts small blind ₮0.05
+9c1e2234: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 9c1e2234
+Dealt to 28693c32
+Dealt to c38e3780
+Dealt to cc7a4c03
+Dealt to 3ea2349f
+Dealt to Hero [6d Qd]
+28693c32: raises ₮0.15 to ₮0.25
+c38e3780: raises ₮0.43 to ₮0.68
+cc7a4c03: folds
+3ea2349f: raises ₮1.42 to ₮2.10
+Hero: folds
+9c1e2234: folds
+28693c32: folds
+c38e3780: calls ₮1.42
+*** FLOP *** [Kd 8c 7s]
+c38e3780: checks
+3ea2349f: bets ₮1.20
+c38e3780: folds
+3ea2349f: RETURN ₮1.20
+*** SHOWDOWN ***
+3ea2349f collected ₮4.36 from pot
+*** SUMMARY ***
+Total pot ₮4.60 | Rake ₮0.23 | Splash Fee ₮0.01
+Hand was run once
+Board [ Kd 8c 7s ]
+Game ended: 2026/08/11 15:57:05 CEST
+Seat 1: 9c1e2234 folded before Flop (didn't bet)
+Seat 2: 28693c32 folded before Flop (didn't bet)
+Seat 3: c38e3780 folded on the Flop
+Seat 4: cc7a4c03 folded before Flop (didn't bet)
+Seat 5: 3ea2349f won (₮4.36)
+Seat 6: Hero folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108986300017: NLH (₮0.05/₮0.10) 2026/08/11 15:57:10 CEST
+Table '200897' 6-max Seat #6 is the button
+Seat 1: 1ef56ba9 (₮10 in chips)
+Seat 2: 545cad31 (₮10.16 in chips)
+Seat 3: c005a396 (₮10 in chips)
+Seat 4: 91cc8703 (₮10 in chips)
+Seat 5: cfdfa7b8 (₮12.64 in chips)
+Seat 6: Hero (₮16.46 in chips)
+1ef56ba9: posts small blind ₮0.05
+545cad31: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 1ef56ba9
+Dealt to 545cad31
+Dealt to c005a396
+Dealt to 91cc8703
+Dealt to cfdfa7b8
+Dealt to Hero [4h As]
+c005a396: raises ₮0.15 to ₮0.25
+91cc8703: folds
+cfdfa7b8: folds
+Hero: folds
+1ef56ba9: folds
+545cad31: calls ₮0.15
+*** FLOP *** [6d 8c Jc]
+545cad31: checks
+c005a396: bets ₮0.28
+545cad31: calls ₮0.28
+*** TURN *** [6d 8c Jc] [Ac]
+545cad31: checks
+c005a396: checks
+*** RIVER *** [6d 8c Jc Ac] [7h]
+545cad31: bets ₮0.56
+c005a396: calls ₮0.56
+*** SHOWDOWN ***
+c005a396: shows [Ad Jh] (Two Pair)
+c005a396 collected ₮2.11 from pot
+545cad31: shows [Kc Qs] (High Card)
+*** SUMMARY ***
+Total pot ₮2.23 | Rake ₮0.11 | Splash Fee ₮0.01
+Hand was run once
+Board [ 6d 8c Jc Ac 7h ]
+Game ended: 2026/08/11 15:57:51 CEST
+Seat 1: 1ef56ba9 folded before Flop (didn't bet)
+Seat 2: 545cad31 showed [Kc Qs] and lost with High Card
+Seat 3: c005a396 showed [Ad Jh] and won (₮2.11) with Two Pair
+Seat 4: 91cc8703 folded before Flop (didn't bet)
+Seat 5: cfdfa7b8 folded before Flop (didn't bet)
+Seat 6: Hero folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108986300018: NLH (₮0.05/₮0.10) 2026/08/11 15:57:58 CEST
+Table '200897' 6-max Seat #1 is the button
+Seat 1: 11e5d597 (₮10 in chips)
+Seat 2: a8f320c5 (₮10 in chips)
+Seat 3: b411093d (₮11.02 in chips)
+Seat 4: 49cef515 (₮10 in chips)
+Seat 5: bebd5fb4 (₮12.64 in chips)
+Seat 6: Hero (₮16.46 in chips)
+a8f320c5: posts small blind ₮0.05
+b411093d: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 11e5d597
+Dealt to a8f320c5
+Dealt to b411093d
+Dealt to 49cef515
+Dealt to bebd5fb4
+Dealt to Hero [8d Qd]
+49cef515: folds
+bebd5fb4: folds
+Hero: raises ₮0.15 to ₮0.25
+11e5d597: folds
+a8f320c5: folds
+b411093d: folds
+Hero: RETURN ₮0.15
+*** SHOWDOWN ***
+Hero collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/11 15:58:40 CEST
+Seat 1: 11e5d597 folded before Flop (didn't bet)
+Seat 2: a8f320c5 folded before Flop (didn't bet)
+Seat 3: b411093d folded before Flop (didn't bet)
+Seat 4: 49cef515 folded before Flop (didn't bet)
+Seat 5: bebd5fb4 folded before Flop (didn't bet)
+Seat 6: Hero showed [8d Qd] and won (₮0.24)
+
+
+CoinPoker Hand #108986300019: NLH (₮0.05/₮0.10) 2026/08/11 15:58:45 CEST
+Table '200897' 6-max Seat #2 is the button
+Seat 1: 874f037d (₮10 in chips)
+Seat 2: db31cc6a (₮10 in chips)
+Seat 3: 60760758 (₮10.92 in chips)
+Seat 4: f246ef70 (₮10 in chips)
+Seat 5: dc40563a (₮12.64 in chips)
+Seat 6: Hero (₮16.60 in chips)
+60760758: posts small blind ₮0.05
+f246ef70: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 874f037d
+Dealt to db31cc6a
+Dealt to 60760758
+Dealt to f246ef70
+Dealt to dc40563a
+Dealt to Hero [Jc Kh]
+dc40563a: raises ₮0.15 to ₮0.25
+Hero: calls ₮0.25
+874f037d: folds
+db31cc6a: folds
+60760758: folds
+f246ef70: folds
+*** FLOP *** [4h 5d Ac]
+dc40563a: checks
+Hero: bets ₮0.33
+dc40563a: calls ₮0.33
+*** TURN *** [4h 5d Ac] [6c]
+dc40563a: checks
+Hero: checks
+*** RIVER *** [4h 5d Ac 6c] [8h]
+dc40563a: checks
+Hero: checks
+*** SHOWDOWN ***
+dc40563a: shows [Qh Ks] (High Card)
+dc40563a collected ₮1.23 from pot
+Hero: mucks hand
+*** SUMMARY ***
+Total pot ₮1.31 | Rake ₮0.07 | Splash Fee ₮0.01
+Hand was run once
+Board [ 4h 5d Ac 6c 8h ]
+Game ended: 2026/08/11 15:59:58 CEST
+Seat 1: 874f037d folded before Flop (didn't bet)
+Seat 2: db31cc6a folded before Flop (didn't bet)
+Seat 3: 60760758 folded before Flop (didn't bet)
+Seat 4: f246ef70 folded before Flop (didn't bet)
+Seat 5: dc40563a showed [Qh Ks] and won (₮1.23) with High Card
+Seat 6: Hero showed [Jc Kh] and lost with High Card
+
+
+CoinPoker Hand #108986300020: NLH (₮0.05/₮0.10) 2026/08/11 16:00:05 CEST
+Table '200897' 6-max Seat #3 is the button
+Seat 1: 6a4c531b (₮10 in chips)
+Seat 2: 3f849268 (₮10 in chips)
+Seat 3: 69a90643 (₮10.87 in chips)
+Seat 4: 1f16b01b (₮10 in chips)
+Seat 5: dc5f304a (₮13.29 in chips)
+Seat 6: Hero (₮16.02 in chips)
+1f16b01b: posts small blind ₮0.05
+dc5f304a: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 6a4c531b
+Dealt to 3f849268
+Dealt to 69a90643
+Dealt to 1f16b01b
+Dealt to dc5f304a
+Dealt to Hero [6h 5d]
+Hero: folds
+6a4c531b: folds
+3f849268: folds
+69a90643: raises ₮0.15 to ₮0.25
+1f16b01b: folds
+dc5f304a: folds
+69a90643: RETURN ₮0.15
+*** SHOWDOWN ***
+69a90643 collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/11 16:00:31 CEST
+Seat 1: 6a4c531b folded before Flop (didn't bet)
+Seat 2: 3f849268 folded before Flop (didn't bet)
+Seat 3: 69a90643 won (₮0.24)
+Seat 4: 1f16b01b folded before Flop (didn't bet)
+Seat 5: dc5f304a folded before Flop (didn't bet)
+Seat 6: Hero folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108986300021: NLH (₮0.05/₮0.10) 2026/08/11 16:00:36 CEST
+Table '200897' 6-max Seat #4 is the button
+Seat 1: 0f009f39 (₮10 in chips)
+Seat 2: 3c73a885 (₮10 in chips)
+Seat 3: 43d6edfd (₮11.01 in chips)
+Seat 4: 9859fae8 (₮10 in chips)
+Seat 5: e51c641e (₮13.19 in chips)
+Seat 6: Hero (₮16.02 in chips)
+e51c641e: posts small blind ₮0.05
+Hero: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 0f009f39
+Dealt to 3c73a885
+Dealt to 43d6edfd
+Dealt to 9859fae8
+Dealt to e51c641e
+Dealt to Hero [5c 6c]
+0f009f39: folds
+3c73a885: folds
+43d6edfd: folds
+9859fae8: raises ₮0.15 to ₮0.25
+e51c641e: raises ₮0.85 to ₮1.10
+Hero: folds
+9859fae8: folds
+e51c641e: RETURN ₮0.85
+*** SHOWDOWN ***
+e51c641e collected ₮0.59 from pot
+*** SUMMARY ***
+Total pot ₮0.60 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/11 16:00:55 CEST
+Seat 1: 0f009f39 folded before Flop (didn't bet)
+Seat 2: 3c73a885 folded before Flop (didn't bet)
+Seat 3: 43d6edfd folded before Flop (didn't bet)
+Seat 4: 9859fae8 folded before Flop (didn't bet)
+Seat 5: e51c641e won (₮0.59)
+Seat 6: Hero folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108986300022: NLH (₮0.05/₮0.10) 2026/08/11 16:01:00 CEST
+Table '200897' 6-max Seat #5 is the button
+Seat 1: c629d622 (₮10 in chips)
+Seat 2: 52317920 (₮10 in chips)
+Seat 3: 48a59d0f (₮11.01 in chips)
+Seat 4: 4437bccd (₮10 in chips)
+Seat 5: 68029603 (₮13.53 in chips)
+Seat 6: Hero (₮15.92 in chips)
+Hero: posts small blind ₮0.05
+c629d622: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to c629d622
+Dealt to 52317920
+Dealt to 48a59d0f
+Dealt to 4437bccd
+Dealt to 68029603
+Dealt to Hero [6d Jd]
+52317920: raises ₮0.15 to ₮0.25
+48a59d0f: folds
+4437bccd: folds
+68029603: folds
+Hero: folds
+c629d622: calls ₮0.15
+*** FLOP *** [Tc Kc 6s]
+c629d622: checks
+52317920: bets ₮0.18
+c629d622: calls ₮0.18
+*** TURN *** [Tc Kc 6s] [Qd]
+c629d622: checks
+52317920: bets ₮1.10
+c629d622: calls ₮1.10
+*** RIVER *** [Tc Kc 6s Qd] [Ks]
+c629d622: checks
+52317920: checks
+*** SHOWDOWN ***
+c629d622: shows [Jh 9h] (Straight)
+c629d622 collected ₮2.94 from pot
+52317920: mucks hand
+*** SUMMARY ***
+Total pot ₮3.11 | Rake ₮0.16 | Splash Fee ₮0.01
+Hand was run once
+Board [ Tc Kc 6s Qd Ks ]
+Game ended: 2026/08/11 16:02:10 CEST
+Seat 1: c629d622 showed [Jh 9h] and won (₮2.94) with Straight
+Seat 2: 52317920 didn't show
+Seat 3: 48a59d0f folded before Flop (didn't bet)
+Seat 4: 4437bccd folded before Flop (didn't bet)
+Seat 5: 68029603 folded before Flop (didn't bet)
+Seat 6: Hero folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108986300023: NLH (₮0.05/₮0.10) 2026/08/11 16:02:16 CEST
+Table '200897' 6-max Seat #6 is the button
+Seat 3: a8c25344 (₮11.01 in chips)
+Seat 1: ba307df1 (₮11.41 in chips)
+Seat 2: 23a1ecdb (₮10 in chips)
+Seat 4: 1aee1c11 (₮10 in chips)
+Seat 5: 45d65f38 (₮13.53 in chips)
+Seat 6: Hero (₮15.87 in chips)
+ba307df1: posts small blind ₮0.05
+23a1ecdb: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to a8c25344
+Dealt to ba307df1
+Dealt to 23a1ecdb
+Dealt to 1aee1c11
+Dealt to 45d65f38
+Dealt to Hero [9s 8d]
+a8c25344: folds
+1aee1c11: folds
+45d65f38: raises ₮0.15 to ₮0.25
+Hero: folds
+ba307df1: folds
+23a1ecdb: raises ₮0.95 to ₮1.20
+45d65f38: folds
+23a1ecdb: RETURN ₮0.95
+*** SHOWDOWN ***
+23a1ecdb collected ₮0.54 from pot
+*** SUMMARY ***
+Total pot ₮0.55 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/11 16:02:41 CEST
+Seat 3: a8c25344 folded before Flop (didn't bet)
+Seat 1: ba307df1 folded before Flop (didn't bet)
+Seat 2: 23a1ecdb won (₮0.54)
+Seat 4: 1aee1c11 folded before Flop (didn't bet)
+Seat 5: 45d65f38 folded before Flop (didn't bet)
+Seat 6: Hero folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108986300024: NLH (₮0.05/₮0.10) 2026/08/11 16:02:46 CEST
+Table '200897' 6-max Seat #1 is the button
+Seat 1: 3d57473f (₮11.36 in chips)
+Seat 2: bf4caec8 (₮10.29 in chips)
+Seat 3: e776b678 (₮10 in chips)
+Seat 4: 3e7ba992 (₮10 in chips)
+Seat 5: 7b8aa594 (₮13.28 in chips)
+Seat 6: Hero (₮15.87 in chips)
+bf4caec8: posts small blind ₮0.05
+e776b678: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 3d57473f
+Dealt to bf4caec8
+Dealt to e776b678
+Dealt to 3e7ba992
+Dealt to 7b8aa594
+Dealt to Hero [Kh 7d]
+3e7ba992: folds
+7b8aa594: raises ₮0.15 to ₮0.25
+Hero: folds
+3d57473f: folds
+bf4caec8: folds
+e776b678: folds
+7b8aa594: RETURN ₮0.15
+*** SHOWDOWN ***
+7b8aa594 collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/11 16:03:00 CEST
+Seat 1: 3d57473f folded before Flop (didn't bet)
+Seat 2: bf4caec8 folded before Flop (didn't bet)
+Seat 3: e776b678 folded before Flop (didn't bet)
+Seat 4: 3e7ba992 folded before Flop (didn't bet)
+Seat 5: 7b8aa594 won (₮0.24)
+Seat 6: Hero folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108986300025: NLH (₮0.05/₮0.10) 2026/08/11 16:03:05 CEST
+Table '200897' 6-max Seat #2 is the button
+Seat 1: 7d7fe916 (₮11.36 in chips)
+Seat 2: ecf5e471 (₮10.24 in chips)
+Seat 3: e5c86291 (₮10 in chips)
+Seat 4: 1de3da35 (₮10 in chips)
+Seat 5: 345f3142 (₮13.42 in chips)
+Seat 6: Hero (₮15.87 in chips)
+e5c86291: posts small blind ₮0.05
+1de3da35: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 7d7fe916
+Dealt to ecf5e471
+Dealt to e5c86291
+Dealt to 1de3da35
+Dealt to 345f3142
+Dealt to Hero [6s 4s]
+345f3142: folds
+Hero: folds
+7d7fe916: raises ₮0.20 to ₮0.30
+ecf5e471: folds
+e5c86291: folds
+1de3da35: folds
+7d7fe916: RETURN ₮0.20
+*** SHOWDOWN ***
+7d7fe916 collected ₮0.24 from pot
+*** SUMMARY ***
+Total pot ₮0.25 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/11 16:03:25 CEST
+Seat 1: 7d7fe916 won (₮0.24)
+Seat 2: ecf5e471 folded before Flop (didn't bet)
+Seat 3: e5c86291 folded before Flop (didn't bet)
+Seat 4: 1de3da35 folded before Flop (didn't bet)
+Seat 5: 345f3142 folded before Flop (didn't bet)
+Seat 6: Hero folded before Flop (didn't bet)
+
+
+CoinPoker Hand #108986300026: NLH (₮0.05/₮0.10) 2026/08/11 16:03:30 CEST
+Table '200897' 6-max Seat #3 is the button
+Seat 1: 0e26607a (₮11.50 in chips)
+Seat 2: 91bda966 (₮10.24 in chips)
+Seat 3: 7ac5dbb0 (₮10 in chips)
+Seat 4: 9fac7e07 (₮10 in chips)
+Seat 5: 3e1a2449 (₮13.42 in chips)
+Seat 6: Hero (₮15.87 in chips)
+9fac7e07: posts small blind ₮0.05
+3e1a2449: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 0e26607a
+Dealt to 91bda966
+Dealt to 7ac5dbb0
+Dealt to 9fac7e07
+Dealt to 3e1a2449
+Dealt to Hero [Td Qc]
+Hero: calls ₮0.10
+0e26607a: folds
+91bda966: folds
+7ac5dbb0: folds
+9fac7e07: raises ₮0.42 to ₮0.52
+3e1a2449: folds
+Hero: calls ₮0.42
+*** FLOP *** [Qd 5d 4h]
+9fac7e07: checks
+Hero: bets ₮1.14
+9fac7e07: calls ₮1.14
+*** TURN *** [Qd 5d 4h] [Qh]
+9fac7e07: checks
+Hero: bets ₮2.56
+9fac7e07: ALLIN ₮8.34
+Hero: calls ₮5.78
+*** RIVER *** [Qd 5d 4h Qh] [2h]
+*** SHOWDOWN ***
+Hero: shows [Td Qc] (Three Of A Kind)
+Hero collected ₮19.09 from pot
+9fac7e07: shows [9s 9d] (Two Pair)
+*** SUMMARY ***
+Total pot ₮20.10 | Rake ₮1 | Splash Fee ₮0.01
+Hand was run once
+Board [ Qd 5d 4h Qh 2h ]
+Game ended: 2026/08/11 16:04:23 CEST
+Seat 1: 0e26607a folded before Flop (didn't bet)
+Seat 2: 91bda966 folded before Flop (didn't bet)
+Seat 3: 7ac5dbb0 folded before Flop (didn't bet)
+Seat 4: 9fac7e07 showed [9s 9d] and lost with Two Pair
+Seat 5: 3e1a2449 folded before Flop (didn't bet)
+Seat 6: Hero showed [Td Qc] and won (₮19.09) with Three Of A Kind
+
+
+CoinPoker Hand #108986300027: NLH (₮0.05/₮0.10) 2026/08/11 16:04:29 CEST
+Table '200897' 6-max Seat #4 is the button
+Seat 1: 2bbed1e9 (₮11.50 in chips)
+Seat 2: 1587bdd7 (₮10.24 in chips)
+Seat 3: 63e31aa0 (₮10 in chips)
+Seat 4: cfe33596 (₮10 in chips)
+Seat 5: 179f57ce (₮13.32 in chips)
+Seat 6: Hero (₮24.96 in chips)
+179f57ce: posts small blind ₮0.05
+Hero: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 2bbed1e9
+Dealt to 1587bdd7
+Dealt to 63e31aa0
+Dealt to cfe33596
+Dealt to 179f57ce
+Dealt to Hero [8c Qd]
+2bbed1e9: raises ₮0.20 to ₮0.30
+1587bdd7: folds
+63e31aa0: folds
+cfe33596: folds
+179f57ce: folds
+Hero: calls ₮0.20
+*** FLOP *** [2c 7c Qs]
+Hero: bets ₮0.65
+2bbed1e9: folds
+Hero: RETURN ₮0.65
+*** SHOWDOWN ***
+Hero collected ₮0.61 from pot
+*** SUMMARY ***
+Total pot ₮0.65 | Rake ₮0.03 | Splash Fee ₮0.01
+Hand was run once
+Board [ 2c 7c Qs ]
+Game ended: 2026/08/11 16:05:11 CEST
+Seat 1: 2bbed1e9 folded on the Flop
+Seat 2: 1587bdd7 folded before Flop (didn't bet)
+Seat 3: 63e31aa0 folded before Flop (didn't bet)
+Seat 4: cfe33596 folded before Flop (didn't bet)
+Seat 5: 179f57ce folded before Flop (didn't bet)
+Seat 6: Hero showed [8c Qd] and won (₮0.61)
+
+
+CoinPoker Hand #108986300028: NLH (₮0.05/₮0.10) 2026/08/11 16:05:16 CEST
+Table '200897' 6-max Seat #5 is the button
+Seat 1: 63ba6276 (₮11.20 in chips)
+Seat 2: b7545b6c (₮10.24 in chips)
+Seat 3: d714c6f5 (₮10 in chips)
+Seat 4: f8404983 (₮10 in chips)
+Seat 5: eba01684 (₮13.27 in chips)
+Seat 6: Hero (₮25.27 in chips)
+Hero: posts small blind ₮0.05
+63ba6276: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to 63ba6276
+Dealt to b7545b6c
+Dealt to d714c6f5
+Dealt to f8404983
+Dealt to eba01684
+Dealt to Hero [9h Qc]
+b7545b6c: folds
+d714c6f5: folds
+f8404983: folds
+eba01684: raises ₮0.15 to ₮0.25
+Hero: calls ₮0.20
+63ba6276: folds
+*** FLOP *** [3s 4s Tc]
+Hero: checks
+eba01684: bets ₮0.42
+Hero: folds
+eba01684: RETURN ₮0.42
+*** SHOWDOWN ***
+eba01684 collected ₮0.56 from pot
+*** SUMMARY ***
+Total pot ₮0.60 | Rake ₮0.03 | Splash Fee ₮0.01
+Hand was run once
+Board [ 3s 4s Tc ]
+Game ended: 2026/08/11 16:05:52 CEST
+Seat 1: 63ba6276 folded before Flop (didn't bet)
+Seat 2: b7545b6c folded before Flop (didn't bet)
+Seat 3: d714c6f5 folded before Flop (didn't bet)
+Seat 4: f8404983 folded before Flop (didn't bet)
+Seat 5: eba01684 won (₮0.56)
+Seat 6: Hero folded on the Flop
+
+
+CoinPoker Hand #108986300029: NLH (₮0.05/₮0.10) 2026/08/11 16:05:57 CEST
+Table '200897' 6-max Seat #6 is the button
+Seat 1: ef766fce (₮11.10 in chips)
+Seat 2: c6dbf052 (₮10.24 in chips)
+Seat 3: 4f6f9a0a (₮10 in chips)
+Seat 4: c0460823 (₮10 in chips)
+Seat 5: 7cd44cc7 (₮13.58 in chips)
+Seat 6: Hero (₮25.02 in chips)
+ef766fce: posts small blind ₮0.05
+c6dbf052: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to ef766fce
+Dealt to c6dbf052
+Dealt to 4f6f9a0a
+Dealt to c0460823
+Dealt to 7cd44cc7
+Dealt to Hero [Th As]
+4f6f9a0a: raises ₮0.20 to ₮0.30
+c0460823: folds
+7cd44cc7: folds
+Hero: calls ₮0.30
+ef766fce: calls ₮0.25
+c6dbf052: folds
+*** FLOP *** [2s 8c 9s]
+ef766fce: checks
+4f6f9a0a: checks
+Hero: bets ₮0.33
+ef766fce: calls ₮0.33
+4f6f9a0a: calls ₮0.33
+*** TURN *** [2s 8c 9s] [6c]
+ef766fce: checks
+4f6f9a0a: checks
+Hero: checks
+*** RIVER *** [2s 8c 9s 6c] [4s]
+ef766fce: checks
+4f6f9a0a: bets ₮1.49
+Hero: folds
+ef766fce: calls ₮1.49
+*** SHOWDOWN ***
+4f6f9a0a: shows [Ks Qs] (Flush)
+4f6f9a0a collected ₮4.71 from pot
+ef766fce: mucks hand
+*** SUMMARY ***
+Total pot ₮4.97 | Rake ₮0.25 | Splash Fee ₮0.01
+Hand was run once
+Board [ 2s 8c 9s 6c 4s ]
+Game ended: 2026/08/11 16:07:10 CEST
+Seat 1: ef766fce didn't show
+Seat 2: c6dbf052 folded before Flop (didn't bet)
+Seat 3: 4f6f9a0a showed [Ks Qs] and won (₮4.71) with Flush
+Seat 4: c0460823 folded before Flop (didn't bet)
+Seat 5: 7cd44cc7 folded before Flop (didn't bet)
+Seat 6: Hero folded on the River
+
+
+CoinPoker Hand #108986300030: NLH (₮0.05/₮0.10) 2026/08/11 16:07:16 CEST
+Table '200897' 6-max Seat #1 is the button
+Seat 6: Hero (₮24.39 in chips)
+Seat 1: 0fe6aa4e (₮10 in chips)
+Seat 2: 5e4f71dc (₮10.14 in chips)
+Seat 3: 043c956c (₮12.59 in chips)
+Seat 4: 7d4a5196 (₮10 in chips)
+Seat 5: f548aacd (₮13.58 in chips)
+5e4f71dc: posts small blind ₮0.05
+043c956c: posts big blind ₮0.10
+*** HOLE CARDS ***
+Dealt to Hero [Kd 7c]
+Dealt to 0fe6aa4e
+Dealt to 5e4f71dc
+Dealt to 043c956c
+Dealt to 7d4a5196
+Dealt to f548aacd
+7d4a5196: folds
+f548aacd: folds
+Hero: folds
+0fe6aa4e: folds
+5e4f71dc: folds
+043c956c: RETURN ₮0.05
+*** SHOWDOWN ***
+043c956c collected ₮0.09 from pot
+*** SUMMARY ***
+Total pot ₮0.10 | Rake ₮0 | Splash Fee ₮0.01
+Hand was run once
+Board [  ]
+Game ended: 2026/08/11 16:07:38 CEST
+Seat 6: Hero folded before Flop (didn't bet)
+Seat 1: 0fe6aa4e folded before Flop (didn't bet)
+Seat 2: 5e4f71dc folded before Flop (didn't bet)
+Seat 3: 043c956c won (₮0.09)
+Seat 4: 7d4a5196 folded before Flop (didn't bet)
+Seat 5: f548aacd folded before Flop (didn't bet)
+
+

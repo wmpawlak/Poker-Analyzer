@@ -6,6 +6,7 @@ import pokerReducer, {
   fetchAllSessionsForQuery,
   fetchSessionMonth,
   fetchSessionMonths,
+  fetchSessionHands,
   fetchSessionSummariesByIds,
   refreshDataset,
 } from '../src/store/pokerSlice.js';
@@ -225,4 +226,25 @@ test('zbiorcze rozwiązywanie ID zapisuje sesje i zgłasza brakujące', async ()
   assert.deepEqual(body, { datasetRevision: 'revision-1', sessionIds: ['known', 'missing'] });
   assert.equal(store.getState().poker.sessionSummariesById.known.id, 'known');
   assert.deepEqual(store.getState().poker.sessionSummaryQueries[result.payload.queryKey].missingSessionIds, ['missing']);
+});
+
+test('hand-analysis filter rejects a response containing an unanalysed hand', async () => {
+  const store = makeStore();
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    assert.match(String(url), /handAnalysis=has/);
+    return jsonResponse({
+      datasetRevision: 'revision-1', sessionId: 'session-a', handRanking: '', handAnalysis: 'has', sortBy: 'date', sortOrder: 'desc',
+      hands: [{ id: 'analyzed', hasAnalysis: true }, { id: 'not-analyzed', hasAnalysis: false }], total: 2, nextCursor: null,
+    });
+  };
+  try {
+    const action = await store.dispatch(fetchSessionHands({ sessionId: 'session-a', handAnalysis: 'has' }));
+    assert.equal(action.type, fetchSessionHands.rejected.type);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+  const page = store.getState().poker.sessionHandsById['session-a'];
+  assert.equal(page.status, 'failed');
+  assert.deepEqual(page.items, []);
 });

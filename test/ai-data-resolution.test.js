@@ -104,9 +104,14 @@ test('AI rozwiązuje handId i sessionIds z kanonicznego indeksu oraz blokuje sta
     fetchImpl: async (_url, options) => {
       providerCalls += 1;
       providerInput = options.body;
+      const providerResult = providerCalls === 1
+        ? handAnalysis
+        : providerCalls === 2
+          ? sessionReportFor(sessionInputs[0]).analysis
+          : groupAnalysis;
       return jsonResponse({
         status: 'completed',
-        output: [{ type: 'message', content: [{ type: 'output_text', text: JSON.stringify(providerCalls === 1 ? handAnalysis : groupAnalysis) }] }],
+        output: [{ type: 'message', content: [{ type: 'output_text', text: JSON.stringify(providerResult) }] }],
       });
     },
   }).listen(0);
@@ -125,6 +130,22 @@ test('AI rozwiązuje handId i sessionIds z kanonicznego indeksu oraz blokuje sta
   assert.equal(successBody.datasetRevision, snapshot.datasetRevision);
   assert.equal(successBody.analysis.heroResult.handId, '7301');
   assert.match(providerInput, /CoinPoker Hand #7301/);
+  const savedHandCache = await fetch(`${baseUrl}/api/ai-analyses`).then((response) => response.json());
+  assert.equal(savedHandCache.cache.handAnalyses['7301'].some((report) => report.reportId === successBody.reportId), true);
+
+  const sessionResponse = await fetch(`${baseUrl}/api/ai/analyze-session`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      modelId: 'gpt-5.6-terra',
+      sessionId: sessionInputs[0].sessionId,
+      datasetRevision: snapshot.datasetRevision,
+    }),
+  });
+  const sessionBody = await sessionResponse.json();
+  assert.equal(sessionResponse.status, 200);
+  assert.match(sessionBody.reportId, /\S+/);
+  const savedSessionHistory = await fetch(`${baseUrl}/api/ai-analyses/sessions/${sessionInputs[0].sessionId}`);
+  assert.equal((await savedSessionHistory.json()).reports.some((report) => report.reportId === sessionBody.reportId), true);
 
   const groupResponse = await fetch(`${baseUrl}/api/ai/analyze-session-group`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -150,5 +171,5 @@ test('AI rozwiązuje handId i sessionIds z kanonicznego indeksu oraz blokuje sta
   });
   assert.equal(stale.status, 409);
   assert.equal((await stale.json()).code, 'DATASET_REVISION_MISMATCH');
-  assert.equal(providerCalls, 2);
+  assert.equal(providerCalls, 3);
 });

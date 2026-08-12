@@ -11,6 +11,8 @@ Dodać jedną zakładkę „Ćwiczenia” z czterema osobnymi trybami:
 
 Moduł utworzy lokalny katalog spotów z najnowszej historii NLH, ukryje wynik i przyszłe akcje, a następnie przygotuje cache’owane klucze odpowiedzi przez połączenie lokalnych obliczeń z oceną AI. Aktywna pula każdego trybu będzie zawierała maksymalnie 100 spotów Cash i 100 turniejowych.
 
+Limit 100 obowiązuje już przed analizą AI: dla każdej kombinacji trybu i formatu trwały selektor wybiera najwyżej 100 spotów. Tylko ten zestaw może zostać wysłany do modelu; gotowe klucze nie zastępują automatycznie niewybranych kandydatów.
+
 ## Zadania implementacyjne
 
 1. **Ekstrakcja spotów**

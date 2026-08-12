@@ -14,7 +14,7 @@ class MemoryStorage {
 
 globalThis.localStorage = new MemoryStorage();
 
-test('sidebar ma osobną zakładkę analizy wielu sesji', async (context) => {
+test('sidebar ma osobne zakładki analizy wielu sesji i ćwiczeń', async (context) => {
   const vite = await createServer({
     appType: 'custom',
     logLevel: 'silent',
@@ -33,5 +33,7 @@ test('sidebar ma osobną zakładkę analizy wielu sesji', async (context) => {
 
   assert.match(html, /data-testid="nav-session-group-analysis"/);
   assert.match(html, /Analiza wielu sesji/);
+  assert.match(html, /data-testid="nav-training"/);
+  assert.match(html, /Ćwiczenia/);
   assert.match(html, /bg-indigo-600/);
 });

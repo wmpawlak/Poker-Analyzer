@@ -14,4 +14,6 @@ test('Vite nie przeładowuje strony po zapisie wspólnego cache raportów AI', a
   assert.ok(Array.isArray(ignored));
   assert.ok(ignored.includes('**/data/poker-ai-analyses-v1.json'));
   assert.ok(ignored.includes('**/data/poker-ai-analyses-v1.json.*.tmp'));
+  assert.ok(ignored.includes('**/data/poker-training-v1.json'));
+  assert.ok(ignored.includes('**/data/.poker-training-v1.json.*.tmp'));
 });

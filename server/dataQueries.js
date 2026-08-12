@@ -82,6 +82,18 @@ const asSortOrder = (value) => {
   throw new DataQueryError('sortOrder musi mieć wartość asc albo desc.');
 };
 
+const asSessionAnalysisFilter = (value) => {
+  if (value === undefined || value === null || value === '') return 'all';
+  if (value === 'all' || value === 'has' || value === 'none') return value;
+  throw new DataQueryError('sessionAnalysis musi mieć wartość all, has albo none.');
+};
+
+const asHandAnalysisFilter = (value) => {
+  if (value === undefined || value === null || value === '') return 'all';
+  if (value === 'all' || value === 'has') return value;
+  throw new DataQueryError('handAnalysis musi mieć wartość all albo has.');
+};
+
 const getDateRange = (query) => {
   const dateFrom = String(query?.dateFrom || '');
   const dateTo = String(query?.dateTo || '');
@@ -152,6 +164,50 @@ export const toSessionSummary = (session) => ({
   mergedFromSessionIds: session.mergedFromSessionIds || [],
 });
 
+const getReportMap = (cache, key) => (
+  cache && typeof cache === 'object' && cache[key] && typeof cache[key] === 'object'
+    ? cache[key]
+    : {}
+);
+
+const hasHandAnalysis = (hand, aiAnalysesCache) => {
+  const reports = getReportMap(aiAnalysesCache, 'handAnalyses')[String(hand?.id)];
+  return Array.isArray(reports) && reports.length > 0;
+};
+
+const getLatestHandAnalysisReportId = (hand, aiAnalysesCache) => {
+  const reports = getReportMap(aiAnalysesCache, 'handAnalyses')[String(hand?.id)];
+  return Array.isArray(reports) ? reports.at(-1)?.reportId || null : null;
+};
+
+const hasMatchingDatasetRevision = (report, datasetRevision) => {
+  const reportRevision = String(report?.datasetRevision || '').trim();
+  return !reportRevision || reportRevision === datasetRevision;
+};
+
+const getSessionAnalysisMetadata = (session, snapshot, aiAnalysesCache) => {
+  const sessionReports = Array.isArray(getReportMap(aiAnalysesCache, 'sessionAnalyses')[session.id])
+    ? getReportMap(aiAnalysesCache, 'sessionAnalyses')[session.id]
+    : [];
+  const analyzedHandsCount = getNonRebuyHands(session).filter((hand) => (
+    hasHandAnalysis(hand, aiAnalysesCache)
+  )).length;
+  const currentReport = [...sessionReports].reverse().find((report) => (
+    report?.fingerprint === session.fingerprint
+    && hasMatchingDatasetRevision(report, snapshot.datasetRevision)
+  ));
+  return {
+    sessionAnalysisStatus: currentReport ? 'current' : sessionReports.length > 0 ? 'stale' : 'missing',
+    sessionAnalysisReportId: currentReport?.reportId || null,
+    analyzedHandsCount,
+  };
+};
+
+const toSessionSummaryWithAnalysis = (session, snapshot, aiAnalysesCache) => ({
+  ...toSessionSummary(session),
+  ...getSessionAnalysisMetadata(session, snapshot, aiAnalysesCache),
+});
+
 const getHandRanking = (hand) => hand?.handRanking || 'NO_HAND';
 
 const getNonRebuyHands = (session) => (
@@ -163,10 +219,12 @@ const getSessionMonthKey = (session) => {
   return match ? `${match[1]}-${match[2]}` : '';
 };
 
-const selectSessions = (snapshot, query = {}, { includeMonth = false } = {}) => {
+const selectSessions = (snapshot, query = {}, { includeMonth = false, aiAnalysesCache = null } = {}) => {
   const gameType = asGameType(query.gameType);
   const { range, dateFrom, dateTo } = getDateRange(query);
   const handRanking = asHandRanking(query.handRanking);
+  const sessionAnalysis = asSessionAnalysisFilter(query.sessionAnalysis);
+  const handAnalysis = asHandAnalysisFilter(query.handAnalysis);
   const month = includeMonth ? asMonth(query.month) : '';
   const sessions = [
     ...(gameType === 'tournament' ? [] : snapshot.sessions.cash || []),
@@ -174,6 +232,12 @@ const selectSessions = (snapshot, query = {}, { includeMonth = false } = {}) => 
   ]
     .filter((session) => isInDateRange({ timestamp: session.startTime }, range))
     .filter((session) => !month || getSessionMonthKey(session) === month)
+    .filter((session) => {
+      const metadata = getSessionAnalysisMetadata(session, snapshot, aiAnalysesCache);
+      if (sessionAnalysis === 'has' && metadata.sessionAnalysisStatus === 'missing') return false;
+      if (sessionAnalysis === 'none' && metadata.sessionAnalysisStatus !== 'missing') return false;
+      return handAnalysis !== 'has' || metadata.analyzedHandsCount > 0;
+    })
     .sort((left, right) => right.startTime - left.startTime);
   return {
     sessions,
@@ -182,6 +246,8 @@ const selectSessions = (snapshot, query = {}, { includeMonth = false } = {}) => 
     dateFrom,
     dateTo,
     month,
+    sessionAnalysis,
+    handAnalysis,
   };
 };
 
@@ -466,43 +532,50 @@ export const createOpponentsResponse = (snapshot, query) => {
   };
 };
 
-export const createSessionsResponse = (snapshot, query) => {
+export const createSessionsResponse = (snapshot, query, { aiAnalysesCache = null } = {}) => {
   const {
     sessions: selectedSessions,
     gameType,
     handRanking,
-  } = selectSessions(snapshot, query, { includeMonth: true });
+    sessionAnalysis,
+    handAnalysis,
+  } = selectSessions(snapshot, query, { includeMonth: true, aiAnalysesCache });
   const availableRanks = countAvailableRanks(selectedSessions.flatMap(getNonRebuyHands));
   const sessions = selectedSessions
     .map((session) => {
       const hands = getNonRebuyHands(session);
-      const matchingHandCount = handRanking
-        ? hands.filter((hand) => getHandRanking(hand) === handRanking).length
-        : hands.length;
+      const matchingHandCount = hands.filter((hand) => (
+        (!handRanking || getHandRanking(hand) === handRanking)
+        && (handAnalysis !== 'has' || hasHandAnalysis(hand, aiAnalysesCache))
+      )).length;
       return { session, matchingHandCount };
     })
-    .filter(({ matchingHandCount }) => !handRanking || matchingHandCount > 0)
+    .filter(({ matchingHandCount }) => (!handRanking && handAnalysis === 'all') || matchingHandCount > 0)
     .map(({ session, matchingHandCount }) => ({
-      ...toSessionSummary(session),
+      ...toSessionSummaryWithAnalysis(session, snapshot, aiAnalysesCache),
       matchingHandCount,
     }));
   return {
     datasetRevision: snapshot.datasetRevision,
     gameType,
     handRanking,
+    sessionAnalysis,
+    handAnalysis,
     availableRanks,
     sessions,
   };
 };
 
-export const createSessionMonthsResponse = (snapshot, query = {}) => {
+export const createSessionMonthsResponse = (snapshot, query = {}, { aiAnalysesCache = null } = {}) => {
   const {
     sessions: selectedSessions,
     gameType,
     handRanking,
     dateFrom,
     dateTo,
-  } = selectSessions(snapshot, query);
+    sessionAnalysis,
+    handAnalysis,
+  } = selectSessions(snapshot, query, { aiAnalysesCache });
   const availableRanks = countAvailableRanks(selectedSessions.flatMap(getNonRebuyHands));
   const monthsByKey = new Map();
 
@@ -510,10 +583,11 @@ export const createSessionMonthsResponse = (snapshot, query = {}) => {
     const key = getSessionMonthKey(session);
     if (!key) return;
     const hands = getNonRebuyHands(session);
-    const matchingHandCount = handRanking
-      ? hands.filter((hand) => getHandRanking(hand) === handRanking).length
-      : hands.length;
-    if (handRanking && matchingHandCount === 0) return;
+    const matchingHandCount = hands.filter((hand) => (
+      (!handRanking || getHandRanking(hand) === handRanking)
+      && (handAnalysis !== 'has' || hasHandAnalysis(hand, aiAnalysesCache))
+    )).length;
+    if ((handRanking || handAnalysis === 'has') && matchingHandCount === 0) return;
     const current = monthsByKey.get(key) || {
       key,
       year: Number(key.slice(0, 4)),
@@ -536,6 +610,8 @@ export const createSessionMonthsResponse = (snapshot, query = {}) => {
     datasetRevision: snapshot.datasetRevision,
     gameType,
     handRanking,
+    sessionAnalysis,
+    handAnalysis,
     dateFrom,
     dateTo,
     availableRanks,
@@ -550,7 +626,7 @@ const normalizeSessionIds = (value) => {
     .filter(Boolean);
 };
 
-export const createSessionSummariesResponse = (snapshot, payload = {}) => {
+export const createSessionSummariesResponse = (snapshot, payload = {}, { aiAnalysesCache = null } = {}) => {
   const requestedRevision = String(payload.datasetRevision || '').trim();
   if (!requestedRevision) {
     throw new DataQueryError('datasetRevision jest wymagane.', 'DATASET_REVISION_REQUIRED');
@@ -567,7 +643,7 @@ export const createSessionSummariesResponse = (snapshot, payload = {}) => {
   const missingSessionIds = [];
   sessionIds.forEach((sessionId) => {
     const session = snapshot.sessionsById.get(sessionId);
-    if (session) sessions.push(toSessionSummary(session));
+    if (session) sessions.push(toSessionSummaryWithAnalysis(session, snapshot, aiAnalysesCache));
     else missingSessionIds.push(sessionId);
   });
   return {
@@ -577,30 +653,39 @@ export const createSessionSummariesResponse = (snapshot, payload = {}) => {
   };
 };
 
-export const createSessionHandsResponse = (snapshot, sessionId, query = {}) => {
+export const createSessionHandsResponse = (snapshot, sessionId, query = {}, { aiAnalysesCache = null } = {}) => {
   const session = snapshot.sessionsById.get(String(sessionId));
   if (!session) return null;
   const handRanking = asHandRanking(query.handRanking);
+  const handAnalysis = asHandAnalysisFilter(query.handAnalysis);
   const sortBy = asHandSortBy(query.sortBy);
   const sortOrder = asSortOrder(query.sortOrder);
   const hands = sortHands(
-    getNonRebuyHands(session).filter((hand) => !handRanking || getHandRanking(hand) === handRanking),
+    getNonRebuyHands(session).filter((hand) => (
+      (!handRanking || getHandRanking(hand) === handRanking)
+      && (handAnalysis !== 'has' || hasHandAnalysis(hand, aiAnalysesCache))
+    )),
     sortBy,
     sortOrder,
   );
   const page = paginate(hands, {
     cursor: query.cursor,
     limit: query.limit,
-    scope: `session:${session.id}:rank:${handRanking || 'all'}:sort:${sortBy}:${sortOrder}`,
+    scope: `session:${session.id}:rank:${handRanking || 'all'}:analysis:${handAnalysis}:sort:${sortBy}:${sortOrder}`,
     datasetRevision: snapshot.datasetRevision,
   });
   return {
     datasetRevision: snapshot.datasetRevision,
     sessionId: session.id,
     handRanking,
+    handAnalysis,
     sortBy,
     sortOrder,
-    hands: page.values.map(toHandSummary),
+    hands: page.values.map((hand) => ({
+      ...toHandSummary(hand),
+      hasAnalysis: hasHandAnalysis(hand, aiAnalysesCache),
+      handAnalysisReportId: getLatestHandAnalysisReportId(hand, aiAnalysesCache),
+    })),
     total: hands.length,
     nextCursor: page.nextCursor,
   };
@@ -701,14 +786,14 @@ export const createHandCollectionsResponse = (snapshot, payload = {}) => {
   };
 };
 
-export const createSessionDetailResponse = (snapshot, sessionId) => {
+export const createSessionDetailResponse = (snapshot, sessionId, { aiAnalysesCache = null } = {}) => {
   const session = snapshot.sessionsById.get(String(sessionId));
   if (!session) return null;
   const gameType = session.type === 'Cash' ? 'cash' : 'tournament';
   return {
     datasetRevision: snapshot.datasetRevision,
     session: {
-      ...toSessionSummary(session),
+      ...toSessionSummaryWithAnalysis(session, snapshot, aiAnalysesCache),
       metrics: calculateSessionMetrics(session.hands, gameType),
       chartData: Array.isArray(session.chartData) ? session.chartData : [],
     },
