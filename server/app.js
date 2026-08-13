@@ -72,6 +72,7 @@ export const createApiApp = ({
   const app = express();
   app.use(express.json({ limit: '12mb' }));
   const cacheDataDirectory = dataDirectory || DEFAULT_AI_CACHE_DATA_DIRECTORY;
+  const trainingInstanceId = `training-server-${randomUUID()}`;
   const dataIndex = injectedDataIndex || createDataIndex({ dataDirectory: cacheDataDirectory, logger });
   const dataImports = injectedDataImports || createDataImportCoordinator({
     dataDirectory: cacheDataDirectory,
@@ -88,11 +89,13 @@ export const createApiApp = ({
     environment,
     fetchImpl,
     logger,
+    instanceId: trainingInstanceId,
   });
   const trainingService = injectedTrainingService || createTrainingService({
     repository: trainingRepository,
     ...(trainingRandom ? { random: trainingRandom } : {}),
     ...(trainingIdFactory ? { idFactory: trainingIdFactory } : {}),
+    instanceId: trainingInstanceId,
     isRefreshRunning: () => trainingRefreshService.hasActiveRun?.() === true,
     getHandAnalysisSummary: async (handId) => {
       const reports = (await readAiAnalysesCache(cacheDataDirectory)).handAnalyses[String(handId)] || [];

@@ -62,6 +62,9 @@
  * @property {number} sampleSize
  * @property {number} candidateCount
  * @property {number} cursor
+ * @property {number} recoveryCount
+ * @property {string|null} lastRecoveredAt
+ * @property {number} inFlightSpotCount
  */
 
 export const EXERCISE_TYPES = Object.freeze({

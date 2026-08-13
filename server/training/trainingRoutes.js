@@ -126,8 +126,25 @@ export const createTrainingRouter = ({
     response.status(202).json({ job: toPublicRefreshJob(job) });
   }));
 
+  router.get('/refresh/events', route(async (request, response) => {
+    const events = repository.getRefreshJobEvents
+      ? await repository.getRefreshJobEvents({
+        jobId: asString(request.query.jobId) || null,
+        limit: request.query.limit,
+      })
+      : [];
+    response.json({ events });
+  }));
+
   router.get('/refresh/:jobId', route(async (request, response) => {
     response.json({ job: toPublicRefreshJob(await refreshService.getJob(request.params.jobId)) });
+  }));
+
+  router.get('/refresh/:jobId/events', route(async (request, response) => {
+    const events = repository.getRefreshJobEvents
+      ? await repository.getRefreshJobEvents({ jobId: request.params.jobId, limit: request.query.limit })
+      : [];
+    response.json({ events });
   }));
 
   router.post('/refresh/:jobId/stop', route(async (request, response) => {

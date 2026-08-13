@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 
-export const TRAINING_SCHEMA_VERSION = 1;
+export const TRAINING_SCHEMA_VERSION = 2;
 export const TRAINING_COLLECTION_VERSION = 2;
 export const TRAINING_DATABASE_FILENAME = 'poker-training-v2.sqlite';
 export const TRAINING_MIGRATION_BACKUP_PATTERN = 'poker-training-v1.json.migrated-*';
@@ -136,6 +136,8 @@ CREATE TABLE IF NOT EXISTS refresh_jobs (
   cursor INTEGER NOT NULL DEFAULT 0 CHECK (cursor >= 0),
   attempted_requests INTEGER NOT NULL DEFAULT 0 CHECK (attempted_requests >= 0),
   successful_requests INTEGER NOT NULL DEFAULT 0 CHECK (successful_requests >= 0),
+  recovery_count INTEGER NOT NULL DEFAULT 0 CHECK (recovery_count >= 0),
+  last_recovered_at TEXT,
   processed_spot_count INTEGER NOT NULL DEFAULT 0 CHECK (processed_spot_count >= 0),
   skipped_spot_count INTEGER NOT NULL DEFAULT 0 CHECK (skipped_spot_count >= 0),
   saved_key_count INTEGER NOT NULL DEFAULT 0 CHECK (saved_key_count >= 0),
@@ -154,6 +156,23 @@ CREATE TABLE IF NOT EXISTS refresh_jobs (
   resumed_at TEXT,
   stopped_at TEXT,
   finished_at TEXT
+);
+`,
+  `
+CREATE TABLE IF NOT EXISTS refresh_job_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  job_id TEXT,
+  event_type TEXT NOT NULL,
+  instance_id TEXT,
+  status TEXT,
+  cursor INTEGER,
+  batch_size INTEGER,
+  spot_count INTEGER NOT NULL DEFAULT 0,
+  attempted_requests INTEGER,
+  successful_requests INTEGER,
+  in_flight_spot_count INTEGER NOT NULL DEFAULT 0,
+  details_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(details_json)),
+  created_at TEXT NOT NULL
 );
 `,
   `
@@ -306,6 +325,8 @@ CREATE INDEX IF NOT EXISTS idx_selected_spots_active_pool
 
 CREATE INDEX IF NOT EXISTS idx_refresh_jobs_status_updated
   ON refresh_jobs (status, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_refresh_job_events_job_created
+  ON refresh_job_events (job_id, id DESC);
 CREATE INDEX IF NOT EXISTS idx_refresh_job_spots_spot_version
   ON refresh_job_spots (spot_version_id);
 
@@ -508,10 +529,20 @@ export const migrateTrainingSchema = (database, { now = () => new Date().toISOSt
       );
     }
     if (currentVersion < TRAINING_SCHEMA_VERSION) {
+      if (currentVersion >= 1) {
+        const refreshJobColumns = database.prepare('PRAGMA table_info(refresh_jobs)').all()
+          .map(({ name }) => name);
+        if (!refreshJobColumns.includes('recovery_count')) {
+          database.exec('ALTER TABLE refresh_jobs ADD COLUMN recovery_count INTEGER NOT NULL DEFAULT 0 CHECK (recovery_count >= 0);');
+        }
+        if (!refreshJobColumns.includes('last_recovered_at')) {
+          database.exec('ALTER TABLE refresh_jobs ADD COLUMN last_recovered_at TEXT;');
+        }
+      }
       database.exec(INITIAL_SCHEMA_STATEMENTS.join('\n'));
       database.prepare(
         'INSERT INTO schema_migrations (version, description, applied_at) VALUES (?, ?, ?)',
-      ).run(TRAINING_SCHEMA_VERSION, 'Initial normalized training SQLite schema', now());
+      ).run(TRAINING_SCHEMA_VERSION, 'Persistent training refresh diagnostics and recovery metadata', now());
       database.exec(`PRAGMA user_version = ${TRAINING_SCHEMA_VERSION};`);
     }
     database.exec('COMMIT;');

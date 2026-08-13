@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-13T08:28:23.902Z",
+  "updatedAt": "2026-08-13T17:59:38.863Z",
   "handAnalyses": {
     "594100596": [
       {
@@ -10015,6 +10015,1343 @@
               "38f56211-d9fc-4c06-97f9-ca0b011f7f8d",
               "212a1140-0cff-41ee-83c3-67a0619341ea",
               "1daa8806-9571-428c-a074-70b31f575746"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "reportId": "94778371-1166-458f-b814-b15f5978c452",
+      "analyzedAt": "2026-08-13T17:56:14.077Z",
+      "model": {
+        "id": "gpt-5.6-terra",
+        "name": "GPT-5.6 Terra"
+      },
+      "datasetRevision": "p1-34b60b5f023402a3608f1ee4746436800015d95aace58d1e6c9bd717caf2b8d4",
+      "fingerprint": "fnv1a-ece105e8",
+      "criteria": {
+        "gameType": "both",
+        "dateFrom": "2026-08-01",
+        "dateTo": "2026-08-13"
+      },
+      "handCount": 3276,
+      "sessionCount": 44,
+      "snapshot": {
+        "actualDateRange": {
+          "from": "2026-08-01",
+          "to": "2026-08-12",
+          "fromTimestamp": 1785535202000,
+          "toTimestamp": 1786571573000
+        },
+        "handCount": 3276,
+        "sessionCount": 44,
+        "cashHandCount": 671,
+        "tournamentHandCount": 2605,
+        "metrics": {
+          "shared": {
+            "gameType": "mixed",
+            "hands": 3276,
+            "preflop": {
+              "vpip": {
+                "value": 35.6,
+                "opportunities": 3276,
+                "executions": 1165
+              },
+              "pfr": {
+                "value": 19.8,
+                "opportunities": 3276,
+                "executions": 650
+              },
+              "threeBet": {
+                "value": 9,
+                "opportunities": 1593,
+                "executions": 143
+              },
+              "foldToThreeBet": {
+                "value": 25.9,
+                "opportunities": 108,
+                "executions": 28
+              },
+              "fourBet": {
+                "value": 16.7,
+                "opportunities": 108,
+                "executions": 18
+              },
+              "rfi": {
+                "value": 37.6,
+                "opportunities": 766,
+                "executions": 288
+              },
+              "rfiByPosition": {
+                "CO": {
+                  "value": 31,
+                  "opportunities": 355,
+                  "executions": 110
+                },
+                "BTN": {
+                  "value": 44.3,
+                  "opportunities": 255,
+                  "executions": 113
+                },
+                "SB": {
+                  "value": 41.8,
+                  "opportunities": 153,
+                  "executions": 64
+                },
+                "BTN/SB": {
+                  "value": 33.3,
+                  "opportunities": 3,
+                  "executions": 1
+                }
+              }
+            },
+            "postflop": {
+              "af": {
+                "total": {
+                  "value": 4.82,
+                  "betsRaises": 626,
+                  "calls": 130
+                },
+                "flop": {
+                  "value": 4.88,
+                  "betsRaises": 395,
+                  "calls": 81
+                },
+                "turn": {
+                  "value": 4.87,
+                  "betsRaises": 151,
+                  "calls": 31
+                },
+                "river": {
+                  "value": 4.44,
+                  "betsRaises": 80,
+                  "calls": 18
+                }
+              },
+              "afq": {
+                "total": {
+                  "value": 82.8,
+                  "betsRaises": 626,
+                  "calls": 130
+                },
+                "flop": {
+                  "value": 83,
+                  "betsRaises": 395,
+                  "calls": 81
+                },
+                "turn": {
+                  "value": 83,
+                  "betsRaises": 151,
+                  "calls": 31
+                },
+                "river": {
+                  "value": 81.6,
+                  "betsRaises": 80,
+                  "calls": 18
+                }
+              },
+              "cBet": {
+                "value": 84.6,
+                "opportunities": 169,
+                "executions": 143
+              },
+              "cBetSrp": {
+                "value": 84.7,
+                "opportunities": 131,
+                "executions": 111
+              },
+              "foldToCBet": {
+                "value": 58.1,
+                "opportunities": 148,
+                "executions": 86
+              }
+            },
+            "showdown": {
+              "wtsd": {
+                "value": 42,
+                "opportunities": 842,
+                "executions": 354
+              },
+              "wsd": {
+                "value": 48.3,
+                "opportunities": 354,
+                "executions": 171
+              }
+            },
+            "playerProfile": {
+              "style": {
+                "id": "LAG",
+                "label": "LAG",
+                "description": "Wchodzi do wielu pul i często wywiera presję podbiciami oraz 3-betami.",
+                "distance": 0.85
+              },
+              "reliability": {
+                "id": "STATISTICAL",
+                "label": "Profil statystyczny",
+                "minimumHands": 100
+              },
+              "badges": [],
+              "context": {
+                "shortStack": {
+                  "active": false,
+                  "thresholdBb": 20,
+                  "measurableHands": 3276,
+                  "matchingHands": 439,
+                  "share": 13.4
+                },
+                "pushFold": {
+                  "active": false,
+                  "minimumContextShare": 30,
+                  "eligibleHands": 437,
+                  "allInHands": 76,
+                  "passiveCallHands": 46,
+                  "allInShare": 17.4,
+                  "passiveCallShare": 10.5
+                }
+              },
+              "comparedFeatures": 6
+            }
+          },
+          "cash": {
+            "hands": 671,
+            "totalProfit": -46.09,
+            "winrate": {
+              "value": -22.65,
+              "unit": "BB/100",
+              "numerator": -151.96,
+              "denominator": 671
+            }
+          },
+          "tournament": {
+            "hands": 2605,
+            "totalProfit": 14601.56,
+            "winrate": {
+              "value": 560.52,
+              "unit": "żetony/100",
+              "numerator": 14601.56,
+              "denominator": 2605
+            }
+          }
+        },
+        "profileStyleId": "LAG",
+        "profileStyle": {
+          "id": "LAG",
+          "label": "LAG",
+          "description": "Wchodzi do wielu pul i często wywiera presję podbiciami oraz 3-betami.",
+          "distance": 0.85
+        },
+        "reliabilityId": "STATISTICAL",
+        "reliability": {
+          "id": "STATISTICAL",
+          "label": "Profil statystyczny",
+          "minimumHands": 100
+        },
+        "metricCatalog": {
+          "shared.hands": {
+            "id": "shared.hands",
+            "label": "Liczba rąk",
+            "value": 3276,
+            "unit": "ręce"
+          },
+          "shared.preflop.vpip": {
+            "id": "shared.preflop.vpip",
+            "label": "VPIP",
+            "value": 35.6,
+            "opportunities": 3276,
+            "executions": 1165,
+            "unit": "%"
+          },
+          "shared.preflop.pfr": {
+            "id": "shared.preflop.pfr",
+            "label": "PFR",
+            "value": 19.8,
+            "opportunities": 3276,
+            "executions": 650,
+            "unit": "%"
+          },
+          "shared.preflop.threeBet": {
+            "id": "shared.preflop.threeBet",
+            "label": "3-bet",
+            "value": 9,
+            "opportunities": 1593,
+            "executions": 143,
+            "unit": "%"
+          },
+          "shared.preflop.foldToThreeBet": {
+            "id": "shared.preflop.foldToThreeBet",
+            "label": "Fold do 3-betu",
+            "value": 25.9,
+            "opportunities": 108,
+            "executions": 28,
+            "unit": "%"
+          },
+          "shared.preflop.fourBet": {
+            "id": "shared.preflop.fourBet",
+            "label": "4-bet",
+            "value": 16.7,
+            "opportunities": 108,
+            "executions": 18,
+            "unit": "%"
+          },
+          "shared.preflop.rfi": {
+            "id": "shared.preflop.rfi",
+            "label": "RFI",
+            "value": 37.6,
+            "opportunities": 766,
+            "executions": 288,
+            "unit": "%"
+          },
+          "shared.postflop.cBet": {
+            "id": "shared.postflop.cBet",
+            "label": "C-bet",
+            "value": 84.6,
+            "opportunities": 169,
+            "executions": 143,
+            "unit": "%"
+          },
+          "shared.postflop.cBetSrp": {
+            "id": "shared.postflop.cBetSrp",
+            "label": "C-bet w SRP",
+            "value": 84.7,
+            "opportunities": 131,
+            "executions": 111,
+            "unit": "%"
+          },
+          "shared.postflop.foldToCBet": {
+            "id": "shared.postflop.foldToCBet",
+            "label": "Fold do C-betu",
+            "value": 58.1,
+            "opportunities": 148,
+            "executions": 86,
+            "unit": "%"
+          },
+          "shared.showdown.wtsd": {
+            "id": "shared.showdown.wtsd",
+            "label": "WTSD",
+            "value": 42,
+            "opportunities": 842,
+            "executions": 354,
+            "unit": "%"
+          },
+          "shared.showdown.wsd": {
+            "id": "shared.showdown.wsd",
+            "label": "W$SD",
+            "value": 48.3,
+            "opportunities": 354,
+            "executions": 171,
+            "unit": "%"
+          },
+          "shared.preflop.rfiByPosition.CO": {
+            "id": "shared.preflop.rfiByPosition.CO",
+            "label": "RFI CO",
+            "value": 31,
+            "opportunities": 355,
+            "executions": 110,
+            "unit": "%"
+          },
+          "shared.preflop.rfiByPosition.BTN": {
+            "id": "shared.preflop.rfiByPosition.BTN",
+            "label": "RFI BTN",
+            "value": 44.3,
+            "opportunities": 255,
+            "executions": 113,
+            "unit": "%"
+          },
+          "shared.preflop.rfiByPosition.SB": {
+            "id": "shared.preflop.rfiByPosition.SB",
+            "label": "RFI SB",
+            "value": 41.8,
+            "opportunities": 153,
+            "executions": 64,
+            "unit": "%"
+          },
+          "shared.preflop.rfiByPosition.BTN/SB": {
+            "id": "shared.preflop.rfiByPosition.BTN/SB",
+            "label": "RFI BTN/SB",
+            "value": 33.3,
+            "opportunities": 3,
+            "executions": 1,
+            "unit": "%"
+          },
+          "shared.postflop.af.total": {
+            "id": "shared.postflop.af.total",
+            "label": "AF total",
+            "value": 4.82,
+            "betsRaises": 626,
+            "calls": 130
+          },
+          "shared.postflop.afq.total": {
+            "id": "shared.postflop.afq.total",
+            "label": "AFq total",
+            "value": 82.8,
+            "betsRaises": 626,
+            "calls": 130,
+            "unit": "%"
+          },
+          "shared.postflop.af.flop": {
+            "id": "shared.postflop.af.flop",
+            "label": "AF flop",
+            "value": 4.88,
+            "betsRaises": 395,
+            "calls": 81
+          },
+          "shared.postflop.afq.flop": {
+            "id": "shared.postflop.afq.flop",
+            "label": "AFq flop",
+            "value": 83,
+            "betsRaises": 395,
+            "calls": 81,
+            "unit": "%"
+          },
+          "shared.postflop.af.turn": {
+            "id": "shared.postflop.af.turn",
+            "label": "AF turn",
+            "value": 4.87,
+            "betsRaises": 151,
+            "calls": 31
+          },
+          "shared.postflop.afq.turn": {
+            "id": "shared.postflop.afq.turn",
+            "label": "AFq turn",
+            "value": 83,
+            "betsRaises": 151,
+            "calls": 31,
+            "unit": "%"
+          },
+          "shared.postflop.af.river": {
+            "id": "shared.postflop.af.river",
+            "label": "AF river",
+            "value": 4.44,
+            "betsRaises": 80,
+            "calls": 18
+          },
+          "shared.postflop.afq.river": {
+            "id": "shared.postflop.afq.river",
+            "label": "AFq river",
+            "value": 81.6,
+            "betsRaises": 80,
+            "calls": 18,
+            "unit": "%"
+          },
+          "cash.hands": {
+            "id": "cash.hands",
+            "label": "Liczba rąk Cash",
+            "value": 671,
+            "unit": "ręce"
+          },
+          "cash.totalProfit": {
+            "id": "cash.totalProfit",
+            "label": "Wynik Cash",
+            "value": -46.09,
+            "unit": "waluta stołu"
+          },
+          "cash.winrate": {
+            "id": "cash.winrate",
+            "label": "Winrate Cash",
+            "value": -22.65,
+            "unit": "BB/100",
+            "numerator": -151.96,
+            "denominator": 671
+          },
+          "tournament.hands": {
+            "id": "tournament.hands",
+            "label": "Liczba rąk Turnieje",
+            "value": 2605,
+            "unit": "ręce"
+          },
+          "tournament.totalProfit": {
+            "id": "tournament.totalProfit",
+            "label": "Wynik Turnieje",
+            "value": 14601.56,
+            "unit": "żetony"
+          },
+          "tournament.winrate": {
+            "id": "tournament.winrate",
+            "label": "Winrate Turnieje",
+            "value": 560.52,
+            "unit": "żetony/100",
+            "numerator": 14601.56,
+            "denominator": 2605
+          }
+        }
+      },
+      "sourceCoverage": {
+        "sessionsInPeriod": 43,
+        "availableReports": 25,
+        "usedReports": 20,
+        "byGameType": {
+          "cash": {
+            "sessionsInPeriod": 9,
+            "availableReports": 2,
+            "usedReports": 2
+          },
+          "tournament": {
+            "sessionsInPeriod": 34,
+            "availableReports": 23,
+            "usedReports": 18
+          }
+        }
+      },
+      "sources": [
+        {
+          "sourceId": "cash:cash_45fb11c711ed2bdf:f194fd2f-a0d8-4f4c-91c8-23a32cacbdd6",
+          "type": "cash",
+          "sessionId": "cash_45fb11c711ed2bdf",
+          "reportId": "f194fd2f-a0d8-4f4c-91c8-23a32cacbdd6",
+          "sessionFingerprint": "fnv1a-0860a428",
+          "startTime": 1785676576000,
+          "endTime": 1785682712000,
+          "date": "2026-08-02",
+          "model": {
+            "id": "gemini-2.5-flash",
+            "name": "Gemini 2.5 Flash"
+          },
+          "analyzedAt": "2026-08-10T16:00:06.666Z",
+          "summary": "W tej sesji Hero zanotował duże wahania, z kilkoma znaczącymi wygranymi i dwiema bardzo kosztownymi stratami. Widoczna jest skłonność do agresywnego rozgrywania silnych rąk, ale jednocześnie Hero często przecenia siłę swoich układów w skomplikowanych sytuacjach. W efekcie, doszło do kilku kosztownych over-commitmentów, które zaważyły na końcowym wyniku.",
+          "leaks": [
+            {
+              "title": "Nadmierne zaangażowanie z silnymi, ale wrażliwymi rękami",
+              "description": "Hero często inwestuje znaczne środki w pule z rękami, które wydają się silne, ale są podatne na lepsze układy lub drawy przeciwnika, zwłaszcza na boardach sprzyjających szerokiemu zakresowi rywali. Prowadzi to do znaczących strat, gdy przeciwnik ujawnia silniejsze holdingi lub kompletne drawy.",
+              "correction": "Zachowaj większą ostrożność i kontrolę nad pulą, gdy napotykasz znaczną agresję na boardach z drawami lub połączonych. Bądź gotów foldować mocne, ale nie-nutsowe ręce i ponownie oceniaj zakres przeciwnika."
+            },
+            {
+              "title": "Luźna i pasywna gra z blindów lub wczesnych pozycji",
+              "description": "Hero często calluje pre-flop raisy z blindów lub wczesnych pozycji z rękami o niskiej grywalności lub spekulacyjnymi. To prowadzi do rozgrywania wielu rąk poza pozycją z marginalnymi układami, co utrudnia efektywne nawigowanie post-flop i często kończy się foldem do agresji.",
+              "correction": "Uściślij swój zakres callowania pre-flop, zwłaszcza poza pozycją (blindy, UTG/HJ), koncentrując się na rękach z lepszą grywalnością. Rozważ częstsze 3-betowanie z odpowiednimi rękami, aby przejąć inicjatywę."
+            }
+          ]
+        },
+        {
+          "sourceId": "tournament:tourney_84518_2026/08/03:e938d713-cc5b-4ebb-94a7-a06873a06a19",
+          "type": "tournament",
+          "sessionId": "tourney_84518_2026/08/03",
+          "reportId": "e938d713-cc5b-4ebb-94a7-a06873a06a19",
+          "sessionFingerprint": "fnv1a-3ab08890",
+          "startTime": 1785767604000,
+          "endTime": 1785773477000,
+          "date": "2026-08-03",
+          "model": {
+            "id": "gemini-2.5-flash",
+            "name": "Gemini 2.5 Flash"
+          },
+          "analyzedAt": "2026-08-08T00:21:38.978Z",
+          "summary": "Sesja charakteryzowała się mieszanymi wynikami, z kilkoma znaczącymi wygranymi i porażkami. Hero wykazał się agresywną grą post-flop, często podejmując ryzykowne blefy, które czasami przynosiły sukces. Jednak zauważalne były również błędy w selekcji rąk pre-flop oraz overplaying w trudnych spotach, co prowadziło do dużych strat.",
+          "leaks": [
+            {
+              "title": "Nadmierna agresja z marginalnymi rękami w multi-way potach i na niebezpiecznych boardach",
+              "description": "Hero często angażuje się w rozdania ze zbyt słabymi rękami (np. Ad3s, 8c6c, K7s) w sytuacjach, które szybko eskalują, a następnie podejmuje agresywne decyzje (duże c-bety, blefy, niewłaściwe sprawdzenia all-inów), co prowadzi do dużych strat. Pokazuje to trudności w ocenie siły ręki w kontekście zakresów przeciwników i struktury stołu, zwłaszcza kiedy board jest mokry i sprzyja silnym drawom lub gotowym układom.",
+              "correction": "Bądź bardziej selektywny w wyborze rąk do grania w multi-way potach, szczególnie poza pozycją. Przyjrzyj się sizingowi c-betów – czy są one proporcjonalne do siły ręki i zakresu blefowania. Unikaj sprawdzania dużych betów/all-inów z marginalnymi parami na boardach, które wyraźnie faworyzują silniejsze zakresy przeciwników (np. skończone drawy, overpary)."
+            },
+            {
+              "title": "Luźne flat-calle pre-flop z niskimi parami lub spekulatywnymi rękami z wczesnych pozycji",
+              "description": "Hero kilkukrotnie wchodzi w rozdania poprzez call pre-flop z wczesnej lub środkowej pozycji z rękami takimi jak 55, J9s czy A2s. Te ręce często są zbyt słabe na luźne flat-calle z tych pozycji, co prowadzi do trudnych decyzji post-flop, zwłaszcza poza pozycją i przeciwko kilku przeciwnikom. Zwiększa to ryzyko dominacji i zmusza do grania 'zgaduj-zgadula' po flopie.",
+              "correction": "Wzmocnij zakres otwierania/callowania z wczesnych pozycji. Zamiast flat-callować słabe pary czy spekulatywne ręce, rozważ fold lub 3-bet (jeśli ręka ma odpowiednie equity i fold equity). Unikaj grania poza pozycją z rękami, które łatwo dominują i nie mają wystarczającego potencjału equity."
+            }
+          ]
+        },
+        {
+          "sourceId": "tournament:tourney_84982_2026/08/04:07f3edf4-932f-46fc-8b5c-7213a6f49cd6",
+          "type": "tournament",
+          "sessionId": "tourney_84982_2026/08/04",
+          "reportId": "07f3edf4-932f-46fc-8b5c-7213a6f49cd6",
+          "sessionFingerprint": "fnv1a-d2103eeb",
+          "startTime": 1785859811000,
+          "endTime": 1785864821000,
+          "date": "2026-08-04",
+          "model": {
+            "id": "gemini-2.5-flash",
+            "name": "Gemini 2.5 Flash"
+          },
+          "analyzedAt": "2026-08-08T16:50:02.766Z",
+          "summary": "Sesja Hero jako gracza rekreacyjnego charakteryzowała się mieszanką luźnych sprawdzeń pre-flop i agresywnej gry post-flop. Chociaż Hero zdołał wygrać kilka znaczących pul dzięki odważnym blefom i agresywnym zagraniom, zauważalna była tendencja do nadmiernego angażowania się w pule z marginalnymi rękami lub zbyt luźnych sprawdzeń pre-flop, co prowadziło do strat w krytycznych sytuacjach. Kluczowe obszary do poprawy to selekcja rąk pre-flop oraz bardziej zdyscyplinowane podejmowanie decyzji post-flop na stołach sprzyjających drawom.",
+          "leaks": [
+            {
+              "title": "Zbyt luźne zagrania pre-flop z marginalnymi rękami",
+              "description": "Hero często sprawdza podbicia pre-flop z marginalnymi rękami, zwłaszcza poza pozycją, a następnie często poddaje rękę na flopie lub turnie, gdy spotyka agresję. Prowadzi to do niepotrzebnych strat żetonów i braku kontroli nad potem.",
+              "correction": "Należy zwęzić zakres rąk do sprawdzania pre-flop, szczególnie na wczesnych pozycjach i blindach. Zamiast pasywnie sprawdzać z rękami o słabym potencjale post-flop, należy grać bardziej agresywnie (3-betować) lub pasować."
+            },
+            {
+              "title": "Nadmierne angażowanie się w pule ze średnimi układami na \"mokrych\" stołach",
+              "description": "Hero ma tendencję do overbetowania lub stackowania się ze średnimi układami, takimi jak top para ze słabym kickerem lub słabe dwie pary, szczególnie na stołach z wieloma możliwościami drawów (straight, flush). To często prowadzi do bycia zdominowanym przez silniejsze ręce lub skompletowane drawy.",
+              "correction": "Wymagana jest ostrożniejsza ocena siły ręki w kontekście struktury stołu i potencjalnych zakresów przeciwnika. Ważne jest, aby rozpoznawać sytuacje, w których należy ograniczyć straty, zamiast dążyć do stackowania."
+            },
+            {
+              "title": "Pasywna gra pre-flop z silnymi rękami",
+              "description": "Zamiast podbijać pre-flop z premium rękami (np. AA, JJ), Hero często tylko sprawdza lub limpuje, co pozwala wielu przeciwnikom zobaczyć flop tanio. To ogranicza wartość, jaką można wydobyć z silnych rąk i naraża je na niekorzystne wieloosobowe pule.",
+              "correction": "Zawsze podbijaj silne ręce pre-flop (np. pary od JJ+, AK) z dowolnej pozycji, aby zbudować pulę i ograniczyć liczbę przeciwników. Dostosuj wielkość podbicia do dynamicznego stołu i stacków."
+            }
+          ]
+        },
+        {
+          "sourceId": "tournament:tourney_85006_2026/08/04:75474cef-5e4b-49ed-bdf6-69edaa8e64b3",
+          "type": "tournament",
+          "sessionId": "tourney_85006_2026/08/04",
+          "reportId": "75474cef-5e4b-49ed-bdf6-69edaa8e64b3",
+          "sessionFingerprint": "fnv1a-f7c329cf",
+          "startTime": 1785864981000,
+          "endTime": 1785868943000,
+          "date": "2026-08-04",
+          "model": {
+            "id": "gemini-2.5-flash",
+            "name": "Gemini 2.5 Flash"
+          },
+          "analyzedAt": "2026-08-08T16:49:40.399Z",
+          "summary": "Ta sesja charakteryzowała się stylem gry \"MIXED\", w którym Hero przeplatał ostrożność z agresją. Widoczne były udane, agresywne zagrania post-flop, które często prowadziły do zdobycia puli, jak również błędy w wyborze rąk do sprawdzenia pre-flop, skutkujące trudnymi sytuacjami. Sesja była mieszanką wygranych dzięki skutecznej presji i przegranych, wynikających z dominacji lub ryzykownych zagrań.",
+          "leaks": [
+            {
+              "title": "Luźne sprawdzanie pre-flop i gra poza pozycją",
+              "description": "Hero często wchodzi do puli, sprawdzając podbicia z marginalnymi rękami, zwłaszcza z blindów lub w środkowej pozycji, co prowadzi do trudnych decyzji post-flop lub straty żetonów, gdy Hero nie trafia. Brak konsekwencji w dalszej grze po tanim wejściu do puli (limpowanie/sprawdzanie) również był widoczny.",
+              "correction": "Zacieśnij swój zakres otwarć i zagrań pasywnych pre-flop, szczególnie na wczesnych pozycjach i gdy grasz z blindów. Unikaj wchodzenia do puli z marginalnymi rękami, które łatwo dominują Twoją post-flop strategię, zwłaszcza będąc poza pozycją. Graj mniej rąk, ale graj je silniej i bardziej intencjonalnie."
+            },
+            {
+              "title": "Agresywne betowanie na flopie bez silnego equity, prowadzące do foldów w obliczu kontry",
+              "description": "Hero często wykonuje agresywne zakłady na flopie z rękami, które nie mają silnej wartości ani wysokiego equity (np. same wysokie karty bez drawów), a następnie łatwo pasuje na kontr-agresję przeciwnika. Takie zagrania często są nieopłacalne, gdy przeciwnik stawia opór.",
+              "correction": "Upewnij się, że Twoje betowanie na flopie ma silny powód: wartość (gotowa ręka), silny draw (wysokie equity semi-bluff) lub wysoką fold equity w zależności od zakresu przeciwnika i stacków. Unikaj blefów bez equity w wieloosobowych pulach lub przeciwko graczom, którzy często sprawdzają."
+            }
+          ]
+        },
+        {
+          "sourceId": "tournament:tourney_85719_2026/08/06:87f7cee3-f9ac-4e86-ac90-81ab54a9f29b",
+          "type": "tournament",
+          "sessionId": "tourney_85719_2026/08/06",
+          "reportId": "87f7cee3-f9ac-4e86-ac90-81ab54a9f29b",
+          "sessionFingerprint": "fnv1a-480a7c7b",
+          "startTime": 1786032107000,
+          "endTime": 1786033408000,
+          "date": "2026-08-06",
+          "model": {
+            "id": "gemini-2.5-flash",
+            "name": "Gemini 2.5 Flash"
+          },
+          "analyzedAt": "2026-08-08T16:09:56.673Z",
+          "summary": "Hero podczas tej sesji prezentował styl gry Loose-Passive, co było widoczne w tendencji do luźnego callowania pre-flop, zwłaszcza z marginalnymi rękami. Mimo kilku skutecznych, agresywnych zagrań w niektórych pulach, często decydował się na pasywne linie, które ograniczały jego możliwości. Największym punktem zwrotnym była duża strata w wyniku coolera set over set pod koniec sesji.",
+          "leaks": [
+            {
+              "title": "Pasywna gra pre-flop z silnymi rękami",
+              "description": "Hero często decydował się na callowanie podbić pre-flop z silnymi rękami, takimi jak KK czy AQ, zamiast 3-betować w celu budowania puli i zyskania inicjatywy. Taka pasywność pozwala przeciwnikom na tańsze zobaczenie flopa i utrudnia rozgrywanie ręki post-flop.",
+              "correction": "Kiedy masz silne ręce (np. wysokie pary, AK, AQ), rozważ 3-betowanie, aby zmniejszyć liczbę graczy, zbudować większą pulę i przejąć kontrolę nad akcją, zamiast tylko callować."
+            },
+            {
+              "title": "Zbyt luźne callowanie z marginalnymi rękami z pozycji",
+              "description": "Hero często wchodził do puli callując z marginalnymi rękami, takimi jak niskie pary lub suited gappery, szczególnie z pozycji średnich lub późnych. Takie zagrania prowadzą do rozgrywania trudnych sytuacji post-flop bez silnego equity.",
+              "correction": "Bądź bardziej selektywny w wyborze rąk do callowania, zwłaszcza gdy jesteś poza pozycją lub gdy inni gracze już podbili. Koncentruj się na rękach, które dobrze trafiają we flop lub mają silne equity."
+            },
+            {
+              "title": "Zbyt pasywna gra post-flop, zwłaszcza na flopie i turnie",
+              "description": "Hero wykazywał tendencję do zbyt pasywnej gry na wczesnych streetach (flop, turn), często czekając z rękami o umiarkowanej sile lub oddając inicjatywę. To pozwoliło przeciwnikom na dyktowanie akcji lub darmowe zobaczenie kolejnych kart, co czasami prowadziło do niekorzystnych sytuacji.",
+              "correction": "Bądź bardziej aktywny post-flop. Gdy masz inicjatywę lub silną rękę/draw, rozważ betting lub raising, aby wywierać presję na przeciwnikach i kontrolować wielkość puli. Unikaj zbyt częstego czekania, gdy masz przewagę."
+            }
+          ]
+        },
+        {
+          "sourceId": "tournament:tourney_85730_2026/08/06:57516c86-fd76-408a-b469-71d990111720",
+          "type": "tournament",
+          "sessionId": "tourney_85730_2026/08/06",
+          "reportId": "57516c86-fd76-408a-b469-71d990111720",
+          "sessionFingerprint": "fnv1a-a80a395e",
+          "startTime": 1786033586000,
+          "endTime": 1786037711000,
+          "date": "2026-08-06",
+          "model": {
+            "id": "gemini-2.5-flash",
+            "name": "Gemini 2.5 Flash"
+          },
+          "analyzedAt": "2026-08-08T09:52:16.487Z",
+          "summary": "Sesja charakteryzuje się luźnym i pasywnym stylem gry Hero, co prowadziło do angażowania się w wiele rozdań z marginalnymi rękami. Zauważalna była tendencja do over-callingu pre-flop i post-flop, co często skutkowało znacznymi stratami. Mimo to, Hero był w stanie wygrać kilka dużych pul, korzystając z agresji, gdy trafił mocny układ. Warto jednak pracować nad dyscypliną i selekcją rąk.",
+          "leaks": [
+            {
+              "title": "Zbyt luźne sprawdzanie przed flopem z marginalnymi rękami",
+              "description": "Hero zbyt często sprawdzał podbicia pre-flop z rękami o niskiej grywalności, szczególnie z późnych pozycji lub na big blindzie, co prowadziło do trudnych decyzji post-flop i często wymuszonych foldów.",
+              "correction": "Zaleca się zacieśnienie zakresu otwarć i sprawdzania pre-flop. Skoncentruj się na rękach, które mają większy potencjał do trafienia silnego układu lub do budowania puli w dogodnych sytuacjach, unikając spekulacyjnych calli, które rzadko się opłacają."
+            },
+            {
+              "title": "Niewłaściwe angażowanie stacka w obliczu dużej agresji pre-flop",
+              "description": "Hero zbyt łatwo angażował dużą część swojego stacka (często w odpowiedzi na 3-bety lub all-iny) z rękami, które były spekulacyjne lub dominowane. Brak świadomości relatywnej siły ręki w kontekście wielu graczy i rozmiaru puli prowadził do kosztownych strat.",
+              "correction": "Przed podjęciem decyzji o sprawdzeniu dużego 3-beta lub all-ina, dokładnie oceń siłę swojej ręki względem przewidywanych zakresów przeciwników i oblicz pot odds. W większości przypadków zrezygnuj z callowania z dominowanymi lub słabymi rękami, chyba że masz bardzo silne powody (np. ekstremalnie wysokie pot odds na drawa)."
+            },
+            {
+              "title": "Pasywna gra po flopie z marginalnymi rękami bez inicjatywy",
+              "description": "Po sprawdzeniu pre-flop, Hero często pasywnie sprawdzał zakłady po flopie i turnie z marginalnymi parami lub słabymi drawami, co pozwalało przeciwnikom tanio kontynuować agresję, a Hero tracił kontrolę nad wielkością puli.",
+              "correction": "Jeśli trafisz marginalny układ i nie masz inicjatywy, rozważ agresywniejszą grę (np. check-raise) lub bądź gotów do foldowania w odpowiedzi na dalszą agresję, zamiast biernie sprawdzać. Nie pozwól, aby małe układy pochłaniały dużą część twojego stacka."
+            }
+          ]
+        },
+        {
+          "sourceId": "tournament:tourney_86038_2026/08/07:cdc8fa3c-e34c-4967-9029-c147cd8b95ad",
+          "type": "tournament",
+          "sessionId": "tourney_86038_2026/08/07",
+          "reportId": "cdc8fa3c-e34c-4967-9029-c147cd8b95ad",
+          "sessionFingerprint": "fnv1a-d188cf52",
+          "startTime": 1786104611000,
+          "endTime": 1786109752000,
+          "date": "2026-08-07",
+          "model": {
+            "id": "gemini-2.5-flash",
+            "name": "Gemini 2.5 Flash"
+          },
+          "analyzedAt": "2026-08-08T09:31:27.266Z",
+          "summary": "Ta sesja charakteryzowała się dużą wariancją, z kilkoma znaczącymi wygranymi i jedną bardzo kosztowną stratą. W grze Hero zaobserwowano mieszankę agresji i pasywnych zagrań, co wskazuje na styl MIXED. Ważne będzie dopracowanie pewnych aspektów, aby zminimalizować błędy i utrzymać korzystne tendencje.",
+          "leaks": [
+            {
+              "title": "Zbyt luźne sprawdzanie przed flopem z niskimi kartami",
+              "description": "Hero często sprawdza podbicia z pozycji blindów lub w późnej pozycji z kartami o niskiej wartości, które rzadko trafiają na flopie lub prowadzą do trudnych decyzji post-flop. Na przykład, sprawdzenie z Js8c z BB przeciwko podbiciu z UTG, czy Jh8s z BB przeciwko podbiciu z UTG, gdzie equity jest często niskie i pozycja jest niekorzystna.",
+              "correction": "Zacieśnij zakresy sprawdzania pre-flop, zwłaszcza z pozycji poza blindami i przeciwko podbiciom z wczesnych pozycji. Skup się na graniu rąk, które mają dobre equity i grywalność post-flop."
+            },
+            {
+              "title": "Overplaying średnie układy lub pary z niskim kickerem",
+              "description": "W niektórych sytuacjach Hero zbyt agresywnie grał marginalne układy lub pary z niskim kickerem na późniejszych streetach. Przykładem jest zagranie z 4h9c na flopie z trzema czwórkami, gdzie rywal miał wyższego kickera (Kd4d), co doprowadziło do dużej straty. Podobnie, postawienie 3375 na turnie z QTs na boardzie Jh6d6hAs jest ryzykowne, gdy przeciwnik może mieć lepszą As.",
+              "correction": "Kontroluj wielkość puli i unikaj nadmiernej agresji z marginalnymi układami, zwłaszcza gdy board sprzyja silniejszym rękom rywala lub gdy twój kicker jest słaby. Bądź świadomy, że przeciwnicy mogą mieć wyższe kickery lub lepsze trafienia."
+            },
+            {
+              "title": "Agresywne push-shove z niewystarczającą siłą rąk",
+              "description": "W fazie turniejowej, gdy stacki stają się płytsze, Hero wykonał agresywny shove z JcTs z pozycji HJ. Chociaż w niektórych sytuacjach push-fold jest uzasadniony, to JcTs jest ręką o marginalnym equity, szczególnie gdy rywal ma tak silny układ jak KcQc, który często zostanie sprawdzony.",
+              "correction": "Popraw swoje zakresy push-fold, opierając się na aktualnej wielkości stacka, pozycji i dynamice stołu. Unikaj zbyt luźnych zagrań all-in z niskim equity, chyba że jest to wymuszone przez ekstremalnie mały stack."
+            }
+          ]
+        },
+        {
+          "sourceId": "tournament:tourney_86470_2026/08/08:a6ace8a3-f6c3-43fb-8aae-4ecb220f1a8a",
+          "type": "tournament",
+          "sessionId": "tourney_86470_2026/08/08",
+          "reportId": "a6ace8a3-f6c3-43fb-8aae-4ecb220f1a8a",
+          "sessionFingerprint": "fnv1a-8362ecc7",
+          "startTime": 1786202033000,
+          "endTime": 1786203018000,
+          "date": "2026-08-08",
+          "model": {
+            "id": "gpt-5.6-sol",
+            "name": "GPT-5.6 Sol"
+          },
+          "analyzedAt": "2026-08-10T07:17:22.893Z",
+          "summary": "Sesja obejmuje tylko 19 rozdań, więc profil stylu pozostaje INSUFFICIENT i wszelkie wnioski trzeba traktować ostrożnie. Hero zakończył turniej wynikiem netto -10 000 żetonów, przy czym o wyniku przesądziły głównie dwa duże rozdania, a nie szeroka próbka decyzji. Najważniejszym obszarem do poprawy jest dokładniejsze porównywanie własnego equity z zakresem rywala przed zaangażowaniem całego stacka.",
+          "leaks": [
+            {
+              "title": "Niedoszacowanie siły zakresu rywala przy decyzjach za stack",
+              "description": "W #128821400014 Hero zagrał efektywnie za stack z 55 na Q-4-3, mimo że po małym c-becie rywal miał niewiele żetonów z tyłu i otrzymywał bardzo dobre pot odds, więc fold equity było ograniczone. W #128821400026 cold-call all-ina z KQo nastąpił po otwarciu do 2,5 BB i dużym reshovie; taki zakres często zawiera pary oraz AQ/AK dominujące KQ. Druga decyzja może być graniczna ze względu na dead money i stack około 5,8 BB, ale bez informacji o szerokim zakresie rywala należy zachować większą dyscyplinę.",
+              "correction": "Przed zagraniem za stack policz osobno wymagane equity, realne fold equity i zakres kontynuacji przeciwnika. W #128821400014 preferuj call c-betu i realizację equity drawa, zamiast raise'u przeciw praktycznie zaangażowanemu stackowi; w sytuacji z #128821400026 sprawdzaj KQo tylko przy wyraźnym odczycie szerokiego reshove'u lub korzystnych założeniach ICM."
+            }
+          ]
+        },
+        {
+          "sourceId": "tournament:tourney_86477_2026/08/08:ec321eba-ca66-4ea8-b9d8-81bf10ac9bd5",
+          "type": "tournament",
+          "sessionId": "tourney_86477_2026/08/08",
+          "reportId": "ec321eba-ca66-4ea8-b9d8-81bf10ac9bd5",
+          "sessionFingerprint": "fnv1a-fdf2ab1d",
+          "startTime": 1786203302000,
+          "endTime": 1786209499000,
+          "date": "2026-08-08",
+          "model": {
+            "id": "gemini-2.5-flash",
+            "name": "Gemini 2.5 Flash"
+          },
+          "analyzedAt": "2026-08-08T22:33:46.007Z",
+          "summary": "W tej sesji, grając jako TAG, Hero zaczął bardzo mocno, szybko podwajając swój stack w początkowych rozdaniach. Następnie udało mu się zbudować solidną przewagę dzięki kilku dużym wygranym pulom post-flop. Niestety, sesja zakończyła się wyeliminowaniem po kosztownym all-inie pre-flop, który znacząco zmniejszył stack, co doprowadziło do ostatecznego busta.",
+          "leaks": [
+            {
+              "title": "Zbyt luźne calle z dużego blinda na open raise",
+              "description": "Hero często sprawdzał open raisy z dużego blinda z rękami o niskiej grywalności i słabym equity, będąc poza pozycją. Skutkowało to trudnymi decyzjami post-flop i częstymi foldami do cbetów.",
+              "correction": "Znacząco zawęź zakres callowania z dużego blinda przeciwko raisom, zwłaszcza z wczesnych pozycji. Skup się na rękach z wyższą wartością kart, silnymi suited connectorami lub parami, które mają potencjał na silne układy lub łatwe do gry boardy. Unikaj rąk takich jak 62o czy 73o."
+            },
+            {
+              "title": "Nadmierne angażowanie stacka z marginalnymi parami",
+              "description": "W kluczowych momentach Hero zbyt mocno angażował swój stack w pulach z rękami, które, choć dobre, nie były wystarczająco silne, by sprostać agresji rywala, zwłaszcza w obliczu all-inów, bez wystarczających readów. Przykładem jest hero-call z parą dziewiątek, gdzie staliśmy naprzeciw silnego range all-in.",
+              "correction": "Zachowaj ostrożność z parami średniej wielkości, gdy stajesz w obliczu dużej agresji, zwłaszcza all-inów, chyba że masz mocny read na rywala lub wyraźną przewagę equity. Oceniaj, czy ręka ma szansę przetrwać kolejne bety, czy lepiej jest odpuścić wcześniej, aby uniknąć drogich pomyłek."
+            },
+            {
+              "title": "Niespójna agresja post-flop po 3-becie",
+              "description": "Hero czasami wykonywał 3-bety pre-flop, po czym nie kontynuował agresji na flopie z rękami, które miałyby sensowny equity lub fold equity. Prowadziło to do strat już na wczesnych streetach, marnując wcześniejszą inicjatywę i zainwestowane żetony.",
+              "correction": "Upewnij się, że Twoja agresja pre-flop jest wspierana przez gotowość do kontynuowania gry post-flop, nawet z rękami, które nie trafiły idealnie, ale wciąż mają potencjał. Rozważ c-bety na wielu boardach, aby wykorzystać fold equity po 3-becie, zamiast pasować od razu."
+            }
+          ]
+        },
+        {
+          "sourceId": "tournament:tourney_86554_2026/08/08:871114c8-8c44-49fe-ad77-b4f432d14794",
+          "type": "tournament",
+          "sessionId": "tourney_86554_2026/08/08",
+          "reportId": "871114c8-8c44-49fe-ad77-b4f432d14794",
+          "sessionFingerprint": "fnv1a-b8515871",
+          "startTime": 1786211636000,
+          "endTime": 1786216810000,
+          "date": "2026-08-08",
+          "model": {
+            "id": "gemini-2.5-flash",
+            "name": "Gemini 2.5 Flash"
+          },
+          "analyzedAt": "2026-08-08T22:33:40.355Z",
+          "summary": "Twoja sesja charakteryzowała się typowym dla stylu LAG podejściem, z częstymi podbiciami i agresywną grą postflop. Odnotowałeś zarówno kilka imponujących zwycięstw, świadczących o dobrym wyczuciu gry, jak i kilka znaczących strat. Warto skupić się na optymalizacji decyzji preflop z marginalnymi rękami oraz na kontroli agresji na trudnych boardach, aby zminimalizować ryzyko dużych swingów w przyszłości.",
+          "leaks": [
+            {
+              "title": "Zbyt luźne zagrania all-in/3-bet preflop",
+              "description": "Często wchodzisz all-in lub 3-betujesz preflop z rękami, które mają zbyt niskie equity w porównaniu do potencjalnego zakresu przeciwnika, zwłaszcza gdy stack nie jest ekstremalnie mały. Może to prowadzić do znacznych strat, gdy przeciwnik ma silną rękę.",
+              "correction": "Zacieśnij zakres rąk do zagrań all-in/3-bet preflop, szczególnie gdy masz więcej niż 10-15 big blindów. Skup się na rękach z dobrą grywalnością lub wysokim equity (np. mocniejsze pary, wysokie asy, suited connectory z dużym potencjałem)."
+            },
+            {
+              "title": "Luźna obrona blindów z marginalnymi rękami",
+              "description": "W kilku sytuacjach sprawdziłeś podbicia z blindów z bardzo słabymi rękami, co prowadziło do gry z przewagą pozycji i trudnymi decyzjami postflop, często zakończonymi stratą.",
+              "correction": "Bądź bardziej selektywny w obronie blindów. Jeśli już decydujesz się na call z luźną ręką, miej jasny plan gry postflop i nie kontynuuj, gdy nie trafisz nic wartościowego lub nie masz rozsądnego planu blefu."
+            },
+            {
+              "title": "Przesadna agresja postflop bez wystarczającego equity lub planu",
+              "description": "W niektórych rozdaniach kontynuowałeś agresję na flopie lub turnie z rękami o słabym equity lub bez mocnego planu blefu, co skutkowało utratą żetonów na rzecz silniejszych rąk przeciwników.",
+              "correction": "Przed agresywnym betem na flopie lub turnie dokładnie oceń teksturę boardu i zastanów się, jakie ręce reprezentujesz i co może mieć przeciwnik. Upewnij się, że masz wystarczające equity (silna ręka, mocny draw) lub sensowny plan blefu, który może zadziałać w danej sytuacji."
+            }
+          ]
+        },
+        {
+          "sourceId": "tournament:tourney_86617:7e07833e-9305-4015-a1f4-149a33850738",
+          "type": "tournament",
+          "sessionId": "tourney_86617",
+          "reportId": "7e07833e-9305-4015-a1f4-149a33850738",
+          "sessionFingerprint": "fnv1a-84eb0ded",
+          "startTime": 1786220709000,
+          "endTime": 1786227225000,
+          "date": "2026-08-08",
+          "model": {
+            "id": "gemini-2.5-flash",
+            "name": "Gemini 2.5 Flash"
+          },
+          "analyzedAt": "2026-08-08T22:58:17.935Z",
+          "summary": "Sesja charakteryzowała się agresywnym profilem gry Hero, zgodnym ze stylem LAG, z częstymi podbiciami i 3-betami pre-flop. Chociaż wiele z tych zagrań przyniosło sukces, widoczne były również momenty nadmiernego zaangażowania w marginalne ręce, co prowadziło do znacznych strat. Największa bezwzględna zmiana w stacku miała miejsce w ręce #129117200138.",
+          "leaks": [
+            {
+              "title": "Nadmierna agresja pre-flop z marginalnymi rękami",
+              "description": "Hero często 3-betuje lub podbija bardzo szeroko z rękami o słabym potencjale post-flop, takimi jak niskie asy, króle lub niesparowane karty. Takie agresywne zagrania, choć mogą stworzyć fold equity, w konfrontacji z silniejszymi zakresami przeciwników często prowadzą do trudnych i kosztownych decyzji.",
+              "correction": "Bądź bardziej selektywny w wyborze rąk do agresji pre-flop, szczególnie gdy stawki są wysokie lub stacki są średnie. Z marginalnymi rękami rozważ foldowanie lub pasywną grę, zamiast angażować dużą część stacka. Skup się na grze z pozycją i na zakresach, które mają większe equity po flopie."
+            },
+            {
+              "title": "Brak konsekwencji post-flop po pre-flop agresji",
+              "description": "Hero często inicjuje podbicia pre-flop, czasem z dużą stawką (np. 3-bet), ale następnie łatwo poddaje się na flopie lub turnie, gdy spotka się z kontynuacją agresji ze strony przeciwników. To prowadzi do tracenia zainwestowanych żetonów i sygnalizuje przeciwnikom słabość, pozwalając im przejąć inicjatywę.",
+              "correction": "Po podjęciu agresywnej decyzji pre-flop, miej jasny plan na grę na kolejnych streetach. Jeśli decydujesz się na call 3-betu z ręką z potencjałem, bądź gotów kontynuować grę na sprzyjających boardach. Unikaj automatycznego foldowania do c-betów po zainwestowaniu znacznej części stacka."
+            },
+            {
+              "title": "Callowanie all-inów ze słabymi kickerami lub zdominowanymi rękami",
+              "description": "Hero angażuje się w all-iny pre-flop z rękami, które są często zdominowane, co jest typowe dla gracza LAG, który nie kalibruje swojego zakresu do callowania. Przykłady obejmują callowanie z K4s, gdy przeciwnik ma KQs lub z KQo przeciwko parze.",
+              "correction": "Kiedy przeciwnik zagrywa all-in, szczególnie z mniejszym stackiem, jego zakres jest często bardzo silny. Krytycznie oceniaj siłę swojej ręki, biorąc pod uwagę dominację kickerów i szansę na parę. Preferuj ręce, które dobrze sobie radzą przeciwko wąskiemu zakresowi, unikając ryzykownych coinflipów, chyba że masz bardzo dobre oddsy."
+            }
+          ]
+        },
+        {
+          "sourceId": "tournament:tourney_86893_2026/08/09:53bd6518-6c4e-483c-8fb0-8bbce1ba8d9b",
+          "type": "tournament",
+          "sessionId": "tourney_86893_2026/08/09",
+          "reportId": "53bd6518-6c4e-483c-8fb0-8bbce1ba8d9b",
+          "sessionFingerprint": "fnv1a-051d0737",
+          "startTime": 1786302914000,
+          "endTime": 1786311726000,
+          "date": "2026-08-09",
+          "model": {
+            "id": "gpt-5.6-sol",
+            "name": "GPT-5.6 Sol"
+          },
+          "analyzedAt": "2026-08-10T07:01:37.901Z",
+          "summary": "Hero prezentował wyraźny styl LAG: szeroko izolował, 3-betował i często przejmował pule bez showdownu. Najdroższymi leakami były zbyt szerokie wejścia za stack preflop, blefy z małą equity oraz skrajne sizingi nieproporcjonalne do siły zakresu. Wiele takich zagrań zakończyło się wygraną, ale sam wynik nie potwierdza ich jakości; bez informacji o readach i ICM ocena zakresów pozostaje ostrożna.",
+          "leaks": [
+            {
+              "title": "Zbyt szerokie zakresy wejścia za stack preflop",
+              "description": "W #130451800001 KQo po 3-becie sprawdziło ogromny 4-bet przy dodatkowym cold-callu, a w #130451800004 K6s zostało zamienione w 4-bet shove po otwarciu i 3-becie. W #130477700146 KTo wykonało bardzo szeroki reshove nad otwarciem i wcześniejszym all-inem; wygrana przeciw AQ i A3 nie czyni tej decyzji standardowo opłacalną.",
+              "correction": "Buduj zakresy jam/call według pozycji, efektywnych stacków i ICM. Przeciw silnej sekwencji raise–3-bet/reshove częściej wyrzucaj dominowane Kx i offsuit broadwaye; korzystaj z 3-bet/fold lub call tylko tam, gdzie pozwalają na to zakresy i stacki."
+            },
+            {
+              "title": "Forsowanie blefów z małą equity",
+              "description": "W #130422700020 AJo sprawdziło flop z ace-high, a następnie zagrało check-shove na turnie bez istotnego drawu. W #130422700023 85s zbudowało wieloosobową pulę 3-betem i oddało resztę stacka na A-9-4-Q bez pary ani mocnego drawu, natomiast w #130477700104 K2 bez kara kontynuowało agresję na monotonnym flopie i blefowało po nietrafionym riverze.",
+              "correction": "Wybieraj blefy posiadające draw, sensowne backdoory albo blokery do zakresu kontynuacji rywala. Po sprawdzeniu pierwszego zakładu ogranicz kolejne baryłki, gdy karta turna nie poprawia Twojej equity ani przewagi zakresu."
+            },
+            {
+              "title": "Zbyt duże otwarcia preflop",
+              "description": "Powtarzały się otwarcia wyraźnie większe od potrzebnych: 5 BB z 88 na BTN w #130477700100, 5 BB z KQs na CO w #130477700121 oraz 6 BB z 66 na SB w #130477700132. Takie sizingi zwiększają koszt foldowania na przebicie i niepotrzebnie zawężają słabszy zakres obrony rywali.",
+              "correction": "Przy podobnych głębokościach zacznij od około 2–2,5 BB na BTN/CO i 2,5–3 BB na SB, zwiększając sizing głównie przeciw konkretnym tendencjom rywala. Przed otwarciem ustal też plan na shove, aby wielkość raise'u nie wiązała Cię sztucznie z pulą."
+            },
+            {
+              "title": "Nadmierne donk-betowanie przeciw agresorowi",
+              "description": "Hero prowadził z 77 na T-T-9 w #130507900018, z dolną parą T3 na Q-9-3 w #130477700122 oraz bez gotowego układu z 95 na Q-6-T w #130477700131. Te boardy często zachowują przewagę silnych par i top pair po stronie otwierającego, więc częste leady odsłaniają zakres Hero na raise'y i dalsze baryłki.",
+              "correction": "Z BB domyślnie czekaj do agresora na boardach wysokich i sparowanych. Donki zostaw głównie na niskie, dynamiczne tekstury dające obrońcy przewagę układów i stosuj zwykle mały sizing 20–35% puli."
+            },
+            {
+              "title": "Ekstremalne sizingi postflop bez wystarczającej polaryzacji",
+              "description": "W #130477700063 zakład 28400 do puli około 9500 został wykonany ze środkową parą J2. W #130507900044 Hero overbetował flop A-3-4 ze słabą parą, a w #130477700137 zagrał około 6,8 puli z open-ended drawem na A-6-7; fold rywala nie uzasadnia takiego ryzyka.",
+              "correction": "Overbetuj dopiero wtedy, gdy masz wyraźną przewagę nutową i spolaryzowany zakres value/blef. Ze średnią wartością lub drawem częściej używaj 25–50% puli, zachowując możliwość dalszej gry bez ryzykowania wielokrotności puli."
+            }
+          ]
+        },
+        {
+          "sourceId": "tournament:tourney_86893_2026/08/09:4d61d396-a936-48a8-8096-66c93d615624",
+          "type": "tournament",
+          "sessionId": "tourney_86893_2026/08/09",
+          "reportId": "4d61d396-a936-48a8-8096-66c93d615624",
+          "sessionFingerprint": "fnv1a-051d0737",
+          "startTime": 1786302914000,
+          "endTime": 1786311726000,
+          "date": "2026-08-09",
+          "model": {
+            "id": "gemini-2.5-flash",
+            "name": "Gemini 2.5 Flash"
+          },
+          "analyzedAt": "2026-08-10T10:33:49.316Z",
+          "summary": "Sesja charakteryzowała się agresywnym stylem gry (LAG) z dużą ilością akcji preflop, w tym wielokrotnymi 3-betami i 4-betami. Początek sesji przyniósł znaczne straty z powodu zbyt luźnych zagrań postflop, jednak Hero zdołał odrobić straty i zakończyć sesję z ogromnym zyskiem dzięki kluczowym rozdaniom all-in, gdzie szczęście było po jego stronie. Wskazuje to na dużą wariancję, typową dla tego stylu, ale również na obszary wymagające dopracowania.",
+          "leaks": [
+            {
+              "title": "Nadmiernie agresywne 3-bety i commitowanie się do pota z marginalnymi rękami",
+              "description": "Hero często wykonywał 3-bety preflop z rękami o niskiej grywalności lub bez wystarczającego equity, a następnie trudno było mu odpuścić te pule postflop. To prowadziło do niepotrzebnych, dużych strat, zwłaszcza gdy przeciwnicy wykazywali siłę lub decydowali się na shove'y, co szczególnie uwidoczniło się w rozdaniu z K5c.",
+              "correction": "Przed wykonaniem 3-beta zastanów się nad siłą swojej ręki w kontekście zakresu przeciwnika oraz możliwości gry postflop. Używaj 3-betów bardziej selektywnie, preferując ręce, które dobrze grają po flopie lub mają potencjał do blefowania na trudniejszych boardach. W przypadku napotkania oporu z marginalną ręką, bądź gotowy odpuścić, zamiast ryzykować cały stack."
+            },
+            {
+              "title": "Overplayowanie par i drawów oraz brak kontroli pota",
+              "description": "W kilku rozdaniach Hero zbyt mocno angażował się w pule z parami średniej wartości lub drawami, które nie trafiły, co skutkowało dużymi stratami. Decyzje o kontynuowaniu agresji lub sprawdzaniu po wielu streetach z niewielkim equity były kosztowne, zwłaszcza w kontekście stacków i dynamiki stołu.",
+              "correction": "Bądź bardziej ostrożny z rękami średniej siły, szczególnie gdy board nie sprzyja lub gdy przeciwnik wykazuje silną determinację. Ucz się kontrolować wielkość puli z marginalnymi rękami i nie bój się odpuszczać, gdy masz niewielkie szanse na poprawę lub gdy Twoja ręka staje się bezwartościowa."
+            }
+          ]
+        },
+        {
+          "sourceId": "cash:cash_2f8ead6b75f54f9f:dd2a793f-8dec-4b17-afc8-17b25a40d3ea",
+          "type": "cash",
+          "sessionId": "cash_2f8ead6b75f54f9f",
+          "reportId": "dd2a793f-8dec-4b17-afc8-17b25a40d3ea",
+          "sessionFingerprint": "fnv1a-323c77d8",
+          "startTime": 1786373553000,
+          "endTime": 1786378315000,
+          "date": "2026-08-10",
+          "model": {
+            "id": "gemini-2.5-flash",
+            "name": "Gemini 2.5 Flash"
+          },
+          "analyzedAt": "2026-08-10T22:23:16.640Z",
+          "summary": "W tej sesji gracz prezentował styl LAG, często podbijając pre-flop i kontynuując agresję po flopie. Ten styl pozwolił na wygranie wielu małych pul bez oporu. Widoczne były jednak momenty nadmiernej agresji, które prowadziły do znacznych strat.",
+          "leaks": [
+            {
+              "title": "Nadmierna agresja post-flop bez wystarczającego equity",
+              "description": "Hero często wykonuje agresywne zakłady po flopie, a nawet kontynuuje je na turnie, pomimo braku wystarczającego equity lub silnego układu. Powoduje to znaczne straty, gdy przeciwnik trafia lub ma mocniejszą rękę, jak w ręce #108166800358, gdzie Hero 3-betował QdTh i kontynuował z niczym.",
+              "correction": "Przed przystąpieniem do agresywnej linii po flopie, należy ocenić potencjalne equity ręki oraz zakres rąk przeciwnika. Zmniejsz częstotliwość kontynuowania blefów, gdy board nie sprzyja naszemu zakresowi lub gdy spotykamy silną odpowiedź. Lepiej odpuścić niewielką stratę niż budować dużą pulę z niczym."
+            },
+            {
+              "title": "Niewłaściwa obrona 3-betów pre-flop poza pozycją",
+              "description": "Hero czasem decyduje się na flatowanie 3-betów pre-flop ze średnimi parami (np. 66) będąc poza pozycją, co prowadzi do trudnych sytuacji po flopie, zwłaszcza gdy board jest niekorzystny. Brak pozycji sprawia, że ciężko realizować equity takiej ręki, co często kończy się foldem na flopie.",
+              "correction": "Należy być bardziej selektywnym przy flatowaniu 3-betów pre-flop, szczególnie będąc poza pozycją. Preferuj 4-bet z silnym zakresem lub fold ze słabymi/marginalnymi rękami, które mają trudności w grze post-flop. Rozważ fold ze średnimi parami, chyba że masz bardzo silny powód, by sądzić, że możesz przeważać nad przeciwnikiem post-flop."
+            }
+          ]
+        },
+        {
+          "sourceId": "tournament:tourney_87142_2026/08/10:050d9be6-dc37-4f35-b45f-0724b35a68f4",
+          "type": "tournament",
+          "sessionId": "tourney_87142_2026/08/10",
+          "reportId": "050d9be6-dc37-4f35-b45f-0724b35a68f4",
+          "sessionFingerprint": "fnv1a-898337db",
+          "startTime": 1786390897000,
+          "endTime": 1786395655000,
+          "date": "2026-08-10",
+          "model": {
+            "id": "gemini-2.5-flash",
+            "name": "Gemini 2.5 Flash"
+          },
+          "analyzedAt": "2026-08-10T22:23:46.532Z",
+          "summary": "Sesja Hero charakteryzowała się agresywnym stylem gry, zgodnym z profilem LAG, z częstym 3-betowaniem i otwieraniem pul z różnych pozycji. Mimo kilku dużych wygranych, Hero poniósł również znaczące straty w kluczowych rozdaniach, co wpłynęło na ogólny wynik. Istnieją obszary do poprawy w zakresie selekcji rąk do zaangażowania dużych części stacka, zwłaszcza w obliczu silnej kontry.",
+          "leaks": [
+            {
+              "title": "Zbyt luźne sprawdzanie all-inów pre-flop z dominowanymi lub marginalnymi rękami",
+              "description": "Hero kilkakrotnie angażował dużą część stacka pre-flop, sprawdzając all-iny z rękami o niskim equity lub łatwo dominowanymi. Takie zagrania prowadzą do wysokiej wariancji i często kończą się dużymi stratami.",
+              "correction": "Należy zacieśnić zakres rąk do sprawdzania all-inów pre-flop. Skup się na grach z silnymi parami lub wysokimi kickerami, które mają dobre equity przeciwko zakresowi pushującego przeciwnika. Unikaj sprawdzania all-inów z rękami, które są mocno dominowane lub wymagają zbyt wiele szczęścia, aby wygrać."
+            },
+            {
+              "title": "Agresywne 3-betowanie z szerokim zakresem z wczesnych pozycji, często bez planu na post-flop",
+              "description": "Hero często stosował 3-bety z pozycji wczesnych lub średnich, a także z blindów, z rękami, które nie są wystarczająco silne, by kontynuować grę w obliczu dalszej agresji. Prowadzi to do utraty początkowej inwestycji, gdy przeciwnik odpowiada 4-betem lub all-inem.",
+              "correction": "Należy zrewidować zakres 3-betów, szczególnie z wczesnych pozycji. Upewnij się, że ręka ma wystarczającą siłę lub grywalność, aby kontynuować grę po flopie, lub jest wystarczająco silna, by spushować, jeśli przeciwnik re-raise'uje. Bądź bardziej selektywny i unikaj nadmiernego pompowania puli ze spekulacyjnymi rękami, zwłaszcza poza pozycją."
+            }
+          ]
+        },
+        {
+          "sourceId": "tournament:tourney_87142_2026/08/10:395d2523-f968-423e-ada7-d18034ded48f",
+          "type": "tournament",
+          "sessionId": "tourney_87142_2026/08/10",
+          "reportId": "395d2523-f968-423e-ada7-d18034ded48f",
+          "sessionFingerprint": "fnv1a-898337db",
+          "startTime": 1786390897000,
+          "endTime": 1786395655000,
+          "date": "2026-08-10",
+          "model": {
+            "id": "gpt-5.6-sol",
+            "name": "GPT-5.6 Sol"
+          },
+          "analyzedAt": "2026-08-11T16:19:28.559Z",
+          "summary": "Sesja ma wyraźny profil LAG: Hero często przejmował pule przed flopem, ale używał bardzo dużych sizingów i atakował również dolną częścią zakresu. Najpoważniejszym problemem były kosztowne 3-bety, shove’y i sprawdzenia all-inów ze słabymi lub zdominowanymi rękami, szczególnie przy 15–30 BB; wygrane bez showdownu nie potwierdzają automatycznie rentowności tych linii. Jak na jedną sesję próbka jest ograniczona, lecz powtarzalność tych schematów wskazuje na potrzebę lepszej kontroli ryzyka preflop.",
+          "leaks": [
+            {
+              "title": "Zbyt luźne sprawdzanie all-inów",
+              "description": "W #131444600027 Hero sprawdził około 8,6 BB z K3o, w #131444600060 zaakceptował efektywny all-in około 29 BB z KJs po izolacji limpera, a w #131444600083 otworzył QTo za 5 BB i sprawdził shove za cały stack około 19,5 BB. Szczególnie dwa ostatnie calle bez mocnych readów są narażone na dominację i ryzykują znaczną część stacka przeciwko zakresom zwykle silniejszym niż zakres otwarcia Hero.",
+              "correction": "Przed sprawdzeniem wyznacz wymagane equity z pot odds i porównaj je z realistycznym zakresem shove’u, a nie z pojedynczą możliwą ręką. Przy 20–30 BB ogranicz duże calle do zakresu o dobrej realizacji equity i odporności na dominację; QTo przeciwko dużemu reshove’owi powinno najczęściej trafić do foldu."
+            },
+            {
+              "title": "Bluffy preflop bez odpowiednich blockerów i equity",
+              "description": "W #131444600032 Hero shove’ował około 19 BB z QTo przeciwko otwarciu z wczesnej pozycji, w #131444600053 wypchnął około 15,7 BB z 82o przeciwko trzem limperom, a w #131444600072 3-betował 43o z BB i spasował do 4-betu. Linie wygrały dwie małe pule, ale po sprawdzeniu zostawiają Hero ze słabym equity, a 43o dodatkowo nie blokuje silnej części zakresu rywala.",
+              "correction": "Buduj bluffy wokół blockerów i grywalności: preferuj Axs, suited broadwaye i wybrane suited connectory. Przy 15–20 BB graj bardziej liniowo i value-heavy, a z 82o częściej czekaj z BB; głębiej unikaj 3-bet/foldów z rękami bez blockerów przeciwko wczesnym otwarciom."
+            },
+            {
+              "title": "Nadmiernie duże otwarcia",
+              "description": "W #131439200018 QJo zostało otwarte do 4,5 BB, w #131444600048 96s z BTN do 5 BB, a w #131444600055 K9s z BTN do 6 BB przy stacku około 20 BB. Takie sizingi ryzykują zbyt wiele dla zdobycia tej samej puli, zawężają zakres sprawdzający rywali i tworzą niekorzystną geometrię po 3-becie.",
+              "correction": "Bez szczególnych readów stosuj około 2–2,3 BB, ewentualnie nieco więcej przy głębszych stackach i słabych graczach w blindach. Przy około 20 BB rozdziel zakres na małe otwarcia i wybrane shove’y zamiast otwierać za 5–6 BB i wiązać się z pulą."
+            },
+            {
+              "title": "Za duże c-bety bez wystarczającej polaryzacji",
+              "description": "W #131435300001 QdJd zostało zagrane all-in na flopie 7c-3c-9s po dużym 4-becie, w #131439200007 Hero betował około 85% puli z ATo na 7h-2s-6c, a w #131444600026 około 75% puli z JJ na Qs-4d-6c. Te sizingi często wyrzucają słabsze ręce, lecz przeciwko kontynuacji zostawiają Hero w starciu z mocniejszym i bardziej skondensowanym zakresem.",
+              "correction": "Na suchych boardach korzystnych dla zakresu częściej używaj c-betu 25–40% puli. Na niskich lub bardziej skoordynowanych flopach zwiększ częstotliwość checku ze słabym showdown value i air; duże bety oraz overbety rezerwuj dla rzeczywiście spolaryzowanego zakresu value i mocnych drawów."
+            },
+            {
+              "title": "Agresja jest źle rozłożona między pozycjami",
+              "description": "Hero odpuszczał sensowne, nieotwarte spoty z późnej pozycji: K9o z CO w #131439200024, K7o z CO w #131444600043 oraz 22 z CO w #131444600049. Jest to niespójne z jednoczesnym podejmowaniem bardzo luźnych bluffów z blindów i przeciwko wczesnym otwarciom.",
+              "correction": "Przenieś większą część agresji na nieotwarte pule z CO i BTN, gdzie przewaga pozycji poprawia realizację equity. Oprzyj zakresy RFI na pozycji i liczbie BB, a ogranicz marginalne 3-bety OOP; dzięki temu styl LAG będzie oparty na przewadze pozycyjnej, nie tylko na wysokiej wariancji."
+            }
+          ]
+        },
+        {
+          "sourceId": "tournament:tourney_87547_2026/08/11:d9e9ebd5-201b-45a1-9f8e-cbfce268fd60",
+          "type": "tournament",
+          "sessionId": "tourney_87547_2026/08/11",
+          "reportId": "d9e9ebd5-201b-45a1-9f8e-cbfce268fd60",
+          "sessionFingerprint": "fnv1a-da734e54",
+          "startTime": 1786477210000,
+          "endTime": 1786482707000,
+          "date": "2026-08-11",
+          "model": {
+            "id": "gpt-5.6-terra",
+            "name": "GPT-5.6 Terra"
+          },
+          "analyzedAt": "2026-08-11T23:19:28.568Z",
+          "summary": "Profil Hero to LAG: aktywnie buduje pule otwarciami i często wywiera presję po flopie. W tej sesji największy potencjał poprawy dotyczy dyscypliny sizingów preflop oraz unikania kosztownych limpów z rękami offsuit o słabej realizacji equity. Agresja jest wartościowa, ale na teksturach sprzyjających obronie rywala potrzebuje wyraźniejszego planu na check-raise i grę o stacki.",
+          "leaks": [
+            {
+              "title": "Eskalowanie puli z marginalną siłą lub bez planu na kontrę",
+              "description": "W kilku rozdaniach Hero inwestuje dużo na flopach, które dobrze trafiają zakres obrony rywala, a następnie musi oddać pulę po agresji. W #132293500002 raise z Q7s na flopie 6-7-8 z dwoma treflami praktycznie ustawia grę o efektywny stack rywala, mimo że jedna para ma słabą pozycję wobec zakresu 3-betu i kontynuacji. W #132296200050 c-bet z A9o na 8-6-4 z dwoma kierami przeciwko callerowi szybko kończy się bet-foldem na shove, a w #132296200072 lead z A3o na J-2-2 z dwoma karami zostaje złożony po raisie.",
+              "correction": "Przed betem ustal, które ręce kontynuują po check-razie i jaką equity ma Twój zakres. Na niskich, połączonych boardach częściej checkuj showdown value i słabe A-high, a z jedną parą unikaj dużych raise'ów bez mocnych drawów, blokera lub konkretnego exploitu."
+            },
+            {
+              "title": "Limpowanie offsuitowych asów i króli tworzące trudne decyzje",
+              "description": "Limpowanie słabych rąk offsuit nie wykorzystuje inicjatywy Hero i zostawia niekomfortowe decyzje wobec izolacji. W #132296200035 A9o zostaje zlimpowane z UTG i złożone po shovie short stacka; w #132296200072 A3o ze small blinda limp-callu­je dużą izolację, a następnie traci kolejne żetony po flopie. W #132296200080 K9o jest limpem przy około 14 BB, po czym Hero inwestuje c-bet i folduje do zagrania all-in big blinda.",
+              "correction": "Ustal prostsze zakresy raise/fold lub raise/call zależnie od efektywnego stacka, pozycji i ICM. Przy 12–20 BB unikaj limpów typu K9o poza dopracowaną strategią limp/shove; ze small blinda po dużej izolacji A3o offsuit powinno przeważnie fol­dować zamiast limp-callować."
+            },
+            {
+              "title": "Zbyt duże otwarcia preflop względem stacków turniejowych",
+              "description": "Hero kilkukrotnie otwiera za 3,5–4 BB, nie zyskując widocznie więcej fold equity, za to ryzykując nadmierną część stacka. W #132293500002 otwarcie z UTG wynosi 4 BB z Q7s, w #132296200016 Hero otwiera 99 z UTG za 4 BB, a w #132296200038 BTN otwiera 88 za 3,5 BB przy około 36 BB. Takie sizingi obniżają elastyczność po 3-becie lub shovie i podnoszą koszt standardowych foldów.",
+              "correction": "Jako domyślny sizing stosuj około 2–2,3 BB, ewentualnie 2,5 BB w uzasadnionym exploicie. Większe otwarcia zachowaj dla konkretnych dynamik stołu, zamiast uzależniać ich wielkość od siły ręki."
+            }
+          ]
+        },
+        {
+          "sourceId": "tournament:tourney_87785_2026/08/12:f7d46420-0cda-4da9-b5e2-3779e459eec5",
+          "type": "tournament",
+          "sessionId": "tourney_87785_2026/08/12",
+          "reportId": "f7d46420-0cda-4da9-b5e2-3779e459eec5",
+          "sessionFingerprint": "fnv1a-f239fc1d",
+          "startTime": 1786539075000,
+          "endTime": 1786545218000,
+          "date": "2026-08-12",
+          "model": {
+            "id": "gpt-5.6-sol",
+            "name": "GPT-5.6 Sol"
+          },
+          "analyzedAt": "2026-08-13T08:23:55.657Z",
+          "summary": "Profil sesji jest LAG: Hero często przejmował inicjatywę, wywierał presję i zgarniał pule bez showdownu, ale nie zawsze dobierał do tego efektywne zakresy oraz sizing. Największe rezerwy dotyczą niewykorzystanych kradzieży w późnej fazie, zbyt dużych otwarć oraz nadmiernego budowania puli ze słabym showdown value. Ponieważ to jedna sesja turniejowa bez danych o wypłatach, ocena granicznych decyzji all-in uwzględniających ICM musi pozostać ostrożna.",
+          "leaks": [
+            {
+              "title": "Niewykorzystane kradzieże w nieotwartych pulach",
+              "description": "Mimo profilu LAG pojawiały się zbyt zachowawcze foldy przy wysokich blindach: K8o ze SB w #132753500100, K2s z BTN w #132753500101 oraz K5s z CO przy około 11,8 BB w #132753500137. Bez silnej presji ICM są to ręce, które zwykle powinny generować więcej wartości przez open, limp lub shove zależnie od stacka.",
+              "correction": "Przygotuj osobne zakresy first-in dla BTN, CO i SB dla przedziałów 10–15, 15–25 i 25+ BB. Ze SB stosuj miks małego otwarcia i limpu, a przy 10–15 BB korzystaj z tabel push/fold skorygowanych o ICM zamiast oddawać blindy automatycznym foldem."
+            },
+            {
+              "title": "Zbyt duże otwarcia preflop",
+              "description": "Hero regularnie płacił więcej niż potrzeba za kradzież blindów: 3,5 BB z KQo UTG w #132753500052 oraz po 4 BB z 66 HJ w #132753500113 i AQo BTN w #132753500124. To pogarsza stosunek ryzyka do nagrody, utrudnia szerokie otwieranie i zwiększa koszt folda na 3-bet lub shove, niezależnie od tego, że te pule zostały wygrane bez walki.",
+              "correction": "Przy stackach około 25–50 BB używaj domyślnie 2–2,3 BB, ewentualnie 2,5 BB przeciw bardzo pasywnym graczom. Większy sizing zostaw na świadomy exploit, gdy rywale zbyt szeroko sprawdzają i rzadko 3-betują."
+            },
+            {
+              "title": "Nadmierne inwestowanie ze słabym showdown value",
+              "description": "W #132755100005 Hero po tanim flopie próbował uzyskać sporą wartość na riverze z parą ósemek na J-9-4-3-8; w #132753500065 betował turn z dwiema niskimi parami na sparowanym T-5-5-2; w #132753500138 po flopie z gutshotem zagrał turn all-in po trafieniu jedynie pary siódemek na 9-8-9-7. W takich liniach gorsze ręce sprawdzają rzadko, natomiast lepsza część zakresu rywala pozostaje mocna.",
+              "correction": "Przed dużym value betem nazwij konkretne gorsze ręce, które mogą sprawdzić. Niskie pary i słabe dwie pary na sparowanych boardach częściej prowadź przez check/call albo check/fold; przy niskim SPR nie traktuj automatycznie pary z gutshotem jako ręki do gry o cały stack."
+            },
+            {
+              "title": "Pot-size bety z top parą bez potrzeby",
+              "description": "Na flopach Hero trzykrotnie stawiał około pełnej puli z top parą: J6 na J-7-4 w #132755100027, QJ na Q-T-5 w #132755100039 oraz K5 na K-6-2 w #132753500130. Choć rywale spasowali, taki sizing wypycha wiele słabszych rąk, a jednocześnie czyni ewentualne bluffy bardzo kosztownymi.",
+              "correction": "Na suchych lub umiarkowanie skoordynowanych flopach używaj zwykle 25–50% puli, zachowując szeroki zakres zakładów. Przechodź do 60–75% lub większych sizingów dopiero na bardzo dynamicznych boardach, przeciw szerokiemu zakresowi sprawdzeń albo jako udokumentowany exploit."
+            },
+            {
+              "title": "Agresja ze zbyt małą equity lub słabą pozycją zakresową",
+              "description": "W #132755100011 ATo bez trefla c-betowało Q-9-6 z małą liczbą dobrych kontynuacji, a w #132753500055 J2o inwestowało 2 300 na A-6-3 z minimalnymi backdoorami i spasowało na check-raise. W #132753500091 QJo najpierw cold-callowało otwarcie 3 BB z wcześniejszej pozycji, a następnie blefowało A-8-2 po checku agresora; pula została wygrana, lecz struktura zakresów nadal była niekorzystna.",
+              "correction": "Do blefów wybieraj przede wszystkim ręce z backdoor flush drawem, drawem stritowym lub istotnymi blockerami. Przeciw otwarciom z wczesnej pozycji ogranicz cold-calle QJo, a na boardach mocno trafiających zakres agresora częściej czekaj albo stosuj mały sizing 25–33% puli."
+            }
+          ]
+        },
+        {
+          "sourceId": "tournament:tourney_87871_2026/08/12:7ffa0c7e-b624-496c-8a4f-a6ce001f1d19",
+          "type": "tournament",
+          "sessionId": "tourney_87871_2026/08/12",
+          "reportId": "7ffa0c7e-b624-496c-8a4f-a6ce001f1d19",
+          "sessionFingerprint": "fnv1a-84db4baa",
+          "startTime": 1786562083000,
+          "endTime": 1786571573000,
+          "date": "2026-08-12",
+          "model": {
+            "id": "gemini-2.5-flash",
+            "name": "Gemini 2.5 Flash"
+          },
+          "analyzedAt": "2026-08-13T08:23:50.145Z",
+          "summary": "Sesja Hero charakteryzowała się zrównoważonym stylem gry, z umiejętnością wykorzystania silnych rąk i pozycji. Odnotowano kilka dużych wygranych, szczególnie w decydujących momentach turnieju. Niestety, sesja zakończyła się znaczną stratą w wyniku kluczowego, zdominowanego all-ina, co stanowiło największy swing dnia.",
+          "leaks": [
+            {
+              "title": "Zbyt agresywne blefowanie na późniejszych ulicach",
+              "description": "Hero często próbuje blefować na turnie lub riverze ze zbyt słabymi rękami (np. wysoka karta, bottom pair bez poprawy), lub kontynuuje agresję na boardach, które bardziej trafiają w zakres przeciwnika. Takie zagrania często prowadzą do niepotrzebnych strat.",
+              "correction": "Rozważ zmniejszenie częstotliwości blefów bez equity na późniejszych ulicach. Skup się na blefach semi-bluff z drawami lub na boardach, które wyraźnie nie trafiły przeciwnika. Zastanów się, czy Twój sizing sugeruje siłę, czy raczej zaprasza do sprawdzenia."
+            },
+            {
+              "title": "Ryzykowne callowanie z zdominowanymi rękami",
+              "description": "Hero kilkukrotnie decyduje się na callowanie dużych zakładów, w tym all-inów, z rękami, które są zdominowane lub mają słabe kickery. W turnieju, gdzie stacki są cenne, takie decyzje są bardzo kosztowne i zmniejszają Twoje EV.",
+              "correction": "Zawsze oceniaj potencjalne ręce przeciwnika. Jeśli jego zakres silnie dominuje Twoją rękę, nawet jeśli masz parę, fold jest często najlepszą opcją. Unikaj sytuacji, w których musisz liczyć na szczęście w walce z dominującą ręką, chyba że stack-to-pot ratio jest bardzo korzystne."
+            }
+          ]
+        },
+        {
+          "sourceId": "tournament:tourney_87871_2026/08/12:c003edc2-b4eb-4f7a-8741-acb72595b134",
+          "type": "tournament",
+          "sessionId": "tourney_87871_2026/08/12",
+          "reportId": "c003edc2-b4eb-4f7a-8741-acb72595b134",
+          "sessionFingerprint": "fnv1a-84db4baa",
+          "startTime": 1786562083000,
+          "endTime": 1786571573000,
+          "date": "2026-08-12",
+          "model": {
+            "id": "gpt-5.6-sol",
+            "name": "GPT-5.6 Sol"
+          },
+          "analyzedAt": "2026-08-13T08:24:50.647Z",
+          "summary": "W tej pojedynczej sesji Hero prezentował profil BALANCED, łącząc selektywną agresję, obronę blindów i okazjonalne pułapki. Największe odchylenia od solidnego planu dotyczyły budowania ogromnych pul z dominowanymi rękami, skrajnie dużych sizingów oraz zbyt częstych foldów first-in z BTN. Stack wzrósł z 10 000 do ponad 500 000, ale przebieg żetonów nie przesądza o jakości decyzji, szczególnie przy nieznanym ICM.",
+          "leaks": [
+            {
+              "title": "Budowanie zbyt dużych pul z dominowanymi rękami",
+              "description": "W ręce 133115900010 KTo zostało zagrane all-in za około 65 BB po limp-backraise, którego zakres zwykle jest bardzo mocny. W 133115900019 QJo wykonało mały 3-bet przeciw otwarciu i callowi, a następnie zagrało o stack z drugą parą bez pika na A-3-4-Q. W 133149300134 Q5 przeszacowało top parę ze słabym kickerem na sparowanym boardzie, stosując duże bety na turnie i riverze mimo niewielu gorszych rąk mogących zapłacić.",
+              "correction": "Przeciw backraise'om i silnym liniom wieloosobowym mocno zawężaj zakres kontynuacji. Z dominowanymi broadwayami unikaj małych 3-betów budujących pulę bez fold equity, a top parę ze słabym kickerem traktuj głównie jako średnią rękę showdownową; duże pule rezerwuj dla dwóch par+, mocnych drawów lub dobrze uzasadnionych exploitów."
+            },
+            {
+              "title": "Sizing nieproporcjonalny do puli i efektywnego stacka",
+              "description": "W 133149300088 otwarcie A2s z BTN do 13,2 BB przy stacku ponad 43 BB było znacznie większe niż potrzebne. W 133149300098 Hero zagrał około dziewięciokrotność puli z drugą parą na K-Q-7, a w 133149300114 około 4,4 puli z drawem do strita na K-Q-4. Takie sizingi wypychają większość gorszych rąk, izolują się przeciw silniejszym zakresom i utrudniają zachowanie zbalansowanej struktury betów.",
+              "correction": "Ustandaryzuj otwarcia zwykle do 2–2,5 BB, z osobnym planem dla gry blind kontra blind. Postflop dobieraj sizing do SPR i przewagi zakresu; bety 25–75% puli powinny stanowić bazę, a overbety stosuj tylko z wyraźnie spolaryzowanym zakresem value i blefów."
+            },
+            {
+              "title": "Zbyt częste foldy first-in z BTN",
+              "description": "Hero spasował Q8s przy około 28 BB w 133145100055, A5o przy około 23,5 BB w 133149300104 oraz 44 przy około 20,5 BB w 133149300141, mimo braku wcześniejszego wejścia do puli. Bez wyjątkowo silnej presji ICM są to zazwyczaj opłacalne otwarcia z BTN, szczególnie przy ante.",
+              "correction": "Przygotuj zakresy first-in dla BTN według efektywnego stacka i liczby graczy. W okolicach 20–30 BB najczęściej otwieraj małym sizingiem około 2–2,2 BB, a decyzję raise versus shove modyfikuj dopiero na podstawie stacków blindów, ich tendencji oraz konkretnego ICM."
+            },
+            {
+              "title": "Bety słabych par OOP bez dostatecznie jasnego celu",
+              "description": "W 133115900026 Hero betował 55 na flopie A-T-3 w puli wieloosobowej, a później ponownie na sparowanym riverze. W 133115900033 lead z dolną parą 62 na A-J-6 dostał dwa calle, natomiast w 133149300092 66 donk-betowało flop A-7-3 przeciw agresorowi i spasowało na kolejną presję. W tych układach trudno uzyskać trzy ulice wartości, a fold equity maleje wieloosobowo.",
+              "correction": "OOP częściej zaczynaj od checku i realizuj equity taniej. Betuj słabą parę tylko wtedy, gdy realnie płaci wystarczająco dużo gorszych rąk albo gdy zakład ma sens jako semi-blef z equity i odpowiednimi blockerami; w pulach wieloosobowych dodatkowo podnieś próg value."
+            }
+          ]
+        }
+      ],
+      "referenceWarnings": [],
+      "analysis": {
+        "profileStyleId": "LAG",
+        "reliabilityId": "STATISTICAL",
+        "summary": "Profil jest statystycznie wiarygodnym LAG: Hero uczestniczy w wielu pulach, szeroko otwiera i regularnie 3-betuje, a po flopie utrzymuje bardzo wysoką częstotliwość agresji. Główna rezerwa EV nie leży w zwiększaniu presji, lecz w lepszej selekcji rąk do obrony, 4-betów i gry o duże pule oraz w ograniczeniu automatycznej kontynuacji na niekorzystnych teksturach.",
+        "summaryMetricIds": [
+          "shared.hands",
+          "shared.preflop.vpip",
+          "shared.preflop.rfi",
+          "shared.preflop.threeBet",
+          "shared.postflop.afq.total"
+        ],
+        "summarySessionReportIds": [
+          "53bd6518-6c4e-483c-8fb0-8bbce1ba8d9b",
+          "d9e9ebd5-201b-45a1-9f8e-cbfce268fd60",
+          "dd2a793f-8dec-4b17-afc8-17b25a40d3ea"
+        ],
+        "strengths": [
+          {
+            "title": "Wyraźna inicjatywa preflop",
+            "description": "Hero aktywnie buduje własne pule: RFI wynosi 37,6%, 3-bet 9%, a PFR 19,8%. To spójna baza dla stylu LAG, która pozwala wykorzystywać fold equity zamiast opierać grę wyłącznie na sprawdzaniu.",
+            "metricIds": [
+              "shared.preflop.rfi",
+              "shared.preflop.threeBet",
+              "shared.preflop.pfr",
+              "shared.preflop.vpip"
+            ],
+            "sessionReportIds": [
+              "53bd6518-6c4e-483c-8fb0-8bbce1ba8d9b",
+              "050d9be6-dc37-4f35-b45f-0724b35a68f4"
+            ]
+          },
+          {
+            "title": "Aktywne wykorzystywanie późnej pozycji",
+            "description": "RFI z BTN wynosi 44,3%, wyraźnie powyżej ogólnego RFI 37,6%. Hero ma więc bazową skłonność do przejmowania nieotwartych pul tam, gdzie pozycja najlepiej wspiera realizację equity.",
+            "metricIds": [
+              "shared.preflop.rfiByPosition.BTN",
+              "shared.preflop.rfiByPosition.CO",
+              "shared.preflop.rfi",
+              "shared.preflop.rfiByPosition.SB"
+            ],
+            "sessionReportIds": [
+              "f7d46420-0cda-4da9-b5e2-3779e459eec5",
+              "c003edc2-b4eb-4f7a-8741-acb72595b134"
+            ]
+          },
+          {
+            "title": "Konsekwentne wywieranie presji po flopie",
+            "description": "AF total 4,82, AFq total 82,8% oraz c-bet 84,6% pokazują, że Hero często wykorzystuje inicjatywę i nie oddaje pul biernie. Jest to użyteczne narzędzie LAG, pod warunkiem że częstotliwość zostanie lepiej dopasowana do boardu, pozycji i zakresu rywala.",
+            "metricIds": [
+              "shared.postflop.af.total",
+              "shared.postflop.afq.total",
+              "shared.postflop.cBet",
+              "shared.postflop.cBetSrp"
+            ],
+            "sessionReportIds": [
+              "871114c8-8c44-49fe-ad77-b4f432d14794",
+              "dd2a793f-8dec-4b17-afc8-17b25a40d3ea"
+            ]
+          }
+        ],
+        "leaks": [
+          {
+            "title": "Zbyt rzadka rezygnacja po 3-becie i zbyt szeroka eskalacja preflop",
+            "description": "Fold do 3-betu wynosi tylko 25,9%, podczas gdy 4-bet sięga 16,7% w 108 okazjach. W połączeniu z licznymi raportami o zbyt szerokich wejściach za stack sugeruje to, że część marginalnych rąk jest kontynuowana przeciwko zakresom, które powinny być traktowane jako silniejsze.",
+            "correction": "Przed każdą odpowiedzią na 3-bet przypisz rękę do jednej z trzech kategorii: komfortowy 4-bet/value, call o dobrej realizacji equity albo fold. Zdominowane offsuit broadwaye i słabe Kx/Ax domyślnie wyrzucaj, chyba że masz konkretny read, pozycję oraz korzystne pot odds.",
+            "metricIds": [
+              "shared.preflop.foldToThreeBet",
+              "shared.preflop.fourBet",
+              "shared.preflop.threeBet",
+              "shared.preflop.vpip"
+            ],
+            "sessionReportIds": [
+              "53bd6518-6c4e-483c-8fb0-8bbce1ba8d9b",
+              "395d2523-f968-423e-ada7-d18034ded48f",
+              "050d9be6-dc37-4f35-b45f-0724b35a68f4"
+            ]
+          },
+          {
+            "title": "Za szerokie wejścia pasywne i trudne pule poza pozycją",
+            "description": "Różnica między VPIP 35,6% a PFR 19,8% jest duża, więc istotna część udziału w pulach pochodzi z calli lub limpów zamiast z inicjatywy. Raporty powtarzalnie wskazują, że szczególnie marginalne obrony i flat-calle prowadzą później do trudnych decyzji bez pozycji.",
+            "correction": "Zbuduj osobne zakresy callowania dla BB, SB i pozycji środkowych. Poza pozycją ogranicz calle do rąk z dobrą grywalnością, a dla reszty wybieraj fold lub przemyślany 3-bet; nie używaj limpów offsuit bez wcześniej przygotowanej strategii limp/raise lub limp/fold.",
+            "metricIds": [
+              "shared.preflop.vpip",
+              "shared.preflop.pfr",
+              "shared.preflop.rfi",
+              "shared.preflop.rfiByPosition.SB"
+            ],
+            "sessionReportIds": [
+              "f194fd2f-a0d8-4f4c-91c8-23a32cacbdd6",
+              "87f7cee3-f9ac-4e86-ac90-81ab54a9f29b",
+              "d9e9ebd5-201b-45a1-9f8e-cbfce268fd60"
+            ]
+          },
+          {
+            "title": "Zbyt automatyczna kontynuacja agresji po flopie",
+            "description": "C-bet 84,6% i c-bet w SRP 84,7%, przy AFq 82,8%, tworzą bardzo wysoką bazową presję. Raporty wskazują, że w części spotów agresja jest kontynuowana z niewystarczającą equity, bez dobrych blockerów lub na teksturach sprzyjających zakresowi obrony.",
+            "correction": "Przed c-betem nazwij cel zagrania: value od gorszych rąk, semi-blef z equity albo blef oparty na przewadze zakresu. Gdy nie potrafisz wskazać celu i planu na raise lub call, częściej wybieraj check; na suchych boardach preferuj małe sizingi zamiast dużych betów.",
+            "metricIds": [
+              "shared.postflop.cBet",
+              "shared.postflop.cBetSrp",
+              "shared.postflop.afq.total",
+              "shared.postflop.afq.flop"
+            ],
+            "sessionReportIds": [
+              "53bd6518-6c4e-483c-8fb0-8bbce1ba8d9b",
+              "dd2a793f-8dec-4b17-afc8-17b25a40d3ea",
+              "f7d46420-0cda-4da9-b5e2-3779e459eec5"
+            ]
+          },
+          {
+            "title": "Za częste dochodzenie do showdownu przy zbyt niskiej skuteczności",
+            "description": "WTSD wynosi 42%, a W$SD 48,3%. Ten zestaw, wraz z raportami o overplayowaniu par i drawów, sugeruje potrzebę lepszego rozróżnienia między ręką o wartości showdownowej a ręką wystarczająco mocną do budowania dużej puli.",
+            "correction": "Na turnie i riverze zatrzymuj się przed dużą inwestycją i odpowiedz na dwa pytania: jakie gorsze ręce zapłacą oraz jakie blefy przeciwnik realnie ma. Jeżeli nie ma wiarygodnych gorszych calli ani wystarczającej liczby blefów, wybieraj kontrolę puli lub fold zamiast hero-calla i dużego value betu.",
+            "metricIds": [
+              "shared.showdown.wtsd",
+              "shared.showdown.wsd",
+              "shared.postflop.af.river",
+              "shared.postflop.afq.river"
+            ],
+            "sessionReportIds": [
+              "f194fd2f-a0d8-4f4c-91c8-23a32cacbdd6",
+              "4d61d396-a936-48a8-8096-66c93d615624",
+              "c003edc2-b4eb-4f7a-8741-acb72595b134"
+            ]
+          }
+        ],
+        "trainingPriorities": [
+          {
+            "title": "Kalibracja odpowiedzi na 3-bety, 4-bety i decyzje za stack",
+            "description": "Najwyższy priorytet to ograniczenie kosztownej eskalacji z dolną częścią zakresu. Niski fold do 3-betu oraz wysoki 4-bet wymagają jasnych reguł zależnych od pozycji, efektywnego stacka i tendencji rywala.",
+            "exercise": "Przez 20 kolejnych sesji oznacz każdą sytuację po własnym openie i 3-becie. Przed decyzją zapisz: pozycję, efektywny stack, zakres rywala, kategorię swojej ręki (4-bet, call, fold) oraz minimalne equity wymagane do calla. Po sesji przeanalizuj wszystkie decyzje, w których zainwestowano ponad 15 BB.",
+            "metricIds": [
+              "shared.preflop.foldToThreeBet",
+              "shared.preflop.fourBet",
+              "shared.preflop.threeBet",
+              "shared.preflop.rfi"
+            ],
+            "sessionReportIds": [
+              "395d2523-f968-423e-ada7-d18034ded48f",
+              "53bd6518-6c4e-483c-8fb0-8bbce1ba8d9b"
+            ]
+          },
+          {
+            "title": "Dyscyplina callowania i obrony blindów",
+            "description": "Duża luka VPIP–PFR wskazuje, że selekcja rąk do pasywnego wejścia powinna być ostrzejsza, zwłaszcza poza pozycją. Celem nie jest zacieśnienie całego stylu LAG, lecz przeniesienie większej części agresji do pozycyjnie korzystnych spotów.",
+            "exercise": "Stwórz jednokartkową tabelę: call z BB, call ze SB, cold-call IP i cold-call OOP. Po każdej sesji wybierz pięć najsłabszych calli preflop i dla każdego porównaj decyzję z tabelą; dopisz, czy flop był rozgrywany w pozycji i czy ręka miała plan kontynuacji.",
+            "metricIds": [
+              "shared.preflop.vpip",
+              "shared.preflop.pfr",
+              "shared.preflop.rfiByPosition.BTN",
+              "shared.preflop.rfiByPosition.SB"
+            ],
+            "sessionReportIds": [
+              "f194fd2f-a0d8-4f4c-91c8-23a32cacbdd6",
+              "87f7cee3-f9ac-4e86-ac90-81ab54a9f29b",
+              "d9e9ebd5-201b-45a1-9f8e-cbfce268fd60"
+            ]
+          },
+          {
+            "title": "Selekcja c-betów i kontrola wielkości puli",
+            "description": "Bardzo wysoka częstotliwość c-betów i agresji po flopie powinna zostać podzielona na małe bety rangeowe, value, semi-blefy oraz checki. Celem jest zachowanie presji LAG przy redukcji kosztownych drugich i trzecich baryłek bez equity.",
+            "exercise": "Przejrzyj 30 ostatnich c-betów i oznacz każdy jako value, semi-blef, blef z przewagą zakresu albo automatyczny bet. Dla każdej kategorii zapisz plan na raise oraz kartę turna poprawiającą lub pogarszającą kontynuację. Następnie rozegraj 10 treningowych spotów, w których obowiązkowo checkujesz wszystkie ręce bez value, drawa i przewagi zakresu.",
+            "metricIds": [
+              "shared.postflop.cBet",
+              "shared.postflop.cBetSrp",
+              "shared.postflop.afq.total",
+              "shared.showdown.wtsd",
+              "shared.showdown.wsd"
+            ],
+            "sessionReportIds": [
+              "dd2a793f-8dec-4b17-afc8-17b25a40d3ea",
+              "53bd6518-6c4e-483c-8fb0-8bbce1ba8d9b",
+              "f7d46420-0cda-4da9-b5e2-3779e459eec5"
+            ]
+          }
+        ],
+        "categoryInsights": [
+          {
+            "category": "cash",
+            "summary": "Cash obejmuje 671 rąk, więc lokalne dane wynikowe należy traktować wyłącznie jako kontekst, a główne wnioski strategiczne opierać na metrykach wspólnych. Dostępne raporty Cash powtarzają temat zbyt szerokiego angażowania się preflop oraz agresji bez wystarczającej kontroli ryzyka; szczególną uwagę warto poświęcić obronie 3-betów i selekcji kontynuacji po flopie.",
+            "metricIds": [
+              "cash.hands",
+              "cash.winrate",
+              "shared.preflop.foldToThreeBet",
+              "shared.postflop.cBet",
+              "shared.postflop.afq.total"
+            ],
+            "sessionReportIds": [
+              "f194fd2f-a0d8-4f4c-91c8-23a32cacbdd6",
+              "dd2a793f-8dec-4b17-afc8-17b25a40d3ea"
+            ]
+          },
+          {
+            "category": "tournament",
+            "summary": "Turnieje stanowią 2605 rąk i dostarczają większości obserwacji. Najbardziej powtarzalne tematy raportów to zbyt szerokie decyzje o grze za stack, duże sizingi oraz blefy i budowanie pul bez odpowiedniej equity. W turniejach priorytetem jest dostosowanie zakresów do efektywnych stacków i zachowanie agresji przede wszystkim w pozycjach, w których Hero ma przewagę realizacji equity.",
+            "metricIds": [
+              "tournament.hands",
+              "tournament.winrate",
+              "shared.preflop.foldToThreeBet",
+              "shared.preflop.fourBet",
+              "shared.postflop.afq.total"
+            ],
+            "sessionReportIds": [
+              "53bd6518-6c4e-483c-8fb0-8bbce1ba8d9b",
+              "395d2523-f968-423e-ada7-d18034ded48f",
+              "d9e9ebd5-201b-45a1-9f8e-cbfce268fd60",
+              "f7d46420-0cda-4da9-b5e2-3779e459eec5"
             ]
           }
         ]

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   AlertTriangle,
@@ -37,6 +37,7 @@ const JOB_LABELS = {
 
 const ACTIVE_JOB_STATUSES = new Set(['running', 'stop_requested']);
 const RESUMABLE_JOB_STATUSES = new Set(['stopped', 'failed']);
+const POLL_BACKOFF_MS = [2_000, 5_000, 10_000, 30_000];
 const asNumber = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
 const hasRefreshWork = (job) => Boolean(
   job && RESUMABLE_JOB_STATUSES.has(job.status)
@@ -112,8 +113,10 @@ const RefreshJobPanel = ({ job, busy, onStop, onResume }) => {
       <div className="mt-4 h-2 overflow-hidden rounded-full bg-white"><div className="h-full rounded-full bg-indigo-500 transition-all" style={{ width: `${progress}%` }}/></div>
       <div className="mt-2 flex flex-wrap justify-between gap-2 text-xs text-slate-600">
         <span>{job.processedSpotCount} / {job.candidateCount} spotów · {progress}%</span>
-        <span>{job.successfulRequests} / {job.estimatedRequests} zakończonych żądań · {job.readyKeyCount} gotowych kluczy</span>
+        <span>{job.attemptedRequests} prób AI · {job.successfulRequests} udanych · planowo {job.estimatedRequests} partii · {job.readyKeyCount} gotowych kluczy</span>
       </div>
+      {ACTIVE_JOB_STATUSES.has(job.status) && <p className="mt-3 rounded-xl border border-indigo-200 bg-white/70 p-3 text-xs font-bold text-indigo-800">Możesz opuścić tę stronę; analiza działa na serwerze i wróci po restarcie. Po restarcie może zostać ponowiona jedna przerwana partia.</p>}
+      {Number(job.recoveryCount) > 0 && <p className="mt-2 text-xs text-slate-600">Odzyskano po restarcie: {job.recoveryCount} · ostatnio {formatDate(job.lastRecoveredAt)}{Number(job.inFlightSpotCount) > 0 ? ` · ponowiona partia: ${job.inFlightSpotCount} spotów` : ''}</p>}
       {job.errors?.length > 0 && <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">Ostatni błąd: {job.errors.at(-1)?.message}</div>}
     </div>
   );
@@ -257,6 +260,7 @@ export const SettingsView = ({ trainingApi = defaultTrainingApi }) => {
   const displayedRefreshJob = trainingStatus?.resumableRefreshJob || trainingStatus?.refreshJob;
   const refreshJobId = displayedRefreshJob?.id;
   const refreshJobStatus = displayedRefreshJob?.status;
+  const staleRefreshJobId = useRef(null);
 
   const loadTrainingStatus = useCallback(async () => {
     try {
@@ -286,19 +290,67 @@ export const SettingsView = ({ trainingApi = defaultTrainingApi }) => {
   }, [sampleSize, trainingApi]);
 
   useEffect(() => {
-    if (!refreshJobId || !ACTIVE_JOB_STATUSES.has(refreshJobStatus)) return undefined;
+    if (!refreshJobId || !ACTIVE_JOB_STATUSES.has(refreshJobStatus)
+      || staleRefreshJobId.current === refreshJobId) return undefined;
     let cancelled = false;
-    const timer = globalThis.setInterval(async () => {
+    let timer = null;
+    let inFlight = false;
+    let failureIndex = 0;
+    const isVisible = () => globalThis.document?.visibilityState !== 'hidden';
+    const schedule = (delay) => {
+      if (cancelled || !isVisible()) return;
+      if (timer !== null) globalThis.clearTimeout(timer);
+      timer = globalThis.setTimeout(run, delay);
+    };
+    const run = async () => {
+      if (cancelled || inFlight || !isVisible()) return;
+      inFlight = true;
       try {
         const result = await trainingApi.getTrainingRefreshJob(refreshJobId);
         if (cancelled) return;
+        failureIndex = 0;
         setTrainingStatus((current) => mergeRefreshJob(current, result.job));
-        if (!ACTIVE_JOB_STATUSES.has(result.job?.status)) void loadTrainingStatus();
+        if (!ACTIVE_JOB_STATUSES.has(result.job?.status)) {
+          await loadTrainingStatus();
+          return;
+        }
+        schedule(2_000);
       } catch (error) {
-        if (!cancelled) setTrainingError(error.message || 'Nie udało się odświeżyć stanu zadania AI.');
+        if (cancelled) return;
+        if (error?.code === 'TRAINING_REFRESH_JOB_NOT_FOUND' || error?.status === 404) {
+          staleRefreshJobId.current = refreshJobId;
+          const authoritative = await loadTrainingStatus();
+          const currentId = authoritative?.resumableRefreshJob?.id || authoritative?.refreshJob?.id;
+          if (!currentId || currentId === refreshJobId) {
+            setTrainingError('Zadanie AI nie istnieje już na serwerze. Pobraliśmy autorytatywny stan kolekcji; sprawdź dziennik diagnostyczny lub uruchom analizę ponownie.');
+          }
+          return;
+        }
+        const delay = POLL_BACKOFF_MS[Math.min(failureIndex, POLL_BACKOFF_MS.length - 1)];
+        failureIndex += 1;
+        setTrainingError(error.message || 'Nie udało się odświeżyć stanu zadania AI.');
+        schedule(delay);
+      } finally {
+        inFlight = false;
       }
-    }, 1000);
-    return () => { cancelled = true; globalThis.clearInterval(timer); };
+    };
+    const wake = () => {
+      if (!cancelled && isVisible()) {
+        failureIndex = 0;
+        schedule(0);
+      }
+    };
+    globalThis.addEventListener?.('focus', wake);
+    globalThis.addEventListener?.('online', wake);
+    globalThis.document?.addEventListener?.('visibilitychange', wake);
+    schedule(2_000);
+    return () => {
+      cancelled = true;
+      if (timer !== null) globalThis.clearTimeout(timer);
+      globalThis.removeEventListener?.('focus', wake);
+      globalThis.removeEventListener?.('online', wake);
+      globalThis.document?.removeEventListener?.('visibilitychange', wake);
+    };
   }, [loadTrainingStatus, refreshJobId, refreshJobStatus, trainingApi]);
 
   const scanCollection = async (rebuildSelection = false) => {
@@ -327,6 +379,7 @@ export const SettingsView = ({ trainingApi = defaultTrainingApi }) => {
         sampleSize,
         confirmed: true,
       });
+      staleRefreshJobId.current = null;
       setTrainingStatus((current) => mergeRefreshJob(current, result.job));
       setConfirmation(null);
     } catch (error) {
@@ -358,6 +411,7 @@ export const SettingsView = ({ trainingApi = defaultTrainingApi }) => {
     setTrainingError('');
     try {
       const result = await trainingApi.resumeTrainingRefresh(displayedRefreshJob.id);
+      staleRefreshJobId.current = null;
       setTrainingStatus((current) => mergeRefreshJob(current, result.job));
     } catch (error) {
       setTrainingError(error.message || 'Nie udało się wznowić odświeżania.');

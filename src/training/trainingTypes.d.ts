@@ -95,6 +95,9 @@ export interface RefreshJob {
   cursor: number;
   attemptedRequests: number;
   successfulRequests: number;
+  recoveryCount: number;
+  lastRecoveredAt: string | null;
+  inFlightSpotCount: number;
   createdAt: string;
   updatedAt: string;
 }

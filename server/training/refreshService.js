@@ -133,6 +133,7 @@ export const createTrainingRefreshService = ({
   fetchImpl = globalThis.fetch,
   logger,
   clock = () => new Date(),
+  instanceId = `training-refresh-instance-${randomUUID()}`,
   idFactory = (prefix) => `${prefix}-${randomUUID()}`,
   batchSize = TRAINING_ANSWER_KEY_BATCH_LIMIT,
 } = {}) => {
@@ -146,12 +147,59 @@ export const createTrainingRefreshService = ({
 
   const activeRuns = new Map();
   const stopRequested = new Set();
+  let recoveryInProgress = true;
+  let recoveryPromise = Promise.resolve();
+
+  const eventSnapshot = (job, eventType, {
+    spotCount = 0,
+    details = {},
+  } = {}) => ({
+    eventType,
+    jobId: job?.id || job?.jobId || null,
+    instanceId,
+    status: job?.status || null,
+    cursor: Number.isInteger(job?.cursor) ? job.cursor : null,
+    batchSize: Number.isInteger(job?.batchSize) ? job.batchSize : null,
+    spotCount: Number(spotCount) || 0,
+    attemptedRequests: Number.isInteger(job?.attemptedRequests) ? job.attemptedRequests : null,
+    successfulRequests: Number.isInteger(job?.successfulRequests) ? job.successfulRequests : null,
+    inFlightSpotCount: Array.isArray(job?.inFlight?.spotVersionIds)
+      ? job.inFlight.spotVersionIds.length
+      : 0,
+    details: Object.fromEntries(Object.entries(details || {}).filter(([, value]) => (
+      ['string', 'number', 'boolean'].includes(typeof value) || value === null
+    ))),
+    createdAt: asIso(clock),
+  });
+
+  const emitEvent = async (eventType, job, options = {}) => {
+    const event = eventSnapshot(job, eventType, options);
+    try {
+      if (typeof repository.appendRefreshJobEvent === 'function') {
+        await repository.appendRefreshJobEvent(event);
+      }
+    } catch (error) {
+      logger?.error?.({
+        code: asString(error?.code) || 'TRAINING_REFRESH_EVENT_PERSIST_FAILED',
+        message: asString(error?.message) || 'Nie udało się zapisać zdarzenia odświeżania.',
+        jobId: event.jobId,
+        instanceId,
+      });
+    }
+    logger?.info?.({ event: `training_refresh.${eventType}`, ...event });
+    return event;
+  };
 
   const getStoredJob = async (jobId) => {
     const job = repository.getRefreshJob
       ? await repository.getRefreshJob(jobId)
       : findJob(await repository.getSnapshot(), jobId);
-    if (!job) fail('TRAINING_REFRESH_JOB_NOT_FOUND', `Nie znaleziono zadania ${jobId}.`);
+    if (!job) {
+      await emitEvent('job_not_found', { jobId: asString(jobId) }, {
+        details: { code: 'TRAINING_REFRESH_JOB_NOT_FOUND' },
+      });
+      fail('TRAINING_REFRESH_JOB_NOT_FOUND', `Nie znaleziono zadania ${jobId}.`);
+    }
     return { job };
   };
 
@@ -195,12 +243,16 @@ export const createTrainingRefreshService = ({
     try {
       const { job } = await getStoredJob(jobId);
       if (TERMINAL_STATUSES.has(job.status)) return;
-      await saveJob({
+      const failedJob = await saveJob({
         ...job,
         status: 'failed',
         inFlight: null,
         errors: [...(job.errors || []), safeError(error, job.inFlight?.spotVersionIds || [])],
         finishedAt: asIso(clock),
+      });
+      await emitEvent('failed', failedJob, {
+        spotCount: job.inFlight?.spotVersionIds?.length || 0,
+        details: { code: safeError(error, []).code },
       });
     } catch (persistError) {
       logger?.error?.({
@@ -217,18 +269,25 @@ export const createTrainingRefreshService = ({
       if (storedJob.status !== 'running' && storedJob.status !== 'stop_requested') return job;
       if (stopRequested.has(jobId) || storedJob.status === 'stop_requested') {
         stopRequested.delete(jobId);
-        return saveJob({ ...job, status: 'stopped', stopRequested: false, stoppedAt: asIso(clock) });
+        const stoppedJob = await saveJob({ ...job, status: 'stopped', stopRequested: false, stoppedAt: asIso(clock) });
+        await emitEvent('stopped', stoppedJob, { details: { reason: 'stop_requested' } });
+        return stoppedJob;
       }
       if (job.cursor >= job.candidateSpotVersionIds.length) {
-        return saveJob({ ...job, status: 'completed', finishedAt: asIso(clock) });
+        const completedJob = await saveJob({ ...job, status: 'completed', finishedAt: asIso(clock) });
+        await emitEvent('completed', completedJob);
+        return completedJob;
       }
 
       const candidateIds = job.candidateSpotVersionIds.slice(job.cursor, job.cursor + job.batchSize);
+      const batchSpotVersionIds = job.inFlight?.spotVersionIds?.length
+        ? [...job.inFlight.spotVersionIds]
+        : candidateIds;
       const spots = repository.getSpotsByVersionIds
-        ? await repository.getSpotsByVersionIds(candidateIds)
+        ? await repository.getSpotsByVersionIds(batchSpotVersionIds)
         : (await repository.getSnapshot()).spots;
       const spotsById = new Map(spots.map((spot) => [spot.versionId, spot]));
-      const batchSpots = candidateIds
+      const batchSpots = batchSpotVersionIds
         .map((id) => spotsById.get(id))
         .filter((spot) => spot?.sourceStatus === 'current' && isLocallyValid(spot));
       if (batchSpots.length === 0) {
@@ -242,12 +301,10 @@ export const createTrainingRefreshService = ({
       const startedAt = asIso(clock);
       job = await saveJob({
         ...job,
-        cursor: job.cursor + candidateIds.length,
         attemptedRequests: job.attemptedRequests + 1,
-        processedSpotCount: job.processedSpotCount + candidateIds.length,
-        skippedSpotCount: job.skippedSpotCount + candidateIds.length - batchSpots.length,
         inFlight: { spotVersionIds: input.spots.map(({ spotVersionId }) => spotVersionId), startedAt },
       });
+      await emitEvent('batch_sent', job, { spotCount: input.spots.length });
 
       let analysis;
       try {
@@ -267,13 +324,21 @@ export const createTrainingRefreshService = ({
           errors: [`${batchError.code}: ${batchError.message}`],
         })), job, { id: job.modelId, name: job.modelId }, 'training-rejected-key');
         job.status = 'failed';
+        job.cursor += candidateIds.length;
+        job.processedSpotCount += candidateIds.length;
+        job.skippedSpotCount += candidateIds.length - batchSpots.length;
         job.inFlight = null;
         job.reviewKeyCount += rejectedKeys.length;
         job.invalidKeyCount += rejectedKeys.length;
         job.savedKeyCount += rejectedKeys.length;
         job.errors = [...job.errors, batchError];
         job.finishedAt = asIso(clock);
-        return (await repository.saveAnswerKeyBatch(rejectedKeys, job)).result.job;
+        const saved = (await repository.saveAnswerKeyBatch(rejectedKeys, job)).result.job;
+        await emitEvent('provider_error', saved, {
+          spotCount: input.spots.length,
+          details: { code: batchError.code },
+        });
+        return saved;
       }
 
       const response = analysis?.response ?? analysis;
@@ -286,29 +351,31 @@ export const createTrainingRefreshService = ({
       const keys = [...acceptedKeys, ...rejectedKeys];
       const latest = (await getStoredJob(jobId)).job;
       const shouldStop = stopRequested.has(jobId) || latest.status === 'stop_requested';
+      const nextCursor = latest.cursor + candidateIds.length;
       job = {
         ...latest,
-        cursor: job.cursor,
-        attemptedRequests: job.attemptedRequests,
-        processedSpotCount: job.processedSpotCount,
-        skippedSpotCount: job.skippedSpotCount,
+        cursor: nextCursor,
+        processedSpotCount: latest.processedSpotCount + candidateIds.length,
+        skippedSpotCount: latest.skippedSpotCount + candidateIds.length - batchSpots.length,
         inFlight: null,
-        successfulRequests: job.successfulRequests + 1,
-        savedKeyCount: job.savedKeyCount + keys.length,
-        readyKeyCount: job.readyKeyCount + acceptedKeys.filter(({ status }) => status === 'ready').length,
-        reviewKeyCount: job.reviewKeyCount + acceptedKeys.filter(({ status }) => status === 'review').length + rejectedKeys.length,
-        invalidKeyCount: job.invalidKeyCount + rejectedKeys.length,
-        unknownResultCount: job.unknownResultCount + validated.unknownResults.length,
+        successfulRequests: latest.successfulRequests + 1,
+        savedKeyCount: latest.savedKeyCount + keys.length,
+        readyKeyCount: latest.readyKeyCount + acceptedKeys.filter(({ status }) => status === 'ready').length,
+        reviewKeyCount: latest.reviewKeyCount + acceptedKeys.filter(({ status }) => status === 'review').length + rejectedKeys.length,
+        invalidKeyCount: latest.invalidKeyCount + rejectedKeys.length,
+        unknownResultCount: latest.unknownResultCount + validated.unknownResults.length,
         stopRequested: false,
         status: shouldStop
           ? 'stopped'
-          : (job.cursor >= job.candidateSpotVersionIds.length ? 'completed' : 'running'),
+          : (nextCursor >= latest.candidateSpotVersionIds.length ? 'completed' : 'running'),
       };
       if (shouldStop) job.stoppedAt = asIso(clock);
       if (job.status === 'completed') job.finishedAt = asIso(clock);
       const saved = await repository.saveAnswerKeyBatch(keys, job);
       stopRequested.delete(jobId);
       job = saved.result.job;
+      await emitEvent('batch_committed', job, { spotCount: batchSpotVersionIds.length });
+      if (job.status === 'completed') await emitEvent('completed', job);
       if (job.status !== 'running') return job;
     }
   };
@@ -327,8 +394,65 @@ export const createTrainingRefreshService = ({
     return promise;
   };
 
+  const getStoredJobs = async () => {
+    const jobs = repository.getRefreshJobs
+      ? await repository.getRefreshJobs()
+      : (await repository.getSnapshot())?.refreshJobs;
+    return Array.isArray(jobs) ? jobs : [];
+  };
+
+  const recoverPendingRefreshes = async () => {
+    try {
+      const jobs = await getStoredJobs();
+      const stoppedOnRestart = jobs.filter(({ status }) => status === 'stop_requested');
+      for (const job of stoppedOnRestart) {
+        const stoppedJob = await saveJob({
+          ...job,
+          status: 'stopped',
+          stopRequested: false,
+          stoppedAt: job.stoppedAt || asIso(clock),
+        });
+        await emitEvent('stopped', stoppedJob, { details: { reason: 'server_restart' } });
+      }
+
+      const currentContractJobs = jobs.filter(({ contractVersion }) => (
+        contractVersion === TRAINING_ANSWER_KEY_CONTRACT_VERSION
+      ));
+      const running = currentContractJobs
+        .filter(({ status }) => status === 'running')
+        .sort((left, right) => (
+          (Date.parse(left.updatedAt || left.createdAt || '') || 0)
+          - (Date.parse(right.updatedAt || right.createdAt || '') || 0)
+        ));
+      const resumable = running.find(isTrainingRefreshJobResumable) || running[0];
+      if (resumable) {
+        const recoveredAt = asIso(clock);
+        const recoveredJob = await saveJob({
+          ...resumable,
+          recoveryCount: (Number(resumable.recoveryCount) || 0) + 1,
+          lastRecoveredAt: recoveredAt,
+        });
+        await emitEvent('recovered', recoveredJob, {
+          spotCount: recoveredJob.inFlight?.spotVersionIds?.length || 0,
+          details: { reason: 'server_restart' },
+        });
+        launch(recoveredJob.id);
+      }
+    } catch (error) {
+      logger?.error?.({
+        code: asString(error?.code) || 'TRAINING_REFRESH_RECOVERY_FAILED',
+        message: asString(error?.message) || 'Nie udało się odzyskać zadań odświeżania.',
+      });
+    } finally {
+      recoveryInProgress = false;
+    }
+  };
+
+  recoveryPromise = recoverPendingRefreshes();
+  recoveryPromise.catch(() => {});
+
   return {
-    hasActiveRun: () => activeRuns.size > 0,
+    hasActiveRun: () => recoveryInProgress || activeRuns.size > 0,
     estimate: async (options = {}) => {
       const sampleSize = normalizeTrainingRefreshSampleSize(options.sampleSize);
       if (!repository.getRefreshEstimateData) {
@@ -346,6 +470,7 @@ export const createTrainingRefreshService = ({
       };
     },
     startRefresh: async ({ modelId, confirmed = false, sampleSize } = {}) => {
+      await recoveryPromise;
       const normalizedModelId = asString(modelId);
       if (!normalizedModelId) fail('TRAINING_REFRESH_MODEL_REQUIRED', 'Wybierz model do przygotowania kluczy.');
       const jobs = repository.getRefreshJobs
@@ -405,6 +530,8 @@ export const createTrainingRefreshService = ({
         reviewKeyCount: 0,
         invalidKeyCount: 0,
         unknownResultCount: 0,
+        recoveryCount: 0,
+        lastRecoveredAt: null,
         stopRequested: false,
         inFlight: null,
         errors: [],
@@ -414,22 +541,28 @@ export const createTrainingRefreshService = ({
         finishedAt: estimate.candidateCount === 0 ? createdAt : null,
       };
       const saved = await saveNewJob(job);
+      await emitEvent('created', saved, { spotCount: saved.candidateCount });
+      if (saved.status === 'completed') await emitEvent('completed', saved);
       if (saved.status === 'running') launch(saved.id);
       return saved;
     },
     stopRefresh: async (jobId) => {
+      await recoveryPromise;
       const { job } = await getStoredJob(jobId);
       if (TERMINAL_STATUSES.has(job.status)) return clone(job);
       const isRunningHere = activeRuns.has(jobId);
       if (isRunningHere) stopRequested.add(jobId);
-      return saveJob({
+      const saved = await saveJob({
         ...job,
         status: isRunningHere ? 'stop_requested' : 'stopped',
         stopRequested: isRunningHere,
         stoppedAt: isRunningHere ? job.stoppedAt : asIso(clock),
       });
+      if (!isRunningHere) await emitEvent('stopped', saved, { details: { reason: 'manual' } });
+      return saved;
     },
     resumeRefresh: async (jobId) => {
+      await recoveryPromise;
       const { job } = await getStoredJob(jobId);
       if (job.contractVersion !== TRAINING_ANSWER_KEY_CONTRACT_VERSION) {
         fail('TRAINING_REFRESH_CONTRACT_SUPERSEDED', 'Zadanie używa starego kontraktu i nie można go wznowić.');
@@ -445,7 +578,7 @@ export const createTrainingRefreshService = ({
       if (job.inFlight?.spotVersionIds?.length) {
         errors.push({
           code: 'TRAINING_REFRESH_INTERRUPTED_BATCH',
-          message: 'Partia przerwana przez restart nie została ponowiona automatycznie.',
+          message: 'Partia przerwana przed zapisaniem wyniku AI wymaga ponowienia.',
           spotVersionIds: [...job.inFlight.spotVersionIds],
         });
       }
@@ -462,8 +595,12 @@ export const createTrainingRefreshService = ({
       launch(saved.id);
       return saved;
     },
-    getJob: async (jobId) => clone((await getStoredJob(jobId)).job),
+    getJob: async (jobId) => {
+      await recoveryPromise;
+      return clone((await getStoredJob(jobId)).job);
+    },
     waitForIdle: async (jobId) => {
+      await recoveryPromise;
       const active = activeRuns.get(jobId);
       if (active) await active;
       return clone((await getStoredJob(jobId)).job);

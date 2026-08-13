@@ -180,6 +180,8 @@ test('API skanuje dataset, wymaga potwierdzenia kosztu i przygotowuje bezpiecznÄ
   assert.equal(startedResponse.status, 202);
   const started = await startedResponse.json();
   assert.equal(started.job.sampleSize, 100);
+  assert.equal(started.job.recoveryCount, 0);
+  assert.equal(started.job.inFlightSpotCount, 0);
   const completed = await waitForJob(baseUrl, started.job.id, ['completed']);
   assert.equal(completed.readyKeyCount, 3);
   assert.equal(providerCalls, 1);
@@ -189,6 +191,13 @@ test('API skanuje dataset, wymaga potwierdzenia kosztu i przygotowuje bezpiecznÄ
   assert.equal(ready.queue.pending, 0);
   assert.equal(ready.lastUsedModel, 'gpt-5.6-terra');
   assert.equal((await repository.getSnapshot()).answerKeys.length, 3);
+  const eventsResponse = await fetch(`${baseUrl}/api/training/refresh/${encodeURIComponent(started.job.id)}/events`);
+  assert.equal(eventsResponse.status, 200);
+  const events = await eventsResponse.json();
+  assert.deepEqual(events.events.map(({ eventType }) => eventType), [
+    'created', 'batch_sent', 'batch_committed', 'completed',
+  ]);
+  assert.ok(events.events.every(({ instanceId, jobId }) => instanceId && jobId === started.job.id));
 });
 
 test('kolejny skan ocenia wyÅ‚Ä…cznie nowe rozdania i zachowuje metadane starych kluczy', async (t) => {

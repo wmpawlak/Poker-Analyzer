@@ -7,6 +7,7 @@ import { analyzeTrainingAnswerKeysWithModel } from '../server/ai/analysisService
 import {
   CARD_FACTS_VALIDATION_VERSION,
   TRAINING_ANSWER_KEY_BATCH_LIMIT,
+  TRAINING_ANSWER_KEY_CONTRACT_VERSION,
   buildTrainingAnswerKeyBatchInput,
   buildTrainingAnswerKeyPrompt,
   trainingAnswerKeyResponseSchema,
@@ -102,6 +103,36 @@ const sequentialIds = () => {
   let index = 0;
   return (prefix) => `${prefix}-${++index}`;
 };
+
+const makeRefreshJob = (spots, overrides = {}) => ({
+  id: 'restart-job',
+  status: 'running',
+  modelId: 'mock-model',
+  contractVersion: TRAINING_ANSWER_KEY_CONTRACT_VERSION,
+  batchSize: 20,
+  sampleSize: 100,
+  candidateSpotVersionIds: spots.map(({ versionId }) => versionId),
+  candidateCount: spots.length,
+  estimatedRequests: Math.ceil(spots.length / 20),
+  cursor: 0,
+  attemptedRequests: 0,
+  successfulRequests: 0,
+  processedSpotCount: 0,
+  skippedSpotCount: 0,
+  savedKeyCount: 0,
+  readyKeyCount: 0,
+  reviewKeyCount: 0,
+  invalidKeyCount: 0,
+  unknownResultCount: 0,
+  stopRequested: false,
+  inFlight: null,
+  errors: [],
+  createdAt: '2026-08-13T00:00:00.000Z',
+  startedAt: '2026-08-13T00:00:00.000Z',
+  stoppedAt: null,
+  finishedAt: null,
+  ...overrides,
+});
 
 test('lokalne fakty rozróżniają gotowy kolor, draw, backdoor draw, trzy karty i river', () => {
   const made = computeDecisionCardFacts({ heroCards: ['Ah', 'Kh'], board: ['2h', '7h', 'Tc', 'Qh', '3h'] });
@@ -366,12 +397,173 @@ test('spots are marked before the provider call and remain marked after provider
     const started = await service.startRefresh({ modelId: 'mock-model', confirmed: true });
     await entered;
     const beforeProvider = await repository.getSnapshot();
+    assert.equal(beforeProvider.refreshJobs[0].cursor, 0);
+    assert.equal(beforeProvider.refreshJobs[0].processedSpotCount, 0);
+    assert.equal(beforeProvider.refreshJobs[0].skippedSpotCount, 0);
+    assert.equal(beforeProvider.refreshJobs[0].inFlight.spotVersionIds.length, 20);
     assert.equal(beforeProvider.spots.filter(({ aiFirstSentAt }) => aiFirstSentAt).length, 20);
     assert.equal(beforeProvider.spots.filter(({ aiFirstSentJobId }) => aiFirstSentJobId === started.id).length, 20);
     release();
     const failed = await service.waitForIdle(started.id);
     assert.equal(failed.status, 'failed');
+    assert.equal(failed.cursor, 20);
+    assert.equal(failed.processedSpotCount, 20);
+    assert.equal(failed.skippedSpotCount, 0);
+    assert.equal(failed.inFlight, null);
     assert.equal((await repository.getSnapshot()).spots.filter(({ aiFirstSentAt }) => aiFirstSentAt).length, 20);
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('nowy worker po restarcie ponawia zapisany inFlight i kontynuuje od zatwierdzonego kursora', async () => {
+  const { directory, repository } = await createRepositoryWithSpots(25);
+  try {
+    const snapshot = await repository.getSnapshot();
+    const firstBatch = snapshot.spots.slice(0, 20);
+    const job = makeRefreshJob(snapshot.spots, {
+      attemptedRequests: 1,
+      inFlight: {
+        spotVersionIds: firstBatch.map(({ versionId }) => versionId),
+        startedAt: '2026-08-13T00:01:00.000Z',
+      },
+    });
+    await repository.saveRefreshJob(job);
+
+    const calls = [];
+    const service = createTrainingRefreshService({
+      repository,
+      idFactory: sequentialIds(),
+      analyzeBatch: async ({ input }) => {
+        calls.push(input.spots.map(({ spotVersionId }) => spotVersionId));
+        return { response: { keys: input.spots.map(makeAiKey) } };
+      },
+    });
+    const completed = await service.waitForIdle(job.id);
+
+    assert.equal(completed.status, 'completed');
+    assert.equal(completed.cursor, 25);
+    assert.equal(completed.processedSpotCount, 25);
+    assert.equal(completed.attemptedRequests, 3);
+    assert.deepEqual(calls, [
+      firstBatch.map(({ versionId }) => versionId),
+      snapshot.spots.slice(20).map(({ versionId }) => versionId),
+    ]);
+    assert.equal((await repository.getSnapshot()).answerKeys.length, 25);
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('restart nie wysyła ponownie partii, której kursor został już zatwierdzony', async () => {
+  const { directory, repository } = await createRepositoryWithSpots(25);
+  try {
+    const snapshot = await repository.getSnapshot();
+    const firstBatch = snapshot.spots.slice(0, 20);
+    const job = makeRefreshJob(snapshot.spots, {
+      cursor: 20,
+      attemptedRequests: 1,
+      successfulRequests: 1,
+      processedSpotCount: 20,
+      savedKeyCount: 20,
+      readyKeyCount: 20,
+    });
+    const existingKeys = firstBatch.map((spot, index) => ({
+      ...makeAiKey(spot),
+      id: `existing-key-${index}`,
+      refreshJobId: job.id,
+      contractVersion: TRAINING_ANSWER_KEY_CONTRACT_VERSION,
+      status: 'ready',
+      localFactsValid: true,
+      model: { id: job.modelId, name: job.modelId },
+      createdAt: '2026-08-13T00:01:00.000Z',
+    }));
+    await repository.saveRefreshJob(job);
+    await repository.saveAnswerKeyBatch(existingKeys, job);
+
+    const calls = [];
+    const service = createTrainingRefreshService({
+      repository,
+      analyzeBatch: async ({ input }) => {
+        calls.push(input.spots.map(({ spotVersionId }) => spotVersionId));
+        return { response: { keys: input.spots.map(makeAiKey) } };
+      },
+    });
+    const completed = await service.waitForIdle(job.id);
+
+    assert.equal(completed.status, 'completed');
+    assert.deepEqual(calls, [snapshot.spots.slice(20).map(({ versionId }) => versionId)]);
+    assert.equal((await repository.getSnapshot()).answerKeys.length, 25);
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('stop_requested zapisane przed restartem jest zatrzymywane bez wywołania AI', async () => {
+  const { directory, repository } = await createRepositoryWithSpots(25);
+  try {
+    const snapshot = await repository.getSnapshot();
+    const job = makeRefreshJob(snapshot.spots, {
+      status: 'stop_requested',
+      stopRequested: true,
+      inFlight: {
+        spotVersionIds: snapshot.spots.slice(0, 20).map(({ versionId }) => versionId),
+        startedAt: '2026-08-13T00:01:00.000Z',
+      },
+    });
+    await repository.saveRefreshJob(job);
+
+    let calls = 0;
+    const service = createTrainingRefreshService({
+      repository,
+      analyzeBatch: async () => {
+        calls += 1;
+        return { keys: [] };
+      },
+    });
+    const stopped = await service.waitForIdle(job.id);
+
+    assert.equal(stopped.status, 'stopped');
+    assert.equal(stopped.cursor, 0);
+    assert.equal(stopped.stopRequested, false);
+    assert.equal(calls, 0);
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('dziennik zdarzeń odświeżania przeżywa restart usługi i reset kolekcji', async () => {
+  const { directory, repository } = await createRepositoryWithSpots(2);
+  try {
+    const service = createTrainingRefreshService({
+      repository,
+      idFactory: sequentialIds(),
+      instanceId: 'test-instance',
+      analyzeBatch: async ({ input }) => ({ keys: input.spots.map(makeAiKey) }),
+    });
+    const started = await service.startRefresh({ modelId: 'mock-model', confirmed: true });
+    const completed = await service.waitForIdle(started.id);
+    assert.equal(completed.status, 'completed');
+    assert.equal(completed.recoveryCount, 0);
+    assert.equal(completed.inFlight, null);
+
+    const lifecycle = await repository.getRefreshJobEvents({ jobId: started.id });
+    assert.deepEqual(lifecycle.map(({ eventType }) => eventType), [
+      'created', 'batch_sent', 'batch_committed', 'completed',
+    ]);
+    assert.ok(lifecycle.every(({ instanceId }) => instanceId === 'test-instance'));
+    assert.doesNotMatch(JSON.stringify(lifecycle), /heroCards|answerOptions|payload_json/);
+
+    await repository.resetTrainingData('answer_keys', { instanceId: 'test-instance' });
+    const afterReset = await repository.getRefreshJobEvents({ jobId: started.id });
+    assert.equal(afterReset.at(-1).eventType, 'reset');
+    await assert.rejects(
+      service.getJob(started.id),
+      (error) => error.code === 'TRAINING_REFRESH_JOB_NOT_FOUND',
+    );
+    const afterMissing = await repository.getRefreshJobEvents({ jobId: started.id });
+    assert.equal(afterMissing.at(-1).eventType, 'job_not_found');
+    assert.equal(afterMissing.at(-1).jobId, started.id);
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
   }

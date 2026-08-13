@@ -9,7 +9,7 @@ import { fetchCards, setDateRange } from '../store/pokerSlice.js';
 
 const HEATMAP_EXPORT_SCALE = 2;
 // Ręcznie zmieniaj tę wartość, aby zwiększyć lub zmniejszyć wszystkie fonty w JPEG-u.
-const HEATMAP_EXPORT_FONT_SCALE = 1.15;
+const HEATMAP_EXPORT_FONT_SCALE = 1.2;
 const getHeatmapExportFont = (weight, size) => (
   `${weight} ${Math.round(size * HEATMAP_EXPORT_FONT_SCALE)}px Inter, ui-sans-serif, system-ui, sans-serif`
 );

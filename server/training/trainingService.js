@@ -166,13 +166,19 @@ const toPublicRefreshJob = (job) => job ? ({
   sampleSize: job.sampleSize || null,
   candidateCount: job.candidateCount,
   estimatedRequests: job.estimatedRequests,
+  cursor: job.cursor,
   attemptedRequests: job.attemptedRequests,
   successfulRequests: job.successfulRequests,
+  recoveryCount: Number(job.recoveryCount) || 0,
+  lastRecoveredAt: job.lastRecoveredAt || null,
+  inFlightSpotCount: Array.isArray(job.inFlight?.spotVersionIds) ? job.inFlight.spotVersionIds.length : 0,
   processedSpotCount: job.processedSpotCount,
+  skippedSpotCount: job.skippedSpotCount,
   savedKeyCount: job.savedKeyCount,
   readyKeyCount: job.readyKeyCount,
   reviewKeyCount: job.reviewKeyCount,
   invalidKeyCount: job.invalidKeyCount,
+  unknownResultCount: job.unknownResultCount,
   progress: job.candidateCount > 0 ? Math.min(1, job.cursor / job.candidateCount) : 1,
   errors: clone(job.errors || []),
   createdAt: job.createdAt,
@@ -438,6 +444,7 @@ export const createTrainingService = ({
   idFactory = (prefix) => `${prefix}-${randomUUID()}`,
   isRefreshRunning = () => false,
   getHandAnalysisSummary = async () => null,
+  instanceId = `training-service-instance-${randomUUID()}`,
 } = {}) => {
   if (!repository?.getSnapshot || !repository?.transact) {
     fail('TRAINING_REPOSITORY_REQUIRED', 'Serwis treningowy wymaga repozytorium.');
@@ -1012,7 +1019,7 @@ export const createTrainingService = ({
         if (runningJobs.some(({ status }) => status === 'running' || status === 'stop_requested')) {
           fail('TRAINING_RESET_BLOCKED', 'Najpierw zatrzymaj działające zadanie AI.', 409);
         }
-        const removed = await repository.resetTrainingData(scope);
+        const removed = await repository.resetTrainingData(scope, { instanceId });
         return { ...removed, status: await (async () => {
           if (repository.getTrainingStatusData) {
             return buildStatusFromDatabase(await repository.getTrainingStatusData(100), 100);

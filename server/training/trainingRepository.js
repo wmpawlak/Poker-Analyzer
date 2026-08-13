@@ -1402,6 +1402,8 @@ const rowToRefreshJob = (row, candidateSpotVersionIds) => {
     cursor: row.cursor,
     attemptedRequests: row.attempted_requests,
     successfulRequests: row.successful_requests,
+    recoveryCount: Number(row.recovery_count ?? payload.recoveryCount ?? 0) || 0,
+    lastRecoveredAt: row.last_recovered_at ?? payload.lastRecoveredAt ?? null,
     processedSpotCount: row.processed_spot_count,
     skippedSpotCount: row.skipped_spot_count,
     savedKeyCount: row.saved_key_count,
@@ -1420,6 +1422,22 @@ const rowToRefreshJob = (row, candidateSpotVersionIds) => {
     finishedAt: row.finished_at,
   };
 };
+
+const rowToRefreshJobEvent = (row) => ({
+  id: Number(row.id),
+  jobId: row.job_id || null,
+  eventType: row.event_type,
+  instanceId: row.instance_id || null,
+  status: row.status || null,
+  cursor: nullableNumber(row.cursor),
+  batchSize: nullableNumber(row.batch_size),
+  spotCount: Number(row.spot_count) || 0,
+  attemptedRequests: nullableNumber(row.attempted_requests),
+  successfulRequests: nullableNumber(row.successful_requests),
+  inFlightSpotCount: Number(row.in_flight_spot_count) || 0,
+  details: parseStoredJson(row.details_json, {}),
+  createdAt: row.created_at,
+});
 
 const rowToTrainingSession = (row, availableSpotVersionIds = [], answeredSpotVersionIds = [], answeredCount = null) => {
   const payload = parseStoredJson(row.metadata_json, {});
@@ -1619,6 +1637,18 @@ const getRefreshJobRows = (database, jobId = null) => {
     candidateIds.set(row.job_id, ids);
   });
   return rows.map((row) => rowToRefreshJob(row, candidateIds.get(row.id) || []));
+};
+
+const getRefreshJobEventRows = (database, { jobId = null, limit = MAX_REFRESH_JOB_EVENTS } = {}) => {
+  const normalizedLimit = Math.min(MAX_REFRESH_JOB_EVENTS, Math.max(1, Number.parseInt(limit, 10) || MAX_REFRESH_JOB_EVENTS));
+  const normalizedJobId = asString(jobId);
+  const rows = database.prepare(`
+    SELECT * FROM refresh_job_events
+    WHERE (? = '' OR job_id = ?)
+    ORDER BY id DESC
+    LIMIT ?
+  `).all(normalizedJobId, normalizedJobId, normalizedLimit);
+  return rows.reverse().map(rowToRefreshJobEvent);
 };
 
 const getSpotsByVersionIds = (database, versionIds) => {
@@ -2135,7 +2165,54 @@ const getTrainingStatsRows = (database, filters) => {
   `).all(...params);
 };
 
-const resetTrainingData = (database, scope) => {
+const MAX_REFRESH_JOB_EVENTS = 2_000;
+
+const normalizeRefreshJobEvent = (event = {}, now = new Date().toISOString()) => ({
+  jobId: asString(event.jobId) || null,
+  eventType: asString(event.eventType) || 'unknown',
+  instanceId: asString(event.instanceId) || null,
+  status: asString(event.status) || null,
+  cursor: nullableNumber(event.cursor),
+  batchSize: nullableNumber(event.batchSize),
+  spotCount: Math.max(0, Number(event.spotCount) || 0),
+  attemptedRequests: nullableNumber(event.attemptedRequests),
+  successfulRequests: nullableNumber(event.successfulRequests),
+  inFlightSpotCount: Math.max(0, Number(event.inFlightSpotCount) || 0),
+  details: Object.fromEntries(Object.entries(
+    event.details && typeof event.details === 'object' && !Array.isArray(event.details)
+      ? event.details
+      : {},
+  ).filter(([, value]) => (
+    typeof value === 'boolean'
+      || (typeof value === 'number' && Number.isFinite(value))
+      || (typeof value === 'string' && value.length > 0)
+  )).map(([key, value]) => [
+    String(key).slice(0, 80),
+    typeof value === 'string' ? value.slice(0, 500) : value,
+  ])),
+  createdAt: asString(event.createdAt) || now,
+});
+
+const insertRefreshJobEventRow = (database, event, now) => {
+  const normalized = normalizeRefreshJobEvent(event, now);
+  database.prepare(`
+    INSERT INTO refresh_job_events (
+      job_id, event_type, instance_id, status, cursor, batch_size, spot_count,
+      attempted_requests, successful_requests, in_flight_spot_count, details_json, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    normalized.jobId, normalized.eventType, normalized.instanceId, normalized.status,
+    normalized.cursor, normalized.batchSize, normalized.spotCount, normalized.attemptedRequests,
+    normalized.successfulRequests, normalized.inFlightSpotCount, jsonText(normalized.details), normalized.createdAt,
+  );
+  database.prepare(`
+    DELETE FROM refresh_job_events
+    WHERE id <= (SELECT COALESCE(MAX(id), 0) - ? FROM refresh_job_events)
+  `).run(MAX_REFRESH_JOB_EVENTS);
+  return normalized;
+};
+
+const resetTrainingData = (database, scope, eventContext = {}) => {
   const counts = databaseCounts(database);
   const sessionCount = counts.sessions;
   const removed = {
@@ -2149,6 +2226,23 @@ const resetTrainingData = (database, scope) => {
   const timestamp = new Date().toISOString();
   database.exec('BEGIN IMMEDIATE;');
   try {
+    const jobsBeforeReset = database.prepare('SELECT id, status FROM refresh_jobs ORDER BY rowid').all();
+    if (jobsBeforeReset.length === 0) {
+      insertRefreshJobEventRow(database, {
+        eventType: 'reset',
+        instanceId: eventContext.instanceId,
+        status: 'reset',
+        details: { scope },
+      }, timestamp);
+    } else {
+      jobsBeforeReset.forEach((job) => insertRefreshJobEventRow(database, {
+        jobId: job.id,
+        eventType: 'reset',
+        instanceId: eventContext.instanceId,
+        status: job.status,
+        details: { scope },
+      }, timestamp));
+    }
     if (scope === 'all') {
       database.exec(`
         DELETE FROM attempts;
@@ -2200,16 +2294,18 @@ const upsertRefreshJobRow = (database, job, now) => {
   database.prepare(`
     INSERT INTO refresh_jobs (
       id, status, model_id, contract_version, batch_size, sample_size, candidate_count,
-      estimated_requests, cursor, attempted_requests, successful_requests, processed_spot_count,
+      estimated_requests, cursor, attempted_requests, successful_requests, recovery_count, last_recovered_at,
+      processed_spot_count,
       skipped_spot_count, saved_key_count, ready_key_count, review_key_count, invalid_key_count,
       unknown_result_count, stop_requested, in_flight_json, errors_json, payload_json,
       created_at, updated_at, started_at, resumed_at, stopped_at, finished_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       status = excluded.status, model_id = excluded.model_id, contract_version = excluded.contract_version,
       batch_size = excluded.batch_size, sample_size = excluded.sample_size, candidate_count = excluded.candidate_count,
       estimated_requests = excluded.estimated_requests, cursor = excluded.cursor,
       attempted_requests = excluded.attempted_requests, successful_requests = excluded.successful_requests,
+      recovery_count = excluded.recovery_count, last_recovered_at = excluded.last_recovered_at,
       processed_spot_count = excluded.processed_spot_count, skipped_spot_count = excluded.skipped_spot_count,
       saved_key_count = excluded.saved_key_count, ready_key_count = excluded.ready_key_count,
       review_key_count = excluded.review_key_count, invalid_key_count = excluded.invalid_key_count,
@@ -2221,7 +2317,8 @@ const upsertRefreshJobRow = (database, job, now) => {
     job.id, job.status || 'completed', nullableString(job.modelId), nullableNumber(job.contractVersion),
     nullableNumber(job.batchSize), nullableNumber(job.sampleSize), candidateIds.length,
     Number(job.estimatedRequests) || 0, Number(job.cursor) || 0, Number(job.attemptedRequests) || 0,
-    Number(job.successfulRequests) || 0, Number(job.processedSpotCount) || 0, Number(job.skippedSpotCount) || 0,
+    Number(job.successfulRequests) || 0, Number(job.recoveryCount) || 0, nullableString(job.lastRecoveredAt),
+    Number(job.processedSpotCount) || 0, Number(job.skippedSpotCount) || 0,
     Number(job.savedKeyCount) || 0, Number(job.readyKeyCount) || 0, Number(job.reviewKeyCount) || 0,
     Number(job.invalidKeyCount) || 0, Number(job.unknownResultCount) || 0, boolToSql(job.stopRequested),
     job.inFlight ? jsonText(job.inFlight) : null, jsonText(job.errors || []), jsonText(job),
@@ -2969,9 +3066,21 @@ export const createTrainingRepository = ({
       getTrainingHistoryData(database, filters, limit),
     )),
     getTrainingStatsRows: (filters) => run(async () => clone(getTrainingStatsRows(database, filters))),
-    resetTrainingData: (scope) => run(async () => resetTrainingData(database, scope)),
+    resetTrainingData: (scope, eventContext = {}) => run(async () => resetTrainingData(database, scope, eventContext)),
     getRefreshJob: (jobId) => run(async () => getRefreshJobRows(database, asString(jobId))[0] || null),
     getRefreshJobs: () => run(async () => clone(getRefreshJobRows(database))),
+    getRefreshJobEvents: (options = {}) => run(async () => clone(getRefreshJobEventRows(database, options))),
+    appendRefreshJobEvent: (event) => run(async () => {
+      database.exec('BEGIN IMMEDIATE;');
+      try {
+        const saved = insertRefreshJobEventRow(database, event, now());
+        database.exec('COMMIT;');
+        return saved;
+      } catch (error) {
+        try { database.exec('ROLLBACK;'); } catch { /* preserve original error */ }
+        throw error;
+      }
+    }),
     getSpotsByVersionIds: (versionIds) => run(async () => clone(getSpotsByVersionIds(database, versionIds))),
     transact,
     scanCanonicalHands: (sources, options = {}) => transact((collection, timestamp) => scanCollection(collection, Array.isArray(sources) ? sources : [], {
