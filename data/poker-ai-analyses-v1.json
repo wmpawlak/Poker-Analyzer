@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-11T23:19:28.699Z",
+  "updatedAt": "2026-08-13T08:28:23.902Z",
   "handAnalyses": {
     "594100596": [
       {
@@ -1224,6 +1224,87 @@
           "river": "River to [4d]. Końcowy board to [6d 6c Ah Js 4d]. Hero wciąż ma parę szóstek. Karta na riverze nie poprawia ręki Hero.",
           "summary": "Podsumowując, głównym problemem było podjęcie ryzyka preflop. Otwarcie z [Tc Qs] za 4x BB z tak krótkim stackiem (19.5 BB) z UTG+2 było zbyt agresywne jak na siłę ręki i pozycję. Spowodowało to, że Hero znalazł się w trudnej sytuacji, gdy ff8cb265 zagrał all-in. Mimo że Hero dostał dobrą cenę na call, ręka [Tc Qs] często będzie zdominowana przez zakres shova przeciwnika. Na flopie Hero został pokonany przez parę Asów przeciwnika i nie otrzymał żadnej pomocy na kolejnych streetach. Kluczowa lekcja to zarządzanie stackiem preflop i dobór rąk do agresywnych zagrań."
         }
+      }
+    ],
+    "133115900022": [],
+    "133149300155": [
+      {
+        "model": {
+          "id": "gemini-2.5-flash",
+          "name": "Gemini 2.5 Flash"
+        },
+        "analysis": {
+          "heroResult": {
+            "handId": "133149300155",
+            "outcome": "LOST",
+            "heroWinnings": 0,
+            "netProfit": -358093.46,
+            "handRanking": "HIGH_CARD"
+          },
+          "preflop": "Hero jest na małej ciemnej z około 14.3 dużymi ciemnymi (BB) i otrzymuje [Ad Jc]. Button (33da2af1) zagrywa all-in za ponad 21 BB, czyli za cały Twój stack. Z taką siłą ręki i Twoim stackiem jest to klasyczna sytuacja do sprawdzenia (call all-in). [Ad Jc] to silna ręka, która dobrze sobie radzi przeciwko szerokiemu zakresowi rąk Buttona, który może pushować w turbo turnieju. Jest to agresywne zagranie od Buttona, ale Twoje [Ad Jc] ma wystarczające equity, aby to sprawdzić, szczególnie gdy jesteś short-stacked. Decyzja o zagraniu all-in jest standardowa i poprawna w tej sytuacji.",
+          "flop": "Nie było akcji na flopie, ponieważ obaj gracze byli już all-in przed flopem. Na stole pojawiły się karty [9d 6d Ks].",
+          "turn": "Nie było akcji na turnie, ponieważ obaj gracze byli już all-in przed flopem. Na stole pojawiły się karty [9d 6d Ks Qs].",
+          "river": "Nie było akcji na riverze, ponieważ obaj gracze byli już all-in przed flopem. Na stole pojawiły się karty [9d 6d Ks Qs 3s].",
+          "summary": "W tym rozdaniu Hero znalazł się w bardzo standardowej sytuacji turniejowej. Mając około 14 BB i silną rękę jak [Ad Jc] przeciwko pushowi Buttona, decyzja o sprawdzeniu (call all-in) jest zazwyczaj poprawna. Masz dobre equity przeciwko szerokiemu zakresowi, z którym Button może wchodzić all-in, aby spróbować ukraść blindy i antes. Mimo niekorzystnego wyniku i braku trafienia na stole, samo zagranie z Twojej strony było solidne i zgodne ze strategią dla short-stacków w turniejach turbo. Czasem po prostu się nie trafi, ale to nie oznacza, że zagranie było złe. Kontynuuj podejmowanie takich decyzji, a w dłuższej perspektywie przyniosą one zyski."
+        },
+        "handId": "133149300155",
+        "reportId": "dd1011b7-dba2-4c19-9835-b8d89a3d5e26",
+        "analyzedAt": "2026-08-13T08:25:33.327Z",
+        "datasetRevision": "p1-34b60b5f023402a3608f1ee4746436800015d95aace58d1e6c9bd717caf2b8d4"
+      }
+    ],
+    "133115900033": [],
+    "133149300087": [],
+    "132753500135": [
+      {
+        "model": {
+          "id": "gemini-2.5-flash",
+          "name": "Gemini 2.5 Flash"
+        },
+        "analysis": {
+          "heroResult": {
+            "handId": "132753500135",
+            "outcome": "LOST",
+            "heroWinnings": 0,
+            "netProfit": -85609.27,
+            "handRanking": "PAIR"
+          },
+          "preflop": "Hero, z ręką [Ah Qh] na pozycji małej ciemnej, staje przed decyzją po all-inie gracza z buttona. Gracz z buttona wsuwa około 14 big blindów (84,859.27). Twoja ręka, [Ah Qh], jest bardzo silna i zdecydowanie mieści się w zakresie rąk, z którymi należy sprawdzać all-ina od gracza z buttona, szczególnie przy takich stackach. Button często otwiera szeroki zakres rąk, a Twoje [Ah Qh] ma świetną grywalność i equity przeciwko większości z nich. Sprawdzenie tego all-ina jest tutaj standardową i prawidłową decyzją.",
+          "flop": "",
+          "turn": "",
+          "river": "",
+          "summary": "Decyzja Hero o sprawdzeniu all-ina preflop z [Ah Qh] była solidna i zgodna ze strategią dla turniejów hyper-turbo, gdzie stacki są płytkie, a presja jest duża. Pomimo finalnego wyniku „LOST”, który jest zawsze frustrujący, samo zagranie z silną ręką, jaką jest [Ah Qh], przeciwko zakresowi all-ina gracza z buttona, było w pełni uzasadnione. Zdarza się przegrywać coinflipy lub być zdominowanym, ale długoterminowo takie decyzje są dochodowe."
+        },
+        "handId": "132753500135",
+        "reportId": "565ec465-219d-468e-9c9a-b381638968d2",
+        "analyzedAt": "2026-08-13T08:27:38.705Z",
+        "datasetRevision": "p1-34b60b5f023402a3608f1ee4746436800015d95aace58d1e6c9bd717caf2b8d4"
+      }
+    ],
+    "132753500138": [
+      {
+        "model": {
+          "id": "gemini-2.5-flash",
+          "name": "Gemini 2.5 Flash"
+        },
+        "analysis": {
+          "heroResult": {
+            "handId": "132753500138",
+            "outcome": "LOST",
+            "heroWinnings": 0,
+            "netProfit": -81497,
+            "handRanking": "TWO_PAIR"
+          },
+          "preflop": "Hero, z bardzo short stackiem około 11.6 big blindów, decyduje się na call 2x open z UTG trzymając [7s 5d] na pozycji big blinda. To bardzo luźne zagranie. Z tak niskim stackiem, przeciwko podbiciu z wczesnej pozycji, powinieneś rozważyć albo all-in (shove) albo fold. Callowanie z taką ręką w tej sytuacji, zwłaszcza bez pozycji, jest ryzykowne i stawia Cię w trudnej sytuacji postflop.",
+          "flop": "Na flopie [9d 8c 9h], Hero checkuje, co jest standardowe. Przeciwnik betuje około 37% puli. Hero ma [7s 5d], co daje jedynie gutshot straight draw (do szóstki) i żadnej pary. Calling tutaj, mając tak mało equity i pozostając bez pozycji z zaledwie około 8 big blindami za sobą, to kontynuacja błędnej linii z preflopa. Ta decyzja wiąże Cię z rozdaniem, w którym masz bardzo małe szanse na wygraną, chyba że trafisz idealną kartę.",
+          "turn": "Po spadnięciu [7c] na turnie, board to [9d 8c 9h 7c]. Hero trafia parę siódemek, co w połączeniu z parą dziewiątek na stole, daje dwie pary. Hero decyduje się na all-in. Z trafioną drugą parą, jest to naturalna decyzja, aby zagrać all-in i spróbować wygrać pulę. Problem jednak nie leży w tej decyzji, a w tych, które doprowadziły Cię do tego miejsca. Mając już tak dużą część stacka w puli, z dwiema parami w hyper-turbo, shove jest logiczny, ale początkowe słabe zagrania preflop i na flopie sprawiły, że byłeś w trudnej pozycji przeciwko silniejszemu zakresowi UTG.",
+          "river": "",
+          "summary": "Analizując całe rozdanie, Hero podjął kilka ryzykownych decyzji, które postawiły go w trudnej sytuacji. Call z [7s 5d] preflop, mając zaledwie ~11.6BB i będąc bez pozycji, był bardzo luźny. Następnie, call na flopie z gutshotem i bez pary, kiedy pozostało już niewiele żetonów, był zbyt spekulacyjny. Choć trafienie siódemki na turnie dało Ci dwie pary, zagrania te wcześniej mocno ograniczyły Twoje opcje i sprawiły, że byłeś w dużej mierze uzależniony od szczęścia. W hyper-turbo z takimi stackami, kluczowe jest granie preflop bardziej agresywnie (shove) lub tight (fold) z marginalnymi rękami, aby uniknąć grania postflop bez pozycji z niskim equity."
+        },
+        "handId": "132753500138",
+        "reportId": "da1d9658-345e-4035-b820-57505d4085bb",
+        "analyzedAt": "2026-08-13T08:28:23.867Z",
+        "datasetRevision": "p1-34b60b5f023402a3608f1ee4746436800015d95aace58d1e6c9bd717caf2b8d4"
       }
     ]
   },
@@ -3513,6 +3594,306 @@
             }
           ]
         }
+      }
+    ],
+    "tourney_87871_2026/08/12": [
+      {
+        "model": {
+          "id": "gemini-2.5-flash",
+          "name": "Gemini 2.5 Flash"
+        },
+        "sessionId": "tourney_87871_2026/08/12",
+        "fingerprint": "fnv1a-84db4baa",
+        "analysis": {
+          "profileStyleId": "BALANCED",
+          "sessionSummary": "Sesja Hero charakteryzowała się zrównoważonym stylem gry, z umiejętnością wykorzystania silnych rąk i pozycji. Odnotowano kilka dużych wygranych, szczególnie w decydujących momentach turnieju. Niestety, sesja zakończyła się znaczną stratą w wyniku kluczowego, zdominowanego all-ina, co stanowiło największy swing dnia.",
+          "keyMistakes": [
+            {
+              "title": "Zbyt agresywne blefowanie na późniejszych ulicach",
+              "description": "Hero często próbuje blefować na turnie lub riverze ze zbyt słabymi rękami (np. wysoka karta, bottom pair bez poprawy), lub kontynuuje agresję na boardach, które bardziej trafiają w zakres przeciwnika. Takie zagrania często prowadzą do niepotrzebnych strat.",
+              "correction": "Rozważ zmniejszenie częstotliwości blefów bez equity na późniejszych ulicach. Skup się na blefach semi-bluff z drawami lub na boardach, które wyraźnie nie trafiły przeciwnika. Zastanów się, czy Twój sizing sugeruje siłę, czy raczej zaprasza do sprawdzenia.",
+              "handIds": [
+                "133115900022",
+                "133115900033",
+                "133149300087"
+              ]
+            },
+            {
+              "title": "Ryzykowne callowanie z zdominowanymi rękami",
+              "description": "Hero kilkukrotnie decyduje się na callowanie dużych zakładów, w tym all-inów, z rękami, które są zdominowane lub mają słabe kickery. W turnieju, gdzie stacki są cenne, takie decyzje są bardzo kosztowne i zmniejszają Twoje EV.",
+              "correction": "Zawsze oceniaj potencjalne ręce przeciwnika. Jeśli jego zakres silnie dominuje Twoją rękę, nawet jeśli masz parę, fold jest często najlepszą opcją. Unikaj sytuacji, w których musisz liczyć na szczęście w walce z dominującą ręką, chyba że stack-to-pot ratio jest bardzo korzystne.",
+              "handIds": [
+                "133149300155",
+                "133115900019",
+                "133115900010"
+              ]
+            }
+          ],
+          "notableHands": [
+            {
+              "handId": "133149300155",
+              "reason": "Największy bezwzględny swing sesji. Preflop all-in z AdJc przeciwko QhAc, gdzie ręka Hero była zdominowana, co doprowadziło do znacznej straty stacka."
+            },
+            {
+              "handId": "133149300054",
+              "reason": "Ogromny pot wygrany dzięki Full House na riverze (para dziesiątek), w all-inie pre-flop przeciwko AhKc przeciwnika, który trafił Trips Asów."
+            },
+            {
+              "handId": "133115900017",
+              "reason": "Skuteczne zagranie straighta na flopie (5d5s na 8s7d6h) i wygranie dużego pota przeciwko overparze Asów przeciwnika."
+            },
+            {
+              "handId": "133149300127",
+              "reason": "Agresywna gra z parą asów postflop, skuteczny raise na flopie i bet na turnie, który wymusił fold przeciwnika, zgarniając duży pot."
+            },
+            {
+              "handId": "133115900025",
+              "reason": "Skuteczny 3-bet preflop i follow-up bet na flopie z top parą (QdAh na As6h6s), zmuszając przeciwnika do foldu po jego 4-becie preflop."
+            }
+          ]
+        },
+        "reportId": "7ffa0c7e-b624-496c-8a4f-a6ce001f1d19",
+        "analyzedAt": "2026-08-13T08:23:50.145Z",
+        "datasetRevision": "p1-34b60b5f023402a3608f1ee4746436800015d95aace58d1e6c9bd717caf2b8d4"
+      },
+      {
+        "model": {
+          "id": "gpt-5.6-sol",
+          "name": "GPT-5.6 Sol"
+        },
+        "sessionId": "tourney_87871_2026/08/12",
+        "fingerprint": "fnv1a-84db4baa",
+        "analysis": {
+          "profileStyleId": "BALANCED",
+          "sessionSummary": "W tej pojedynczej sesji Hero prezentował profil BALANCED, łącząc selektywną agresję, obronę blindów i okazjonalne pułapki. Największe odchylenia od solidnego planu dotyczyły budowania ogromnych pul z dominowanymi rękami, skrajnie dużych sizingów oraz zbyt częstych foldów first-in z BTN. Stack wzrósł z 10 000 do ponad 500 000, ale przebieg żetonów nie przesądza o jakości decyzji, szczególnie przy nieznanym ICM.",
+          "keyMistakes": [
+            {
+              "title": "Budowanie zbyt dużych pul z dominowanymi rękami",
+              "description": "W ręce 133115900010 KTo zostało zagrane all-in za około 65 BB po limp-backraise, którego zakres zwykle jest bardzo mocny. W 133115900019 QJo wykonało mały 3-bet przeciw otwarciu i callowi, a następnie zagrało o stack z drugą parą bez pika na A-3-4-Q. W 133149300134 Q5 przeszacowało top parę ze słabym kickerem na sparowanym boardzie, stosując duże bety na turnie i riverze mimo niewielu gorszych rąk mogących zapłacić.",
+              "correction": "Przeciw backraise'om i silnym liniom wieloosobowym mocno zawężaj zakres kontynuacji. Z dominowanymi broadwayami unikaj małych 3-betów budujących pulę bez fold equity, a top parę ze słabym kickerem traktuj głównie jako średnią rękę showdownową; duże pule rezerwuj dla dwóch par+, mocnych drawów lub dobrze uzasadnionych exploitów.",
+              "handIds": [
+                "133115900010",
+                "133115900019",
+                "133149300134"
+              ]
+            },
+            {
+              "title": "Sizing nieproporcjonalny do puli i efektywnego stacka",
+              "description": "W 133149300088 otwarcie A2s z BTN do 13,2 BB przy stacku ponad 43 BB było znacznie większe niż potrzebne. W 133149300098 Hero zagrał około dziewięciokrotność puli z drugą parą na K-Q-7, a w 133149300114 około 4,4 puli z drawem do strita na K-Q-4. Takie sizingi wypychają większość gorszych rąk, izolują się przeciw silniejszym zakresom i utrudniają zachowanie zbalansowanej struktury betów.",
+              "correction": "Ustandaryzuj otwarcia zwykle do 2–2,5 BB, z osobnym planem dla gry blind kontra blind. Postflop dobieraj sizing do SPR i przewagi zakresu; bety 25–75% puli powinny stanowić bazę, a overbety stosuj tylko z wyraźnie spolaryzowanym zakresem value i blefów.",
+              "handIds": [
+                "133149300088",
+                "133149300098",
+                "133149300114"
+              ]
+            },
+            {
+              "title": "Zbyt częste foldy first-in z BTN",
+              "description": "Hero spasował Q8s przy około 28 BB w 133145100055, A5o przy około 23,5 BB w 133149300104 oraz 44 przy około 20,5 BB w 133149300141, mimo braku wcześniejszego wejścia do puli. Bez wyjątkowo silnej presji ICM są to zazwyczaj opłacalne otwarcia z BTN, szczególnie przy ante.",
+              "correction": "Przygotuj zakresy first-in dla BTN według efektywnego stacka i liczby graczy. W okolicach 20–30 BB najczęściej otwieraj małym sizingiem około 2–2,2 BB, a decyzję raise versus shove modyfikuj dopiero na podstawie stacków blindów, ich tendencji oraz konkretnego ICM.",
+              "handIds": [
+                "133145100055",
+                "133149300104",
+                "133149300141"
+              ]
+            },
+            {
+              "title": "Bety słabych par OOP bez dostatecznie jasnego celu",
+              "description": "W 133115900026 Hero betował 55 na flopie A-T-3 w puli wieloosobowej, a później ponownie na sparowanym riverze. W 133115900033 lead z dolną parą 62 na A-J-6 dostał dwa calle, natomiast w 133149300092 66 donk-betowało flop A-7-3 przeciw agresorowi i spasowało na kolejną presję. W tych układach trudno uzyskać trzy ulice wartości, a fold equity maleje wieloosobowo.",
+              "correction": "OOP częściej zaczynaj od checku i realizuj equity taniej. Betuj słabą parę tylko wtedy, gdy realnie płaci wystarczająco dużo gorszych rąk albo gdy zakład ma sens jako semi-blef z equity i odpowiednimi blockerami; w pulach wieloosobowych dodatkowo podnieś próg value.",
+              "handIds": [
+                "133115900026",
+                "133115900033",
+                "133149300092"
+              ]
+            }
+          ],
+          "notableHands": [
+            {
+              "handId": "133149300155",
+              "reason": "Największy bezwzględny swing sesji: -358 093,46. AJo w SB zostało wystawione przeciw all-inowi przy około 14,3 BB i graczu pozostającym za Hero; call może być uzasadniony chipEV w krótkiej grze, ale bez struktury wypłat wymaga ostrożnej oceny ICM, a przegrana z AQ sama nie dowodzi błędu."
+            },
+            {
+              "handId": "133115900010",
+              "reason": "Kluczowy błąd wczesnej fazy: KTo zostało zagrane all-in za około 65 BB po limp-backraise, czyli przeciw linii zwykle mocno obciążonej premium parami i AK."
+            },
+            {
+              "handId": "133115900019",
+              "reason": "Istotna ręka do analizy konstrukcji zakresu: mały 3-bet QJo stworzył pulę wieloosobową, po czym Hero zagrał o stack z drugą parą na A-3-4-Q."
+            },
+            {
+              "handId": "133149300077",
+              "reason": "Największy dodatni skok żetonów: +145 335,02. Limp/call z KK skutecznie sprowokował shove AJo, choć taka pułapka powinna być exploitem, a nie automatycznym zastępstwem standardowego otwarcia."
+            },
+            {
+              "handId": "133149300134",
+              "reason": "Duża przegrana postflop z Q5 przeciw Q8 w limpowanej puli blind kontra blind; najważniejszym punktem jest przeszacowanie słabego kickera i ponadpulowy sizing na sparowanym boardzie."
+            }
+          ]
+        },
+        "reportId": "c003edc2-b4eb-4f7a-8741-acb72595b134",
+        "analyzedAt": "2026-08-13T08:24:50.647Z",
+        "datasetRevision": "p1-34b60b5f023402a3608f1ee4746436800015d95aace58d1e6c9bd717caf2b8d4"
+      }
+    ],
+    "tourney_87785_2026/08/12": [
+      {
+        "model": {
+          "id": "gpt-5.6-sol",
+          "name": "GPT-5.6 Sol"
+        },
+        "sessionId": "tourney_87785_2026/08/12",
+        "fingerprint": "fnv1a-f239fc1d",
+        "analysis": {
+          "profileStyleId": "LAG",
+          "sessionSummary": "Profil sesji jest LAG: Hero często przejmował inicjatywę, wywierał presję i zgarniał pule bez showdownu, ale nie zawsze dobierał do tego efektywne zakresy oraz sizing. Największe rezerwy dotyczą niewykorzystanych kradzieży w późnej fazie, zbyt dużych otwarć oraz nadmiernego budowania puli ze słabym showdown value. Ponieważ to jedna sesja turniejowa bez danych o wypłatach, ocena granicznych decyzji all-in uwzględniających ICM musi pozostać ostrożna.",
+          "keyMistakes": [
+            {
+              "title": "Niewykorzystane kradzieże w nieotwartych pulach",
+              "description": "Mimo profilu LAG pojawiały się zbyt zachowawcze foldy przy wysokich blindach: K8o ze SB w #132753500100, K2s z BTN w #132753500101 oraz K5s z CO przy około 11,8 BB w #132753500137. Bez silnej presji ICM są to ręce, które zwykle powinny generować więcej wartości przez open, limp lub shove zależnie od stacka.",
+              "correction": "Przygotuj osobne zakresy first-in dla BTN, CO i SB dla przedziałów 10–15, 15–25 i 25+ BB. Ze SB stosuj miks małego otwarcia i limpu, a przy 10–15 BB korzystaj z tabel push/fold skorygowanych o ICM zamiast oddawać blindy automatycznym foldem.",
+              "handIds": [
+                "132753500100",
+                "132753500101",
+                "132753500137"
+              ]
+            },
+            {
+              "title": "Zbyt duże otwarcia preflop",
+              "description": "Hero regularnie płacił więcej niż potrzeba za kradzież blindów: 3,5 BB z KQo UTG w #132753500052 oraz po 4 BB z 66 HJ w #132753500113 i AQo BTN w #132753500124. To pogarsza stosunek ryzyka do nagrody, utrudnia szerokie otwieranie i zwiększa koszt folda na 3-bet lub shove, niezależnie od tego, że te pule zostały wygrane bez walki.",
+              "correction": "Przy stackach około 25–50 BB używaj domyślnie 2–2,3 BB, ewentualnie 2,5 BB przeciw bardzo pasywnym graczom. Większy sizing zostaw na świadomy exploit, gdy rywale zbyt szeroko sprawdzają i rzadko 3-betują.",
+              "handIds": [
+                "132753500052",
+                "132753500113",
+                "132753500124"
+              ]
+            },
+            {
+              "title": "Nadmierne inwestowanie ze słabym showdown value",
+              "description": "W #132755100005 Hero po tanim flopie próbował uzyskać sporą wartość na riverze z parą ósemek na J-9-4-3-8; w #132753500065 betował turn z dwiema niskimi parami na sparowanym T-5-5-2; w #132753500138 po flopie z gutshotem zagrał turn all-in po trafieniu jedynie pary siódemek na 9-8-9-7. W takich liniach gorsze ręce sprawdzają rzadko, natomiast lepsza część zakresu rywala pozostaje mocna.",
+              "correction": "Przed dużym value betem nazwij konkretne gorsze ręce, które mogą sprawdzić. Niskie pary i słabe dwie pary na sparowanych boardach częściej prowadź przez check/call albo check/fold; przy niskim SPR nie traktuj automatycznie pary z gutshotem jako ręki do gry o cały stack.",
+              "handIds": [
+                "132755100005",
+                "132753500065",
+                "132753500138"
+              ]
+            },
+            {
+              "title": "Pot-size bety z top parą bez potrzeby",
+              "description": "Na flopach Hero trzykrotnie stawiał około pełnej puli z top parą: J6 na J-7-4 w #132755100027, QJ na Q-T-5 w #132755100039 oraz K5 na K-6-2 w #132753500130. Choć rywale spasowali, taki sizing wypycha wiele słabszych rąk, a jednocześnie czyni ewentualne bluffy bardzo kosztownymi.",
+              "correction": "Na suchych lub umiarkowanie skoordynowanych flopach używaj zwykle 25–50% puli, zachowując szeroki zakres zakładów. Przechodź do 60–75% lub większych sizingów dopiero na bardzo dynamicznych boardach, przeciw szerokiemu zakresowi sprawdzeń albo jako udokumentowany exploit.",
+              "handIds": [
+                "132755100027",
+                "132755100039",
+                "132753500130"
+              ]
+            },
+            {
+              "title": "Agresja ze zbyt małą equity lub słabą pozycją zakresową",
+              "description": "W #132755100011 ATo bez trefla c-betowało Q-9-6 z małą liczbą dobrych kontynuacji, a w #132753500055 J2o inwestowało 2 300 na A-6-3 z minimalnymi backdoorami i spasowało na check-raise. W #132753500091 QJo najpierw cold-callowało otwarcie 3 BB z wcześniejszej pozycji, a następnie blefowało A-8-2 po checku agresora; pula została wygrana, lecz struktura zakresów nadal była niekorzystna.",
+              "correction": "Do blefów wybieraj przede wszystkim ręce z backdoor flush drawem, drawem stritowym lub istotnymi blockerami. Przeciw otwarciom z wczesnej pozycji ogranicz cold-calle QJo, a na boardach mocno trafiających zakres agresora częściej czekaj albo stosuj mały sizing 25–33% puli.",
+              "handIds": [
+                "132755100011",
+                "132753500055",
+                "132753500091"
+              ]
+            }
+          ],
+          "notableHands": [
+            {
+              "handId": "132753500135",
+              "reason": "Największy bezwzględny swing sesji: -85 609,27. Call AQo ze SB przeciw późnopozycyjnemu shove'owi za około 14,1 BB może być poprawny w chipEV; przegrana przeciw 33 nie świadczy sama w sobie o błędzie, choć nieznane ICM może zmienić próg sprawdzenia."
+            },
+            {
+              "handId": "132753500138",
+              "reason": "Bardzo kosztowna linia za cały pozostały stack: obrona 75o przy około 11,6 BB, call flopa z gutshotem i pot-size shove turn po trafieniu słabej pary na sparowanym boardzie. To najważniejszy przykład nadmiernej eskalacji puli ze słabym showdown value."
+            },
+            {
+              "handId": "132753500105",
+              "reason": "AJo zostało sprawdzone za 46 840,62 po limpie, izolacji Hero, shove'ie gracza za nim i kolejnym all-inie limpera. Przeciw dwóm zakresom gotowym na all-in dominacja przez AQ/AK oraz mocne pary jest częsta, dlatego fold po tej sekwencji byłby zwykle bardziej zdyscyplinowany."
+            },
+            {
+              "handId": "132753500096",
+              "reason": "Największy dodatni swing sesji: +33 990,59. Izolacyjny re-shove KQo przeciw krótkiemu all-inowi wykorzystał presję na graczy pozostających za Hero; realna inwestycja wyniosła 25 490,59, ponieważ niewyrównana część została zwrócona."
+            },
+            {
+              "handId": "132753500055",
+              "reason": "Reprezentatywny przykład kosztownego blefu: otwarcie J2o z BTN, następnie zakład 2 300 na A-6-3 bez trefla i fold na check-raise. Mniejszy c-bet albo check ograniczyłby koszt przy bardzo małej equity."
+            }
+          ]
+        },
+        "reportId": "f7d46420-0cda-4da9-b5e2-3779e459eec5",
+        "analyzedAt": "2026-08-13T08:23:55.657Z",
+        "datasetRevision": "p1-34b60b5f023402a3608f1ee4746436800015d95aace58d1e6c9bd717caf2b8d4"
+      },
+      {
+        "model": {
+          "id": "gemini-2.5-flash",
+          "name": "Gemini 2.5 Flash"
+        },
+        "sessionId": "tourney_87785_2026/08/12",
+        "fingerprint": "fnv1a-f239fc1d",
+        "analysis": {
+          "profileStyleId": "LAG",
+          "sessionSummary": "Sesja charakteryzowała się agresywnym stylem gry Hero, zgodnym z profilem LAG. Początkowo Hero efektywnie budował stack poprzez agresywne pre-flop zagrania i c-bety, co zaowocowało kilkoma dużymi wygranymi potami. Odnotowano jednak również kosztowne błędy, szczególnie w grze post-flop z marginalnymi rękami i nieoptymalnym sizingiem. Największy swing nastąpił w ręce #132753500135, gdzie Hero przegrał znaczną część stacka w pre-flop all-inie.",
+          "keyMistakes": [
+            {
+              "title": "Loose callowanie i overplayowanie z pozycji bez inicjatywy",
+              "description": "Hero zbyt często sprawdza pre-flop z pozycji big blind lub small blind z rękami, które są trudne do gry bez inicjatywy, takimi jak A8o, Q5o czy 75s. Brak pozycji w połączeniu ze słabymi lub marginalnymi rękami prowadzi do niepewnych decyzji post-flop i często kończy się stratą żetonów. Przykładem jest ręka #132753500138, gdzie Hero overplayował dwie pary na niebezpiecznym boardzie.",
+              "correction": "W późniejszych fazach turnieju, z blindów należy grać bardziej selektywnie. Zamiast flat-callować, rozważ 3-bety ze zbalansowanym zakresem lub po prostu fold. Jeśli już zdecydujesz się na call, graj ostrożniej na post-flopie, zwłaszcza na boardach, które nie pasują do Twojego zakresu lub w obliczu agresji. Unikaj overplayowania marginalnych trafień, gdy możesz być zdominowany.",
+              "handIds": [
+                "132755100005",
+                "132755100015",
+                "132753500138"
+              ]
+            },
+            {
+              "title": "Agresywne c-bety i blefy ze słabymi rękami bez planu B",
+              "description": "Hero często stosuje agresywne c-bety, a nawet over-bety, ze słabymi lub drawingowymi rękami, nawet na boardach, które nie sprzyjają skutecznym blefom. Brak planu na kolejne ulice, gdy c-bet spotyka się z oporem, prowadzi do drogich foldów lub dalszego wkładania żetonów z niewystarczającą equity.",
+              "correction": "Bądź bardziej wybiórczy w wyborze sytuacji do blefowania. Oceniaj teksturę boardu w kontekście zakresów obu graczy. Duże sizingi blefów są najskuteczniejsze, gdy masz wiarygodną historię lub gdy Twój zakres zawiera wiele silnych rąk, co daje Ci fold equity. Unikaj blefów, które stawiają Cię w trudnej sytuacji na kolejnych ulicach.",
+              "handIds": [
+                "132755100011",
+                "132753500055",
+                "132753500121"
+              ]
+            },
+            {
+              "title": "Niekonsekwentny sizing zakładów na post-flopie",
+              "description": "Obserwowano zmienne sizingi zakładów na post-flopie, które czasami nie w pełni wykorzystywały wartość posiadanych rąk lub były nieefektywne w blefach. Czasami Hero betował zbyt małe kwoty, tracąc potencjalne value, a innym razem zbyt duże, co było łatwe do wyłapania jako blef.",
+              "correction": "Rozwiń bardziej spójną strategię sizingu, która będzie zależała od siły Twojej ręki, tekstury boardu i zakresu przeciwnika. Zastanów się, czy dany bet ma na celu wyciągnięcie wartości, ochronę ręki, czy blef, i dostosuj sizing, aby zmaksymalizować jego skuteczność.",
+              "handIds": [
+                "132755100032",
+                "132753500110",
+                "132753500120"
+              ]
+            }
+          ],
+          "notableHands": [
+            {
+              "handId": "132753500135",
+              "reason": "Największa przegrana pula w sesji. Hero zdecydował się na call all-ina pre-flop z Ah Qh przeciwko parze 3s 3d, co było dużym swingiem w stacku."
+            },
+            {
+              "handId": "132755100012",
+              "reason": "Przykład 'coolera', gdzie Hero z Królami (Kd Ks) przegrywa all-ina pre-flop z Damami (Qh Qc), które trafiają seta. To jest klasyczna sytuacja, której nie da się uniknąć."
+            },
+            {
+              "handId": "132753500060",
+              "reason": "Decydująca ręka, która znacząco zwiększyła stack Hero. Z 9h 9c Hero wygrał duży, trzyosobowy all-in pre-flop, trafiając dwie pary (9988) i pokonując rywali."
+            },
+            {
+              "handId": "132755100020",
+              "reason": "Hero z Qd Ad trafił fulla (KKQQA) po 3-becie pre-flop i sprawdzeniu all-ina z 77. Duża wygrana, która pokazała skuteczność agresywnej gry z premium hands."
+            },
+            {
+              "handId": "132753500138",
+              "reason": "Ręka ilustrująca trudności gry z marginalnymi rękami bez pozycji. Hero overplayował dwie pary (7799) na boardzie 9897 przeciwko setowi Dziewiątek, co doprowadziło do dużej straty."
+            }
+          ]
+        },
+        "reportId": "8a069652-6fdf-4cf6-b994-d82e6080e1b6",
+        "analyzedAt": "2026-08-13T08:24:26.128Z",
+        "datasetRevision": "p1-34b60b5f023402a3608f1ee4746436800015d95aace58d1e6c9bd717caf2b8d4"
       }
     ]
   },

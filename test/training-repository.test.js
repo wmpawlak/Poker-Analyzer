@@ -103,7 +103,7 @@ test('skan jest idempotentny i nie przelicza niezmienionego fingerprintu', async
   }
 });
 
-test('scan restores a previously omitted spot without deleting retained keys', async () => {
+test('kompletna SQLite ma pierwszeństwo przed później zapisanym JSON-em', async () => {
   const directory = await makeDirectory();
   try {
     const repository = createTrainingRepository({ dataDirectory: directory });
@@ -120,7 +120,7 @@ test('scan restores a previously omitted spot without deleting retained keys', a
 
     const repairedRepository = createTrainingRepository({ dataDirectory: directory });
     const repaired = await repairedRepository.scanCanonicalHands(hands);
-    assert.equal(repaired.result.spotsAdded, 1);
+    assert.equal(repaired.result.spotsAdded, 0);
     assert.equal(repaired.collection.spots.length, 2);
     assert.equal(repaired.collection.spots.some(({ versionId }) => versionId === omitted.versionId), true);
     assert.deepEqual(repaired.collection.answerKeys.map(({ id }) => id), ['kept-key']);

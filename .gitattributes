@@ -1,0 +1,2 @@
+data/poker-training-v2.sqlite filter=lfs diff=lfs merge=lfs -text
+data/poker-training-v1.json.migrated-* filter=lfs diff=lfs merge=lfs -text

@@ -56,6 +56,8 @@ const clone = (value) => JSON.parse(JSON.stringify(value));
 const asIso = (clock) => clock().toISOString();
 
 const isLocallyValid = (spot) => {
+  if (spot?.localValid === false) return false;
+  if (spot?.localValid === true) return true;
   try {
     buildTrainingAnswerKeyBatchInput([spot]);
     return true;
@@ -146,15 +148,27 @@ export const createTrainingRefreshService = ({
   const stopRequested = new Set();
 
   const getStoredJob = async (jobId) => {
-    const snapshot = await repository.getSnapshot();
-    const job = findJob(snapshot, jobId);
+    const job = repository.getRefreshJob
+      ? await repository.getRefreshJob(jobId)
+      : findJob(await repository.getSnapshot(), jobId);
     if (!job) fail('TRAINING_REFRESH_JOB_NOT_FOUND', `Nie znaleziono zadania ${jobId}.`);
-    return { snapshot, job };
+    return { job };
   };
 
   const saveJob = async (job) => (await repository.saveRefreshJob(job)).result;
 
   const saveNewJob = async (job) => {
+    if (repository.getRefreshJobs && repository.saveRefreshJob) {
+      const resumable = (await repository.getRefreshJobs()).find(isTrainingRefreshJobResumable);
+      if (resumable) {
+        fail(
+          'TRAINING_REFRESH_RESUME_REQUIRED',
+          'Najpierw wznowić i dokończyć poprzednie zadanie AI, zanim uruchomisz nowe.',
+          { resumableJob: clone(resumable) },
+        );
+      }
+      return (await repository.saveRefreshJob(job)).result;
+    }
     const saved = await repository.transact((collection) => {
       const resumable = collection.refreshJobs.find(isTrainingRefreshJobResumable);
       if (resumable) {
@@ -198,7 +212,7 @@ export const createTrainingRefreshService = ({
 
   const run = async (jobId) => {
     while (true) {
-      const { snapshot, job: storedJob } = await getStoredJob(jobId);
+      const { job: storedJob } = await getStoredJob(jobId);
       let job = clone(storedJob);
       if (storedJob.status !== 'running' && storedJob.status !== 'stop_requested') return job;
       if (stopRequested.has(jobId) || storedJob.status === 'stop_requested') {
@@ -210,7 +224,10 @@ export const createTrainingRefreshService = ({
       }
 
       const candidateIds = job.candidateSpotVersionIds.slice(job.cursor, job.cursor + job.batchSize);
-      const spotsById = new Map(snapshot.spots.map((spot) => [spot.versionId, spot]));
+      const spots = repository.getSpotsByVersionIds
+        ? await repository.getSpotsByVersionIds(candidateIds)
+        : (await repository.getSnapshot()).spots;
+      const spotsById = new Map(spots.map((spot) => [spot.versionId, spot]));
       const batchSpots = candidateIds
         .map((id) => spotsById.get(id))
         .filter((spot) => spot?.sourceStatus === 'current' && isLocallyValid(spot));
@@ -312,15 +329,29 @@ export const createTrainingRefreshService = ({
 
   return {
     hasActiveRun: () => activeRuns.size > 0,
-    estimate: async (options = {}) => estimateTrainingRefresh(
-      await repository.getSnapshot(),
-      { ...options, batchSize },
-    ),
+    estimate: async (options = {}) => {
+      const sampleSize = normalizeTrainingRefreshSampleSize(options.sampleSize);
+      if (!repository.getRefreshEstimateData) {
+        return estimateTrainingRefresh(await repository.getSnapshot(), { ...options, batchSize });
+      }
+      const data = await repository.getRefreshEstimateData(sampleSize);
+      const estimate = estimateTrainingRefresh(
+        { spots: data.spots, auditState: { excludedHands: [] } },
+        { ...options, batchSize, sampleSize },
+      );
+      return {
+        ...estimate,
+        locallyRejectedSpotVersionIds: data.locallyRejectedSpotVersionIds,
+        locallyRejectedCount: data.locallyRejectedSpotVersionIds.length,
+      };
+    },
     startRefresh: async ({ modelId, confirmed = false, sampleSize } = {}) => {
       const normalizedModelId = asString(modelId);
       if (!normalizedModelId) fail('TRAINING_REFRESH_MODEL_REQUIRED', 'Wybierz model do przygotowania kluczy.');
-      const snapshot = await repository.getSnapshot();
-      const resumable = snapshot.refreshJobs.find(isTrainingRefreshJobResumable);
+      const jobs = repository.getRefreshJobs
+        ? await repository.getRefreshJobs()
+        : (await repository.getSnapshot()).refreshJobs;
+      const resumable = jobs.find(isTrainingRefreshJobResumable);
       if (resumable) {
         fail(
           'TRAINING_REFRESH_RESUME_REQUIRED',
@@ -328,7 +359,20 @@ export const createTrainingRefreshService = ({
           { resumableJob: clone(resumable) },
         );
       }
-      const estimate = estimateTrainingRefresh(snapshot, { batchSize, sampleSize });
+      const estimate = await (repository.getRefreshEstimateData
+        ? (async () => {
+          const data = await repository.getRefreshEstimateData(sampleSize);
+          const value = estimateTrainingRefresh(
+            { spots: data.spots, auditState: { excludedHands: [] } },
+            { batchSize, sampleSize },
+          );
+          return {
+            ...value,
+            locallyRejectedSpotVersionIds: data.locallyRejectedSpotVersionIds,
+            locallyRejectedCount: data.locallyRejectedSpotVersionIds.length,
+          };
+        })()
+        : estimateTrainingRefresh(await repository.getSnapshot(), { batchSize, sampleSize }));
       if (estimate.candidateCount > MAX_TRAINING_REFRESH_SPOTS
         || estimate.estimatedRequests > MAX_TRAINING_REFRESH_REQUESTS) {
         fail('TRAINING_REFRESH_LIMIT_EXCEEDED', 'Zadanie AI przekracza bezpieczny limit 800 spotów lub 40 żądań.');

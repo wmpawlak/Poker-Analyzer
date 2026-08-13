@@ -108,11 +108,11 @@ export const createTrainingRouter = ({
       error.status = 503;
       throw error;
     }
-    const [dataset, collection] = await Promise.all([
+    const [dataset, scanState] = await Promise.all([
       dataIndex.getSnapshot(),
-      repository.getSnapshot(),
+      repository.getScanState ? repository.getScanState() : repository.getSnapshot().then(({ scanState: state }) => state),
     ]);
-    if (collection.scanState.datasetRevision !== dataset.datasetRevision) {
+    if (scanState.datasetRevision !== dataset.datasetRevision) {
       const error = new Error('Najpierw wykonaj lokalny skan aktualnego datasetu.');
       error.code = 'TRAINING_SCAN_STALE';
       error.status = 409;

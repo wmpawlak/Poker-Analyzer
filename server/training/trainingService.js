@@ -16,6 +16,7 @@ import {
   TRAINING_ANSWER_KEY_CONTRACT_VERSION,
 } from './answerKeyContract.js';
 import { sameDecisionCardFacts } from './decisionCardFacts.js';
+import { orderTrainingSessionSpots } from './spotSelection.js';
 
 const ELIGIBLE_KEY = (key, spot) => key?.status === 'ready'
   && key?.confidence === 'high'
@@ -68,7 +69,7 @@ const toPublicSession = (session) => ({
   requestedSize: session.requestedSize,
   targetSize: session.targetSize,
   status: session.status,
-  answeredCount: session.answeredSpotVersionIds?.length || 0,
+  answeredCount: session.answeredCount ?? session.answeredSpotVersionIds?.length ?? 0,
   currentSpotVersionId: session.currentSpotVersionId || null,
   score: clone(session.score || { correct: 0, acceptable: 0, incorrect: 0 }),
   createdAt: session.createdAt,
@@ -331,6 +332,78 @@ const buildStatus = (collection, sampleSize) => {
   };
 };
 
+const buildStatusFromDatabase = (data, sampleSize) => {
+  const pools = Object.fromEntries(Object.values(EXERCISE_TYPES).map((exerciseType) => [
+    exerciseType,
+    { cash: emptyPoolSummary(), tournament: emptyPoolSummary() },
+  ]));
+  data.poolRows.forEach((row) => {
+    const pool = pools[row.exercise_type]?.[row.game_type];
+    if (!pool) return;
+    pool.matching = Number(row.current_count) || 0;
+    pool.current = Number(row.current_count) || 0;
+    pool.active = Number(row.active_count) || 0;
+    pool.selected = Number(row.selected_count) || 0;
+    pool.ready = Number(row.ready_count) || 0;
+    pool.pending = Number(row.pending_count) || 0;
+    pool.review = Number(row.review_count) || 0;
+    pool.locallyRejected = Number(row.locally_rejected_count) || 0;
+  });
+  const estimate = estimateTrainingRefresh(
+    { spots: data.estimateData.spots, auditState: { excludedHands: [] } },
+    { sampleSize },
+  );
+  estimate.locallyRejectedSpotVersionIds = data.estimateData.locallyRejectedSpotVersionIds;
+  estimate.locallyRejectedCount = data.estimateData.locallyRejectedSpotVersionIds.length;
+  const refresh = latestJob(data.refreshJobs);
+  const resumableRefresh = latestJob(data.refreshJobs.filter(isTrainingRefreshJobResumable));
+  const metadata = data.metadata;
+  return {
+    version: metadata.collection_version,
+    revision: metadata.revision,
+    updatedAt: metadata.updated_at,
+    scanState: {
+      lastScannedAt: metadata.scan_last_scanned_at,
+      datasetRevision: metadata.scan_dataset_revision,
+      lastResult: metadata.scan_last_result_json ? JSON.parse(metadata.scan_last_result_json) : null,
+      sourceCount: data.sourceCount,
+      sourceHistoryCount: data.sourceHistoryCount,
+    },
+    selectionState: {
+      strategy: metadata.selection_strategy || null,
+      strategyVersion: metadata.selection_strategy_version || null,
+      selectedAt: metadata.selected_at || null,
+      limit: metadata.selection_limit || 100,
+      selectedSpotCount: data.selectedCount,
+    },
+    pools,
+    queue: {
+      pending: estimate.candidateCount,
+      reanalysis: data.reanalysisCount,
+      rejectedHands: data.rejectedSourceCount,
+      locallyRejected: data.poolRows.reduce((sum, row) => sum + (Number(row.locally_rejected_count) || 0), 0),
+    },
+    refreshEstimate: {
+      candidateCount: estimate.candidateCount,
+      estimatedRequests: estimate.estimatedRequests,
+      batchSize: estimate.batchSize,
+      sampleSize: estimate.sampleSize,
+      groups: estimate.groups,
+      locallyRejectedCount: estimate.locallyRejectedCount,
+    },
+    refreshJob: toPublicRefreshJob(refresh),
+    resumableRefreshJob: toPublicRefreshJob(resumableRefresh),
+    lastUsedModel: refresh?.modelId || null,
+    sessionCount: data.sessionCount,
+    activeSessionCount: data.activeSessionCount,
+    attemptCount: data.counts.attempts,
+    counts: data.counts,
+    spotCount: data.counts.spots,
+    answerKeyCount: data.counts.answerKeys,
+    refreshJobCount: data.counts.refreshJobs,
+  };
+};
+
 const createAccumulator = () => ({ total: 0, correct: 0, acceptable: 0, incorrect: 0 });
 const addGrade = (accumulator, grade) => {
   accumulator.total += 1;
@@ -374,14 +447,28 @@ export const createTrainingService = ({
   }
 
   return {
-    getStatus: async ({ sampleSize } = {}) => buildStatus(
-      await repository.getSnapshot(),
-      sampleSize,
-    ),
+    getStatus: async ({ sampleSize } = {}) => {
+      if (repository.getTrainingStatusData) {
+        return buildStatusFromDatabase(
+          await repository.getTrainingStatusData(sampleSize),
+          sampleSize,
+        );
+      }
+      return buildStatus(await repository.getSnapshot(), sampleSize);
+    },
 
     createOrResumeSession: async (input = {}) => {
       const requestedId = asString(input.resumeSessionId);
       if (requestedId) {
+        const context = repository.getTrainingSessionContext
+          ? await repository.getTrainingSessionContext(requestedId)
+          : null;
+        if (context) {
+          if (context.session.status === 'abandoned') {
+            fail('TRAINING_SESSION_ABANDONED', 'Ta sesja została przerwana i nie można jej wznowić.', 409);
+          }
+          return { resumed: true, session: toPublicSession(context.session) };
+        }
         const resumed = await repository.transact((collection) => {
           const session = collection.sessions.find(({ id }) => id === requestedId);
           if (!session) fail('TRAINING_SESSION_NOT_FOUND', 'Nie znaleziono sesji do wznowienia.', 404);
@@ -398,44 +485,56 @@ export const createTrainingService = ({
       });
       if (!filters.exerciseType) fail('TRAINING_EXERCISE_TYPE_REQUIRED', 'Wybierz typ ćwiczenia.');
       const requestedSize = normalizeSize(input.size);
-      const result = await repository.transact((collection, timestamp) => {
-        let resumed = null;
-        if (!resumed && input.resume === true) {
-          resumed = [...collection.sessions]
-            .filter((session) => session.status === 'active' && sessionMatches(session, filters))
-            .sort((left, right) => (Date.parse(right.updatedAt || '') || 0) - (Date.parse(left.updatedAt || '') || 0))[0];
-        }
+      if (input.resume === true && repository.getActiveTrainingSessions) {
+        const resumed = (await repository.getActiveTrainingSessions(filters))[0];
         if (resumed) return { resumed: true, session: toPublicSession(resumed) };
-
-        const spots = keepCompleteCbetEpisodes(
-          collection.spots.filter((spot) => spot.active && spotMatches(spot, filters)),
-          filters.exerciseType,
-        );
-        if (spots.length === 0) fail('TRAINING_NO_ACTIVE_SPOTS', 'Brak gotowych spotów dla wybranych filtrów.', 409);
-        const targetSize = requestedSize === 'all' ? spots.length : Math.min(requestedSize, spots.length);
-        const session = {
-          id: idFactory('training-session'),
-          exerciseType: filters.exerciseType,
-          gameType: filters.gameType || TRAINING_GAME_TYPES.BOTH,
-          requestedSize,
-          targetSize,
-          status: 'active',
-          availableSpotVersionIds: spots.map(({ versionId }) => versionId),
-          answeredSpotVersionIds: [],
-          currentSpotVersionId: null,
-          lastSpotVersionId: null,
-          score: { correct: 0, acceptable: 0, incorrect: 0 },
-          createdAt: timestamp,
-          updatedAt: timestamp,
-          completedAt: null,
-        };
-        collection.sessions.push(session);
-        return { resumed: false, session: toPublicSession(session) };
+      }
+      const spots = keepCompleteCbetEpisodes(
+        repository.getActiveSpots
+          ? await repository.getActiveSpots(filters)
+          : (await repository.getSnapshot()).spots.filter((spot) => spot.active && spotMatches(spot, filters)),
+        filters.exerciseType,
+      );
+      if (spots.length === 0) fail('TRAINING_NO_ACTIVE_SPOTS', 'Brak gotowych spotów dla wybranych filtrów.', 409);
+      const attempts = repository.getTrainingAttemptsForSpots
+        ? await repository.getTrainingAttemptsForSpots(spots.map(({ versionId }) => versionId))
+        : (await repository.getSnapshot()).attempts;
+      const orderedSpots = orderTrainingSessionSpots(spots, attempts, {
+        limit: requestedSize === 'all' ? Number.POSITIVE_INFINITY : requestedSize,
+        random,
       });
-      return result.result;
+      if (orderedSpots.length === 0) {
+        fail('TRAINING_NO_COMPLETE_SPOTS', 'Brak kompletnego spotu lub epizodu w wybranym limicie.', 409);
+      }
+      const timestamp = new Date().toISOString();
+      const targetSize = orderedSpots.length;
+      const session = {
+        id: idFactory('training-session'),
+        exerciseType: filters.exerciseType,
+        gameType: filters.gameType || TRAINING_GAME_TYPES.BOTH,
+        requestedSize,
+        targetSize,
+        status: 'active',
+        availableSpotVersionIds: orderedSpots.map(({ versionId }) => versionId),
+        answeredSpotVersionIds: [],
+        currentSpotVersionId: null,
+        lastSpotVersionId: null,
+        score: { correct: 0, acceptable: 0, incorrect: 0 },
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        completedAt: null,
+      };
+      if (repository.saveTrainingSession) await repository.saveTrainingSession(session);
+      else await repository.saveSession(session);
+      return { resumed: false, session: toPublicSession(session) };
     },
 
     getSession: async (sessionId) => {
+      if (repository.getTrainingSessionContext) {
+        const context = await repository.getTrainingSessionContext(asString(sessionId));
+        if (!context) fail('TRAINING_SESSION_NOT_FOUND', 'Nie znaleziono sesji.', 404);
+        return toPublicSession(context.session);
+      }
       const collection = await repository.getSnapshot();
       const session = collection.sessions.find(({ id }) => id === asString(sessionId));
       if (!session) fail('TRAINING_SESSION_NOT_FOUND', 'Nie znaleziono sesji.', 404);
@@ -443,6 +542,25 @@ export const createTrainingService = ({
     },
 
     abandonSession: async (sessionId) => {
+      if (repository.getTrainingSessionContext) {
+        const context = await repository.getTrainingSessionContext(asString(sessionId));
+        if (!context) fail('TRAINING_SESSION_NOT_FOUND', 'Nie znaleziono sesji.', 404);
+        const { session } = context;
+        if (session.status === 'abandoned') {
+          fail('TRAINING_SESSION_ABANDONED', 'Ta sesja została już przerwana.', 409);
+        }
+        if (session.status !== 'active') {
+          fail('TRAINING_SESSION_COMPLETED', 'Zakończonej sesji nie można przerwać.', 409);
+        }
+        const timestamp = new Date().toISOString();
+        session.status = 'abandoned';
+        session.abandonedAt = timestamp;
+        session.abandonReason = 'user_requested';
+        session.currentSpotVersionId = null;
+        session.updatedAt = timestamp;
+        await repository.saveTrainingSession(session);
+        return { session: toPublicSession(session) };
+      }
       const result = await repository.transact((collection, timestamp) => {
         const session = collection.sessions.find(({ id }) => id === asString(sessionId));
         if (!session) fail('TRAINING_SESSION_NOT_FOUND', 'Nie znaleziono sesji.', 404);
@@ -463,6 +581,74 @@ export const createTrainingService = ({
     },
 
     getNextQuestion: async (sessionId) => {
+      if (repository.getTrainingQuestionContext) {
+        const context = await repository.getTrainingQuestionContext(asString(sessionId));
+        if (!context) fail('TRAINING_SESSION_NOT_FOUND', 'Nie znaleziono sesji.', 404);
+        if (context.session.status === 'abandoned') {
+          fail('TRAINING_SESSION_ABANDONED', 'Ta sesja zostaĹ‚a przerwana i nie moĹĽna pobraÄ‡ kolejnego pytania.', 409);
+        }
+        if (!context.spot || context.session.status === 'completed') {
+          return { session: toPublicSession(context.session), question: null };
+        }
+        return {
+          session: toPublicSession(context.session),
+          question: toPublicQuestion(context.spot),
+        };
+      }
+      if (repository.getTrainingSessionContext) {
+        const context = await repository.getTrainingSessionContext(asString(sessionId));
+        if (!context) fail('TRAINING_SESSION_NOT_FOUND', 'Nie znaleziono sesji.', 404);
+        const collection = context;
+        const { session } = collection;
+        if (session.status === 'abandoned') {
+          fail('TRAINING_SESSION_ABANDONED', 'Ta sesja została przerwana i nie można pobrać kolejnego pytania.', 409);
+        }
+        if (session.status === 'completed') return { session: toPublicSession(session), question: null };
+        let spot = collection.spots.find(({ versionId }) => versionId === session.currentSpotVersionId);
+        const timestamp = new Date().toISOString();
+        if (spot && isUsableSessionSpot(collection, spot)) {
+          session.updatedAt = timestamp;
+          await repository.saveTrainingSession(session);
+          return { session: toPublicSession(session), question: toPublicQuestion(spot) };
+        }
+        session.currentSpotVersionId = null;
+        const answered = new Set(session.answeredSpotVersionIds || []);
+        const available = new Set(session.availableSpotVersionIds || []);
+        const candidates = collection.spots.filter((candidate) => available.has(candidate.versionId)
+          && !answered.has(candidate.versionId)
+          && isUsableSessionSpot(collection, candidate));
+        if (answered.size >= session.targetSize || candidates.length === 0) {
+          session.status = 'completed';
+          session.completedAt = timestamp;
+          session.updatedAt = timestamp;
+          await repository.saveTrainingSession(session);
+          return { session: toPublicSession(session), question: null };
+        }
+        const previousSpot = collection.spots.find(({ versionId }) => versionId === session.lastSpotVersionId);
+        const continuation = previousSpot?.exerciseType === EXERCISE_TYPES.CBET_BARRELS
+          && previousSpot.stage === 'flop'
+          ? candidates.find((candidate) => candidate.stage === 'turn'
+            && candidate.episodeId === previousSpot.episodeId)
+          : null;
+        const selectable = session.exerciseType === EXERCISE_TYPES.CBET_BARRELS
+          ? candidates.filter(({ stage }) => stage !== 'turn')
+          : candidates;
+        const attempts = repository.getTrainingAttemptsForSpots
+          ? await repository.getTrainingAttemptsForSpots(session.availableSpotVersionIds)
+          : collection.attempts;
+        spot = continuation || pickWeightedSpot(selectable, attempts, random);
+        if (!spot) {
+          session.status = 'completed';
+          session.completedAt = timestamp;
+          session.updatedAt = timestamp;
+          await repository.saveTrainingSession(session);
+          return { session: toPublicSession(session), question: null };
+        }
+        session.currentSpotVersionId = spot.versionId;
+        session.updatedAt = timestamp;
+        await repository.saveTrainingSession(session);
+        return { session: toPublicSession(session), question: toPublicQuestion(spot) };
+      }
       const result = await repository.transact((collection, timestamp) => {
         const session = collection.sessions.find(({ id }) => id === asString(sessionId));
         if (!session) fail('TRAINING_SESSION_NOT_FOUND', 'Nie znaleziono sesji.', 404);
@@ -511,6 +697,127 @@ export const createTrainingService = ({
     },
 
     submitAnswer: async (sessionId, payload = {}) => {
+      if (repository.getTrainingAnswerContext && repository.saveTrainingAttemptAndAdvance) {
+        const spotVersionId = asString(payload.spotVersionId);
+        const context = await repository.getTrainingAnswerContext(asString(sessionId), spotVersionId);
+        if (!context) fail('TRAINING_SESSION_NOT_FOUND', 'Nie znaleziono sesji.', 404);
+        const { session } = context;
+        if (session.status === 'abandoned') {
+          fail('TRAINING_SESSION_ABANDONED', 'Ta sesja zostaĹ‚a przerwana i nie moĹĽna zapisaÄ‡ odpowiedzi.', 409);
+        }
+        if (session.status !== 'active') fail('TRAINING_SESSION_COMPLETED', 'Ta sesja jest juĹĽ zakoĹ„czona.', 409);
+        if (!spotVersionId || session.currentSpotVersionId !== spotVersionId) {
+          fail('TRAINING_QUESTION_MISMATCH', 'OdpowiedĹş nie dotyczy aktualnego pytania.', 409);
+        }
+        if (context.relation?.status === 'answered') {
+          fail('TRAINING_ANSWER_ALREADY_SAVED', 'OdpowiedĹş na to pytanie zostaĹ‚a juĹĽ zapisana.', 409);
+        }
+        if (context.relation?.status !== 'current') {
+          fail('TRAINING_QUESTION_MISMATCH', 'OdpowiedĹş nie dotyczy aktualnego pytania.', 409);
+        }
+        const spot = context.spot;
+        const key = context.key;
+        if (!spot || !key || !ELIGIBLE_KEY(key, spot) || !isUsableSessionSpot({ answerKeys: [key] }, spot)) {
+          fail('TRAINING_SPOT_UNAVAILABLE', 'Spot nie jest juĹĽ dostÄ™pny w aktualnym datasecie.', 409);
+        }
+        const answer = asString(payload.answer);
+        if (!spot.answerOptions.some(({ id }) => id === answer)) {
+          fail('TRAINING_ANSWER_INVALID', 'Wybrana odpowiedĹş nie jest legalna dla tego spotu.');
+        }
+        const grade = answer === key.preferredAnswer
+          ? TRAINING_GRADES.CORRECT
+          : key.acceptableAlternatives?.includes(answer)
+            ? TRAINING_GRADES.ACCEPTABLE
+            : TRAINING_GRADES.INCORRECT;
+        const timestamp = new Date().toISOString();
+        const attempt = {
+          id: idFactory('training-attempt'), sessionId: session.id, spotVersionId, answer, grade,
+          answerKeyId: key.id, answeredAt: timestamp, createdAt: timestamp, updatedAt: timestamp,
+        };
+        const score = { correct: 0, acceptable: 0, incorrect: 0, ...(session.score || {}) };
+        score[grade] += 1;
+        const answeredCount = (session.answeredCount || 0) + 1;
+        const sessionPatch = {
+          ...session,
+          answeredCount,
+          currentSpotVersionId: null,
+          lastSpotVersionId: spotVersionId,
+          score,
+          status: answeredCount >= session.targetSize ? 'completed' : 'active',
+          completedAt: answeredCount >= session.targetSize ? timestamp : null,
+          updatedAt: timestamp,
+        };
+        const feedback = await buildAnswerFeedback({ attempt, spot, key, getHandAnalysisSummary });
+        const saved = await repository.saveTrainingAttemptAndAdvance(attempt, sessionPatch);
+        if (saved?.duplicate) {
+          fail('TRAINING_ANSWER_ALREADY_SAVED', 'OdpowiedĹş na to pytanie zostaĹ‚a juĹĽ zapisana.', 409);
+        }
+        if (saved?.mismatch) {
+          fail('TRAINING_QUESTION_MISMATCH', 'OdpowiedĹş nie dotyczy aktualnego pytania.', 409);
+        }
+        return {
+          attempt: clone(saved?.attempt || attempt),
+          session: toPublicSession(saved?.session || sessionPatch),
+          feedback,
+        };
+      }
+      if (repository.getTrainingSessionContext) {
+        const context = await repository.getTrainingSessionContext(asString(sessionId));
+        if (!context) fail('TRAINING_SESSION_NOT_FOUND', 'Nie znaleziono sesji.', 404);
+        const { session } = context;
+        if (session.status === 'abandoned') {
+          fail('TRAINING_SESSION_ABANDONED', 'Ta sesja została przerwana i nie można zapisać odpowiedzi.', 409);
+        }
+        if (session.status !== 'active') fail('TRAINING_SESSION_COMPLETED', 'Ta sesja jest już zakończona.', 409);
+        const spotVersionId = asString(payload.spotVersionId);
+        if (!spotVersionId || session.currentSpotVersionId !== spotVersionId) {
+          fail('TRAINING_QUESTION_MISMATCH', 'Odpowiedź nie dotyczy aktualnego pytania.', 409);
+        }
+        if ((session.answeredSpotVersionIds || []).includes(spotVersionId)
+          || context.attempts.some((attempt) => attempt.spotVersionId === spotVersionId)) {
+          fail('TRAINING_ANSWER_ALREADY_SAVED', 'Odpowiedź na to pytanie została już zapisana.', 409);
+        }
+        const spot = context.spots.find(({ versionId }) => versionId === spotVersionId);
+        if (!spot || !isUsableSessionSpot(context, spot)) {
+          fail('TRAINING_SPOT_UNAVAILABLE', 'Spot nie jest już dostępny w aktualnym datasecie.', 409);
+        }
+        const answer = asString(payload.answer);
+        if (!spot.answerOptions.some(({ id }) => id === answer)) {
+          fail('TRAINING_ANSWER_INVALID', 'Wybrana odpowiedź nie jest legalna dla tego spotu.');
+        }
+        const key = getCurrentKey(context, spot);
+        const grade = answer === key.preferredAnswer
+          ? TRAINING_GRADES.CORRECT
+          : key.acceptableAlternatives?.includes(answer)
+            ? TRAINING_GRADES.ACCEPTABLE
+            : TRAINING_GRADES.INCORRECT;
+        const timestamp = new Date().toISOString();
+        const attempt = {
+          id: idFactory('training-attempt'), sessionId: session.id, spotVersionId, answer, grade,
+          answerKeyId: key.id, answeredAt: timestamp, createdAt: timestamp, updatedAt: timestamp,
+        };
+        session.answeredSpotVersionIds = [...(session.answeredSpotVersionIds || []), spotVersionId];
+        session.currentSpotVersionId = null;
+        session.lastSpotVersionId = spotVersionId;
+        session.score = { correct: 0, acceptable: 0, incorrect: 0, ...(session.score || {}) };
+        session.score[grade] += 1;
+        session.updatedAt = timestamp;
+        if (session.answeredSpotVersionIds.length >= session.targetSize) {
+          session.status = 'completed';
+          session.completedAt = timestamp;
+        }
+        const feedback = await buildAnswerFeedback({ attempt, spot, key, getHandAnalysisSummary });
+        if (repository.saveTrainingAttemptAndSession) {
+          const saved = await repository.saveTrainingAttemptAndSession(attempt, session);
+          if (saved?.duplicate) {
+            fail('TRAINING_ANSWER_ALREADY_SAVED', 'Odpowiedź na to pytanie została już zapisana.', 409);
+          }
+        } else {
+          await repository.saveAttempt(attempt);
+          await repository.saveSession(session);
+        }
+        return { attempt: clone(attempt), session: toPublicSession(session), feedback };
+      }
       const result = await repository.transact(async (collection, timestamp) => {
         const session = collection.sessions.find(({ id }) => id === asString(sessionId));
         if (!session) fail('TRAINING_SESSION_NOT_FOUND', 'Nie znaleziono sesji.', 404);
@@ -578,6 +885,29 @@ export const createTrainingService = ({
     },
 
     getSessionReviews: async (sessionId) => {
+      if (repository.getTrainingSessionContext) {
+        const collection = await repository.getTrainingSessionContext(asString(sessionId));
+        if (!collection) fail('TRAINING_SESSION_NOT_FOUND', 'Nie znaleziono sesji.', 404);
+        const spots = new Map(collection.spots.map((spot) => [spot.versionId, spot]));
+        const keys = new Map(collection.answerKeys.map((key) => [key.id, key]));
+        const reviews = await Promise.all(collection.attempts
+          .sort((left, right) => (
+            (Date.parse(left.answeredAt || left.createdAt || '') || 0)
+            - (Date.parse(right.answeredAt || right.createdAt || '') || 0)
+          ))
+          .map(async (attempt) => {
+            const spot = spots.get(attempt.spotVersionId);
+            const key = keys.get(attempt.answerKeyId);
+            if (!spot || !key || spot.sourceStatus !== 'current') return null;
+            return {
+              spotVersionId: attempt.spotVersionId,
+              answer: attempt.answer,
+              question: toPublicQuestion(spot),
+              feedback: await buildAnswerFeedback({ attempt, spot, key, getHandAnalysisSummary }),
+            };
+          }));
+        return { reviews: reviews.filter(Boolean) };
+      }
       const collection = await repository.getSnapshot();
       const session = collection.sessions.find(({ id }) => id === asString(sessionId));
       if (!session) fail('TRAINING_SESSION_NOT_FOUND', 'Nie znaleziono sesji.', 404);
@@ -611,6 +941,28 @@ export const createTrainingService = ({
     getHistory: async (query = {}) => {
       const filters = validateFilters(query);
       const limit = Math.min(500, Math.max(1, Number.parseInt(query.limit || '100', 10) || 100));
+      if (repository.getTrainingHistoryData) {
+        const data = await repository.getTrainingHistoryData(filters, limit);
+        const spots = new Map(data.spots.map((spot) => [spot.versionId, spot]));
+        const keys = new Map(data.keys.map((key) => [key.id, key]));
+        return {
+          attempts: data.attempts.map((attempt) => {
+            const spot = spots.get(attempt.spotVersionId);
+            const key = keys.get(attempt.answerKeyId);
+            return {
+              ...clone(attempt),
+              exerciseType: spot.exerciseType,
+              gameType: spot.gameType,
+              street: spot.street,
+              heroPosition: spot.question?.heroPosition || 'UNKNOWN',
+              preferredAnswer: key?.preferredAnswer || null,
+              historicalAction: clone(spot.historicalAnswer),
+            };
+          }),
+          sessions: data.sessions.filter((session) => sessionMatches(session, filters)).sort(byNewest).map(toPublicSession),
+          totalAttempts: data.totalAttempts,
+        };
+      }
       const collection = await repository.getSnapshot();
       const spots = new Map(collection.spots.map((spot) => [spot.versionId, spot]));
       const keys = new Map(collection.answerKeys.map((key) => [key.id, key]));
@@ -649,6 +1001,24 @@ export const createTrainingService = ({
       if (!confirmed) fail('TRAINING_RESET_CONFIRMATION_REQUIRED', 'Reset wymaga potwierdzenia.', 409);
       if (!['answer_keys', 'all'].includes(scope)) {
         fail('TRAINING_RESET_SCOPE_INVALID', 'Reset musi dotyczyć kluczy AI albo całej kolekcji.');
+      }
+      if (repository.resetTrainingData) {
+        if (isRefreshRunning()) {
+          fail('TRAINING_RESET_BLOCKED', 'Najpierw zatrzymaj działające zadanie AI.', 409);
+        }
+        const runningJobs = repository.getRefreshJobs
+          ? await repository.getRefreshJobs()
+          : [];
+        if (runningJobs.some(({ status }) => status === 'running' || status === 'stop_requested')) {
+          fail('TRAINING_RESET_BLOCKED', 'Najpierw zatrzymaj działające zadanie AI.', 409);
+        }
+        const removed = await repository.resetTrainingData(scope);
+        return { ...removed, status: await (async () => {
+          if (repository.getTrainingStatusData) {
+            return buildStatusFromDatabase(await repository.getTrainingStatusData(100), 100);
+          }
+          return buildStatus(await repository.getSnapshot());
+        })() };
       }
       const result = await repository.transact((collection, timestamp) => {
         if (isRefreshRunning() || collection.refreshJobs.some(({ status }) => (
@@ -711,6 +1081,27 @@ export const createTrainingService = ({
 
     getStats: async (query = {}) => {
       const filters = validateFilters(query);
+      if (repository.getTrainingStatsRows) {
+        const total = createAccumulator();
+        const byExerciseType = new Map();
+        const byGameType = new Map();
+        const byPosition = new Map();
+        const byStack = new Map();
+        (await repository.getTrainingStatsRows(filters)).forEach((row) => {
+          addGrade(total, row.grade);
+          addGrouped(byExerciseType, row.exercise_type, row.grade);
+          addGrouped(byGameType, row.game_type, row.grade);
+          addGrouped(byPosition, row.hero_position, row.grade);
+          addGrouped(byStack, getStackBucket(row.effective_stack_bb), row.grade);
+        });
+        return {
+          total: finishAccumulator(total),
+          byExerciseType: finishGroups(byExerciseType),
+          byGameType: finishGroups(byGameType),
+          byPosition: finishGroups(byPosition),
+          byStack: finishGroups(byStack),
+        };
+      }
       const collection = await repository.getSnapshot();
       const spots = new Map(collection.spots.map((spot) => [spot.versionId, spot]));
       const total = createAccumulator();

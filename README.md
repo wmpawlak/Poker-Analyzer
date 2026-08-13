@@ -4,7 +4,7 @@ Lokalna aplikacja do przeglądania historii rozdań CoinPoker i generowania rapo
 
 ## Uruchomienie
 
-Wymagany jest Node.js 20 lub nowszy.
+Wymagany jest Node.js 24 lub nowszy.
 
 ```powershell
 npm install
@@ -36,6 +36,27 @@ Najpierw zawsze sprawdź wynik `--dry-run`. Tryb `--apply` jest idempotentny: do
 Zakładka „Wgrane pliki” jest centrum importu: przyjmuje jeden plik TXT albo uruchamia ręczne skanowanie `data/inbox/`. Pliki `data/inbox/*.txt` są celowo ignorowane przez Git i po poprawnym imporcie są archiwizowane. Nie ma włączania, wyłączania ani kasowania źródeł z interfejsu.
 
 Indeks w `data/.cache/` jest pochodny i ignorowany przez Git. Po zmianie kanonicznych danych aplikacja odtworzy go automatycznie; gdy trzeba wymusić odbudowę, zatrzymaj serwer i usuń wyłącznie `data/.cache/poker-index-v1.json.gz`. Nie usuwaj katalogu `data/poker/` ani archiwów źródeł.
+
+### Baza ćwiczeń w Git LFS
+
+Stan ćwiczeń jest przechowywany w `data/poker-training-v2.sqlite`, a poprzedni magazyn pozostaje jako backup migracyjny `data/poker-training-v1.json.migrated-*`. Oba pliki są śledzone przez Git LFS, ponieważ przekraczają limit 100 MiB zwykłego Gita.
+
+Po sklonowaniu repozytorium jednorazowo włącz Git LFS:
+
+```powershell
+git lfs install
+git lfs pull
+```
+
+Przed zapisaniem nowej wersji bazy zatrzymaj aplikację, aby snapshot był spójny. Dodawaj pliki i commituj je jak zwykłe pliki:
+
+```powershell
+git add .gitattributes data/poker-training-v2.sqlite data/poker-training-v1.json.migrated-*
+git commit -m "Zapisz bazę ćwiczeń"
+git push
+```
+
+Nie dodawaj `data/poker-training-v2.sqlite-wal`, `data/poker-training-v2.sqlite-shm`, cache ani `.env.local`. Klucze API pozostają wyłącznie w ignorowanym `.env.local`.
 
 Po sprawdzeniu raportu importu wykonaj ręcznie workflow Git:
 

@@ -400,6 +400,13 @@ test('migration marks answer keys, cursor-processed spots and interrupted batche
         errors: [],
       }],
     }, directory);
+    // Recreate a pre-migration startup: the helper already initialized SQLite
+    // in order to provide stable spot IDs for this legacy JSON fixture.
+    await Promise.all([
+      fs.rm(path.join(directory, 'poker-training-v2.sqlite'), { force: true }),
+      fs.rm(path.join(directory, 'poker-training-v2.sqlite-wal'), { force: true }),
+      fs.rm(path.join(directory, 'poker-training-v2.sqlite-shm'), { force: true }),
+    ]);
     const migratedRepository = createTrainingRepository({ dataDirectory: directory });
     const migrated = await migratedRepository.getSnapshot();
     assert.equal(migrated.spots.find(({ versionId }) => versionId === withKey.versionId).aiFirstSentAt, '2026-08-01T00:00:00.000Z');

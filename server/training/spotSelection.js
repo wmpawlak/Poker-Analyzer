@@ -43,6 +43,8 @@ const groupKey = (spot) => [
 
 const isAiEligible = (spot) => {
   if (!spot?.versionId || spot?.sourceStatus !== 'current') return false;
+  if (spot.localValid === false) return false;
+  if (spot.localValid === true) return true;
   const options = Array.isArray(spot.answerOptions) ? spot.answerOptions : [];
   if (options.length < 2) return false;
   try {
@@ -53,7 +55,7 @@ const isAiEligible = (spot) => {
   }
 };
 
-const makeUnits = (spots) => {
+const makeUnits = (spots, { requireAiEligible = true } = {}) => {
   const units = new Map();
   spots.forEach((spot) => {
     const scope = `${asString(spot.exerciseType) || 'unknown'}:${asString(spot.gameType) || 'unknown'}`;
@@ -66,7 +68,7 @@ const makeUnits = (spots) => {
   });
   return [...units.values()]
     .filter((unit) => {
-      if (unit.spots.some((spot) => !isAiEligible(spot))) return false;
+      if (requireAiEligible && unit.spots.some((spot) => !isAiEligible(spot))) return false;
       if (unit.spots[0]?.exerciseType !== 'cbet_barrels') return true;
       const expectedLength = Number(unit.spots[0]?.sequenceLength) || 1;
       const stages = new Set(unit.spots.map(({ stage }) => stage));
@@ -85,6 +87,96 @@ const makeUnits = (spots) => {
       };
     })
     .sort((left, right) => newestFirst(left.newest, right.newest) || left.id.localeCompare(right.id));
+};
+
+const byAttemptedAt = (left, right) => (
+  (Date.parse(right?.answeredAt || right?.createdAt || '') || 0)
+  - (Date.parse(left?.answeredAt || left?.createdAt || '') || 0)
+);
+
+const sessionSpotOrder = (unit) => [...unit.spots].sort((left, right) => {
+  if (left.exerciseType === 'cbet_barrels' && right.exerciseType === 'cbet_barrels') {
+    const sequence = (Number(left.sequenceIndex) || 0) - (Number(right.sequenceIndex) || 0);
+    if (sequence) return sequence;
+    const stageOrder = { flop: 0, turn: 1, river: 2 };
+    const stage = (stageOrder[left.stage] ?? 99) - (stageOrder[right.stage] ?? 99);
+    if (stage) return stage;
+  }
+  return newestFirst(left, right);
+});
+
+const weightedGrade = (grade) => (
+  grade === 'incorrect' ? 4 : grade === 'acceptable' ? 2 : 1
+);
+
+const pickWeightedUnit = (units, attemptsBySpot, random) => {
+  const unseen = units.filter((unit) => unit.spots.every((spot) => !attemptsBySpot.has(spot.versionId)));
+  const pool = unseen.length > 0
+    ? unseen.map((unit) => ({ unit, weight: 1 }))
+    : units.map((unit) => {
+      const grades = unit.spots
+        .map((spot) => attemptsBySpot.get(spot.versionId)?.grade)
+        .filter(Boolean);
+      const weight = Math.max(...grades.map(weightedGrade), 1);
+      return { unit, weight };
+    });
+  if (pool.length === 0) return null;
+  const total = pool.reduce((sum, item) => sum + item.weight, 0);
+  let target = Math.min(0.999999999, Math.max(0, Number(random()) || 0)) * total;
+  for (const item of pool) {
+    target -= item.weight;
+    if (target < 0) return item.unit;
+  }
+  return pool.at(-1).unit;
+};
+
+/**
+ * Creates the final order stored in session_spots. C-bet episodes are units,
+ * so a two-stage episode is either included in full (flop then turn) or not
+ * included when the remaining limit cannot contain it.
+ */
+export const orderTrainingSessionSpots = (
+  spots,
+  attempts = [],
+  { limit = Number.POSITIVE_INFINITY, random = Math.random } = {},
+) => {
+  if (!(limit === Number.POSITIVE_INFINITY || (Number.isInteger(limit) && limit >= 1))) {
+    throw new Error('Session selection limit must be a positive integer or Infinity.');
+  }
+  const attemptsBySpot = new Map();
+  [...(Array.isArray(attempts) ? attempts : [])].sort(byAttemptedAt).forEach((attempt) => {
+    if (attempt?.spotVersionId && !attemptsBySpot.has(attempt.spotVersionId)) {
+      attemptsBySpot.set(attempt.spotVersionId, attempt);
+    }
+  });
+  const inputOrder = new Map((Array.isArray(spots) ? spots : []).map((spot, index) => [spot.versionId, index]));
+  const units = makeUnits(Array.isArray(spots) ? spots : [], { requireAiEligible: false }).map((unit) => ({
+    ...unit,
+    spots: sessionSpotOrder(unit),
+  })).sort((left, right) => (
+    (inputOrder.get(left.spots[0]?.versionId) ?? Number.MAX_SAFE_INTEGER)
+      - (inputOrder.get(right.spots[0]?.versionId) ?? Number.MAX_SAFE_INTEGER)
+  ));
+  const latestAttempt = [...attemptsBySpot.values()].sort(byAttemptedAt)[0];
+  const latestUnitId = latestAttempt
+    ? units.find((unit) => unit.spots.some(({ versionId }) => versionId === latestAttempt.spotVersionId))?.id
+    : null;
+  const ordered = [];
+
+  while (units.length > 0 && ordered.length < limit) {
+    let candidates = units.filter((unit) => ordered.length + unit.spots.length <= limit);
+    if (candidates.length === 0) break;
+    if (candidates.length > 1 && latestUnitId) {
+      const withoutImmediateRepeat = candidates.filter((unit) => unit.id !== latestUnitId);
+      if (withoutImmediateRepeat.length > 0) candidates = withoutImmediateRepeat;
+    }
+    const chosen = pickWeightedUnit(candidates, attemptsBySpot, random);
+    if (!chosen) break;
+    const index = units.indexOf(chosen);
+    if (index >= 0) units.splice(index, 1);
+    ordered.push(...chosen.spots);
+  }
+  return ordered;
 };
 
 /**
@@ -126,6 +218,10 @@ export const isTrainingSpotAiEligible = isAiEligible;
 
 export const getTrainingSpotAiEligibilityError = (spot) => {
   if (!spot?.versionId || spot?.sourceStatus !== 'current') return 'Spot nie pochodzi z aktualnego źródła.';
+  if (spot.localValid === false) {
+    return spot.localValidationError || 'Spot nie spełnia lokalnego kontraktu AI.';
+  }
+  if (spot.localValid === true) return null;
   if (!Array.isArray(spot.answerOptions) || spot.answerOptions.length < 2) {
     return 'Spot ma mniej niż dwie poprawne odpowiedzi.';
   }

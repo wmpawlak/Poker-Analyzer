@@ -1,6 +1,8 @@
 import { GAME_VARIANTS, detectGameVariant, normalizeRawHandText } from '../../src/parser/pokerParser.js';
 import { computeDecisionCardFacts } from './decisionCardFacts.js';
 
+export const TRAINING_EXTRACTOR_VERSION = 1;
+
 const EPSILON = 0.000001;
 const SUPPORTED_STREETS = new Set(['PRE_FLOP', 'FLOP', 'TURN', 'RIVER']);
 const POSITION_MAPS = Object.freeze({

@@ -1,5 +1,10 @@
+# Dependencies and generated build output
+node_modules/
+dist/
+dist-ssr/
+
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,15 +12,27 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
 *.local
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.crt
+**/secrets/
+**/private/
+**/*credentials*.json
+**/*secret*.json
 
-# Editor directories and files
+# Editor directories and OS files
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
@@ -23,11 +40,11 @@ dist-ssr
 *.sln
 *.sw?
 
-# Pochodne indeksy danych oraz pliki atomowych zapisów nie są kanonicznymi danymi.
+# Derived indexes and temporary/atomic data files.
+# Canonical application data, including SQLite and migration backups, is tracked.
 data/.cache/
-data/poker/**/*.tmp
-data/poker/**/*.staging
-data/.poker-training-v1.json.*.tmp
-data/inbox/*.txt
-data/inbox/**/*.tmp
-data/poker-training-v1.json
+data/**/*.tmp
+data/**/*.staging
+data/**/*.lock
+data/**/*.sqlite-wal
+data/**/*.sqlite-shm
