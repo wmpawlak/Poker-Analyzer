@@ -54,7 +54,15 @@ const preview = {
     'shared.hands': { id: 'shared.hands', label: 'Liczba rąk', value: 30 },
   },
   sessionEvidence: {
-    coverage: { sessionsInPeriod: 2, availableReports: 1, usedReports: 1 },
+    coverage: {
+      sessionsInPeriod: 2,
+      availableReports: 1,
+      usedReports: 1,
+      byGameType: {
+        cash: { sessionsInPeriod: 2, availableReports: 1, usedReports: 1 },
+        tournament: { sessionsInPeriod: 0, availableReports: 0, usedReports: 0 },
+      },
+    },
   },
   canAnalyze: true,
   warning: 'Wstępny profil.',
@@ -80,6 +88,12 @@ const analysisResponse = {
     reliabilityId: 'PRELIMINARY',
     summary: 'Raport gracza.',
   },
+  referenceWarnings: [{
+    path: 'summaryMetricIds',
+    kind: 'metric',
+    reason: 'unknown',
+    discardedIds: ['invented.metric'],
+  }],
 };
 
 const createStore = ({ datasetRevision = 'revision-player' } = {}) => {
@@ -106,6 +120,7 @@ test('stary localStorage gracza jest migrowany do historii z reportId', () => {
 
   assert.equal(reports.length, 1);
   assert.equal(reports[0].reportId, 'legacy-player-v1-1');
+  assert.deepEqual(reports[0].referenceWarnings, []);
   assert.equal(JSON.parse(legacyStorage.getItem(PLAYER_AI_ANALYSES_CACHE_KEY))[0].reportId, 'legacy-player-v1-1');
 });
 
@@ -208,6 +223,7 @@ test('każda analiza wykonuje jedno żądanie, dopisuje historię i wybiera nowy
     assert.equal(state.selectedPlayerAnalysisReportId, state.playerAiAnalyses[1].reportId);
     assert.equal(state.playerAiAnalyses[1].snapshot.metrics.shared.hands, 30);
     assert.equal(state.playerAiAnalyses[1].sourceCoverage.usedReports, 1);
+    assert.deepEqual(state.playerAiAnalyses[1].referenceWarnings, analysisResponse.referenceWarnings);
     assert.equal(JSON.parse(storage.getItem(PLAYER_AI_ANALYSES_CACHE_KEY)).length, 2);
   } finally {
     globalThis.fetch = originalFetch;

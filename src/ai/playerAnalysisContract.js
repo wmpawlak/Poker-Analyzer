@@ -294,77 +294,6 @@ const withFingerprint = (value) => {
 export const buildPlayerAnalysisInput = (playerData) => withFingerprint(playerData);
 export const validatePlayerAnalysisInput = (playerInput) => withFingerprint(playerInput);
 
-const referenceProperties = {
-  metricIds: { type: 'array', minItems: 1, maxItems: 5, items: { type: 'string' } },
-  sessionReportIds: { type: 'array', maxItems: 5, items: { type: 'string' } },
-};
-
-const findingSchema = {
-  type: 'object',
-  properties: {
-    title: { type: 'string' },
-    description: { type: 'string' },
-    ...referenceProperties,
-  },
-  required: ['title', 'description', 'metricIds', 'sessionReportIds'],
-  additionalProperties: false,
-};
-
-const leakSchema = {
-  type: 'object',
-  properties: {
-    title: { type: 'string' },
-    description: { type: 'string' },
-    correction: { type: 'string' },
-    ...referenceProperties,
-  },
-  required: ['title', 'description', 'correction', 'metricIds', 'sessionReportIds'],
-  additionalProperties: false,
-};
-
-const prioritySchema = {
-  type: 'object',
-  properties: {
-    title: { type: 'string' },
-    description: { type: 'string' },
-    exercise: { type: 'string' },
-    ...referenceProperties,
-  },
-  required: ['title', 'description', 'exercise', 'metricIds', 'sessionReportIds'],
-  additionalProperties: false,
-};
-
-const categoryInsightSchema = {
-  type: 'object',
-  properties: {
-    category: { type: 'string', enum: CATEGORY_TYPES },
-    summary: { type: 'string' },
-    ...referenceProperties,
-  },
-  required: ['category', 'summary', 'metricIds', 'sessionReportIds'],
-  additionalProperties: false,
-};
-
-export const playerAnalysisResponseSchema = {
-  type: 'object',
-  properties: {
-    profileStyleId: { type: 'string', enum: [...STYLE_IDS] },
-    reliabilityId: { type: 'string', enum: [...RELIABILITY_IDS] },
-    summary: { type: 'string' },
-    summaryMetricIds: referenceProperties.metricIds,
-    summarySessionReportIds: referenceProperties.sessionReportIds,
-    strengths: { type: 'array', maxItems: 5, items: findingSchema },
-    leaks: { type: 'array', maxItems: 5, items: leakSchema },
-    trainingPriorities: { type: 'array', minItems: 3, maxItems: 3, items: prioritySchema },
-    categoryInsights: { type: 'array', minItems: 1, maxItems: 2, items: categoryInsightSchema },
-  },
-  required: [
-    'profileStyleId', 'reliabilityId', 'summary', 'summaryMetricIds',
-    'summarySessionReportIds', 'strengths', 'leaks', 'trainingPriorities', 'categoryInsights',
-  ],
-  additionalProperties: false,
-};
-
 const withoutArrayCardinalityConstraints = (schema) => {
   if (Array.isArray(schema)) return schema.map(withoutArrayCardinalityConstraints);
   if (!isObject(schema)) return schema;
@@ -373,9 +302,293 @@ const withoutArrayCardinalityConstraints = (schema) => {
     .map(([key, value]) => [key, withoutArrayCardinalityConstraints(value)]));
 };
 
+const schemaReference = (name) => ({ $ref: `#/$defs/${name}` });
+
+const createPlayerAnalysisResponseSchema = ({
+  metricIds = [],
+  sessionReportIds = [],
+  categories = CATEGORY_TYPES,
+} = {}) => {
+  const hasSessionReports = sessionReportIds.length > 0;
+  const referenceProperties = {
+    metricIds: schemaReference('metricIds'),
+    sessionReportIds: schemaReference('sessionReportIds'),
+  };
+  const definitions = {
+    metricIds: {
+      type: 'array',
+      minItems: 1,
+      maxItems: 5,
+      items: { type: 'string', enum: metricIds },
+    },
+    sessionReportIds: {
+      type: 'array',
+      maxItems: hasSessionReports ? 5 : 0,
+      // JSON Schema providers require a non-empty enum. maxItems: 0 keeps
+      // this placeholder unreachable when no session report is available.
+      items: {
+        type: 'string',
+        enum: hasSessionReports ? sessionReportIds : ['__no_available_session_report__'],
+      },
+    },
+    finding: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        description: { type: 'string' },
+        ...referenceProperties,
+      },
+      required: ['title', 'description', 'metricIds', 'sessionReportIds'],
+      additionalProperties: false,
+    },
+    leak: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        description: { type: 'string' },
+        correction: { type: 'string' },
+        ...referenceProperties,
+      },
+      required: ['title', 'description', 'correction', 'metricIds', 'sessionReportIds'],
+      additionalProperties: false,
+    },
+    priority: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        description: { type: 'string' },
+        exercise: { type: 'string' },
+        ...referenceProperties,
+      },
+      required: ['title', 'description', 'exercise', 'metricIds', 'sessionReportIds'],
+      additionalProperties: false,
+    },
+    categoryInsight: {
+      type: 'object',
+      properties: {
+        category: { type: 'string', enum: categories },
+        summary: { type: 'string' },
+        ...referenceProperties,
+      },
+      required: ['category', 'summary', 'metricIds', 'sessionReportIds'],
+      additionalProperties: false,
+    },
+  };
+
+  return {
+    type: 'object',
+    $defs: definitions,
+    properties: {
+      profileStyleId: { type: 'string', enum: [...STYLE_IDS] },
+      reliabilityId: { type: 'string', enum: [...RELIABILITY_IDS] },
+      summary: { type: 'string' },
+      summaryMetricIds: schemaReference('metricIds'),
+      summarySessionReportIds: schemaReference('sessionReportIds'),
+      strengths: { type: 'array', maxItems: 5, items: schemaReference('finding') },
+      leaks: { type: 'array', maxItems: 5, items: schemaReference('leak') },
+      trainingPriorities: {
+        type: 'array',
+        minItems: 3,
+        maxItems: 3,
+        items: schemaReference('priority'),
+      },
+      categoryInsights: {
+        type: 'array',
+        minItems: categories.length,
+        maxItems: categories.length,
+        items: schemaReference('categoryInsight'),
+      },
+    },
+    required: [
+      'profileStyleId', 'reliabilityId', 'summary', 'summaryMetricIds',
+      'summarySessionReportIds', 'strengths', 'leaks', 'trainingPriorities', 'categoryInsights',
+    ],
+    additionalProperties: false,
+  };
+};
+
+const getSchemaContext = (input = {}) => {
+  const gameType = asString(input.criteria?.gameType).toLowerCase();
+  return {
+    metricIds: isObject(input.metricCatalog) ? Object.keys(input.metricCatalog) : [],
+    sessionReportIds: Array.isArray(input.sessionEvidence?.reports)
+      ? unique(input.sessionEvidence.reports.map((report) => asString(report?.reportId)).filter(Boolean))
+      : [],
+    categories: GAME_TYPES.includes(gameType) && gameType !== 'both'
+      ? expectedCategories(gameType)
+      : CATEGORY_TYPES,
+  };
+};
+
+export const buildPlayerAnalysisResponseSchema = (input = {}) => (
+  createPlayerAnalysisResponseSchema(getSchemaContext(input))
+);
+
+export const buildPlayerAnalysisGeminiResponseSchema = (input = {}) => (
+  buildPlayerAnalysisResponseSchema(input)
+);
+
+// Kept as a generic export for callers that only need the response shape. The
+// provider path uses the dynamic builders above so references are constrained
+// by the current player-analysis input.
+export const playerAnalysisResponseSchema = createPlayerAnalysisResponseSchema();
 export const playerAnalysisGeminiResponseSchema = withoutArrayCardinalityConstraints(
   playerAnalysisResponseSchema,
 );
+
+export const PLAYER_ANALYSIS_REFERENCE_WARNING_REASONS = [
+  'missing',
+  'unknown',
+  'duplicate',
+  'wrongCategory',
+  'limit',
+];
+
+const normalizeDiscardedReferenceId = (value) => asString(value);
+
+const createReferenceWarningCollector = () => {
+  const warnings = [];
+  const byKey = new Map();
+  return {
+    add: ({ path, kind, reason, discardedId }) => {
+      const key = `${path}|${kind}|${reason}`;
+      const existing = byKey.get(key);
+      if (existing) {
+        existing.discardedIds.push(normalizeDiscardedReferenceId(discardedId));
+        return;
+      }
+      const warning = {
+        path,
+        kind,
+        reason,
+        discardedIds: [normalizeDiscardedReferenceId(discardedId)],
+      };
+      byKey.set(key, warning);
+      warnings.push(warning);
+    },
+    get: () => warnings,
+  };
+};
+
+const normalizeReferenceList = ({
+  value,
+  input,
+  category = '',
+  path,
+  kind,
+  warningCollector,
+}) => {
+  if (!Array.isArray(value)) return value;
+  const normalized = [];
+  const seen = new Set();
+  const sourceByReportId = kind === 'sessionReport'
+    ? new Map(input.sessionEvidence.reports.map((source) => [source.reportId, source]))
+    : null;
+
+  value.forEach((rawId) => {
+    const id = asString(rawId);
+    if (!id) {
+      warningCollector.add({ path, kind, reason: 'missing', discardedId: id });
+      return;
+    }
+    if (seen.has(id)) {
+      warningCollector.add({ path, kind, reason: 'duplicate', discardedId: id });
+      return;
+    }
+
+    const known = kind === 'metric'
+      ? Object.hasOwn(input.metricCatalog, id)
+      : sourceByReportId.has(id);
+    if (!known) {
+      warningCollector.add({ path, kind, reason: 'unknown', discardedId: id });
+      return;
+    }
+
+    const belongsToCategory = !category || (kind === 'metric'
+      ? id.startsWith('shared.') || id.startsWith(`${category}.`)
+      : sourceByReportId.get(id).type === category);
+    if (!belongsToCategory) {
+      warningCollector.add({ path, kind, reason: 'wrongCategory', discardedId: id });
+      return;
+    }
+    if (normalized.length >= 5) {
+      warningCollector.add({ path, kind, reason: 'limit', discardedId: id });
+      return;
+    }
+    seen.add(id);
+    normalized.push(id);
+  });
+
+  return normalized;
+};
+
+const normalizeReferenceFields = ({
+  value,
+  input,
+  pathPrefix,
+  category = '',
+  warningCollector,
+}) => {
+  if (!isObject(value)) return;
+  value.metricIds = normalizeReferenceList({
+    value: value.metricIds,
+    input,
+    category,
+    path: `${pathPrefix}.metricIds`,
+    kind: 'metric',
+    warningCollector,
+  });
+  value.sessionReportIds = normalizeReferenceList({
+    value: value.sessionReportIds,
+    input,
+    category,
+    path: `${pathPrefix}.sessionReportIds`,
+    kind: 'sessionReport',
+    warningCollector,
+  });
+};
+
+export const normalizePlayerAnalysisReferences = (analysis, input) => {
+  if (!isObject(analysis)) return { analysis, referenceWarnings: [] };
+  const normalized = clone(analysis);
+  const warningCollector = createReferenceWarningCollector();
+  normalized.summaryMetricIds = normalizeReferenceList({
+    value: normalized.summaryMetricIds,
+    input,
+    path: 'summaryMetricIds',
+    kind: 'metric',
+    warningCollector,
+  });
+  normalized.summarySessionReportIds = normalizeReferenceList({
+    value: normalized.summarySessionReportIds,
+    input,
+    path: 'summarySessionReportIds',
+    kind: 'sessionReport',
+    warningCollector,
+  });
+  ['strengths', 'leaks', 'trainingPriorities'].forEach((field) => {
+    if (!Array.isArray(normalized[field])) return;
+    normalized[field].forEach((finding, index) => normalizeReferenceFields({
+      value: finding,
+      input,
+      pathPrefix: `${field}[${index}]`,
+      warningCollector,
+    }));
+  });
+  if (Array.isArray(normalized.categoryInsights)) {
+    normalized.categoryInsights.forEach((insight, index) => normalizeReferenceFields({
+      value: insight,
+      input,
+      category: asString(insight?.category).toLowerCase(),
+      pathPrefix: `categoryInsights[${index}]`,
+      warningCollector,
+    }));
+  }
+  return {
+    analysis: normalized,
+    referenceWarnings: warningCollector.get(),
+  };
+};
 
 const validateReferences = ({
   metricIds,
@@ -387,7 +600,7 @@ const validateReferences = ({
   const reports = Array.isArray(sessionReportIds)
     ? sessionReportIds.map(asString).filter(Boolean)
     : null;
-  if (!metrics || metrics.length === 0 || metrics.length > 5
+  if (!metrics || metrics.length > 5
     || unique(metrics).length !== metrics.length
     || metrics.some((metricId) => !Object.hasOwn(input.metricCatalog, metricId))) {
     throw new Error('Wniosek analizy gracza wskazuje obcą, powieloną albo brakującą metrykę.');
@@ -516,15 +729,23 @@ export const buildPlayerAnalysisModelContext = (input) => ({
   },
 });
 
-export const buildPlayerAnalysisPrompt = (input) => `Jesteś profesjonalnym trenerem pokera. Tworzysz przekrojową analizę statystyk Hero po polsku.
+const formatAllowedIds = (ids) => ids.length > 0 ? ids.join(', ') : '(brak dostępnych identyfikatorów)';
+
+export const buildPlayerAnalysisPrompt = (input) => {
+  const metricIds = Object.keys(input.metricCatalog);
+  const sessionReportIds = input.sessionEvidence.reports.map((report) => report.reportId);
+  return `Jesteś profesjonalnym trenerem pokera. Tworzysz przekrojową analizę statystyk Hero po polsku.
 
 Pracuj wyłącznie na lokalnych metrykach i opcjonalnych skrótach raportów sesji przekazanych poniżej. Nie odtwarzaj historii rąk, kart ani akcji. Wynik finansowy jest kontekstem, a nie oceną jakości decyzji.
 
-Twarde fakty lokalne są autorytatywne: styl to ${input.profileStyleId}, a wiarygodność to ${input.reliabilityId}. Każdy wniosek — podsumowanie, mocna strona, leak, priorytet i sekcja typu gry — musi wskazać od 1 do 5 dokładnych metricIds z metricCatalog. sessionReportIds są opcjonalne i mogą być puste; jeżeli ich używasz, wolno wskazać wyłącznie reportId z sessionEvidence.reports. Nie wymyślaj metryk ani źródeł.
+Twarde fakty lokalne są autorytatywne: styl to ${input.profileStyleId}, a wiarygodność to ${input.reliabilityId}. Dozwolone metricIds to wyłącznie: ${formatAllowedIds(metricIds)}. Dozwolone sessionReportIds to wyłącznie: ${formatAllowedIds(sessionReportIds)}. Każdy wniosek — podsumowanie, mocna strona, leak, priorytet i sekcja typu gry — powinien wskazać od 1 do 5 dokładnych metricIds z metricCatalog. sessionReportIds są opcjonalne i mogą być puste. Nie wymyślaj metryk ani źródeł.
 
-Nie twórz wspólnego wyniku ani winrate dla Cash i Turniejów. W trybie both zwróć dokładnie dwie osobne categoryInsights: cash i tournament, z odwołaniami wyłącznie do metryk wspólnych lub właściwej kategorii. strengths i leaks mają najwyżej po 5 pozycji. Każdy leak zawiera praktyczną correction. trainingPriorities zawiera dokładnie 3 różne priorytety, każdy z konkretnym exercise. Przy wiarygodności PRELIMINARY używaj ostrożnego języka.
+Nie powtarzaj tego samego metricId ani sessionReportId w obrębie jednej listy referencji jednego wniosku. Referencje muszą pozostać zgodne z kategorią: w categoryInsights dla Cash używaj tylko metryk wspólnych lub Cash i tylko raportów Cash, a dla Turniejów analogicznie. Jeżeli skrót raportu sesji wspiera wniosek, traktuj go jako sygnał pomocniczy, nie jako dowód z pojedynczej sesji.
+
+Nie twórz wspólnego wyniku ani winrate dla Cash i Turniejów. W trybie both zwróć dokładnie dwie osobne categoryInsights: cash i tournament, z odwołaniami wyłącznie do metryk wspólnych lub właściwej kategorii. Syntetyzuj lokalne statystyki z powtarzalnymi wzorcami znalezionymi w skrótach raportów sesji; pojedynczego raportu nie przedstawiaj jako ogólnej prawidłowości. strengths i leaks mają najwyżej po 5 pozycji. Każdy leak zawiera praktyczną correction. trainingPriorities zawiera dokładnie 3 różne priorytety, każdy z konkretnym exercise. Zachowaj format: summary, osobne wnioski categoryInsights dla Cash/Turniejów, strengths, leaks z korektami oraz trzy priorytety treningowe. Przy wiarygodności PRELIMINARY używaj ostrożnego języka.
 
 Zwróć wyłącznie JSON zgodny ze schematem.
 
 Dane analizy gracza:
 ${stableStringify(buildPlayerAnalysisModelContext(input))}`;
+};

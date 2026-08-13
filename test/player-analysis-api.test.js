@@ -243,7 +243,64 @@ test('analiza przelicza dane kanoniczne i wykonuje dokładnie jedno płatne żą
   assert.equal(body.fingerprint.startsWith('fnv1a-'), true);
   assert.deepEqual(body.model, { id: 'gpt-5.6-terra', name: 'GPT-5.6 Terra' });
   assert.deepEqual(body.analysis, providerAnalysis);
+  assert.deepEqual(body.referenceWarnings, []);
   assert.deepEqual(body.sessionEvidence.reports, []);
+});
+
+test('wadliwe referencje są oczyszczane z ostrzeżeniami bez ponowienia żądania', async (t) => {
+  let providerCalls = 0;
+  let providerAnalysis;
+  const { baseUrl, snapshot } = await startPlayerApi(t, {
+    environment: { OPENAI_API_KEY: 'test-openai-key' },
+    fetchImpl: async () => {
+      providerCalls += 1;
+      return jsonResponse({
+        status: 'completed',
+        output: [{
+          type: 'message',
+          content: [{ type: 'output_text', text: JSON.stringify(providerAnalysis) }],
+        }],
+      });
+    },
+  });
+  const preview = (await getPreview(baseUrl, '2026-08-02')).body;
+  providerAnalysis = {
+    ...makeProviderAnalysis(preview),
+    summaryMetricIds: ['', 'invented.metric'],
+    summarySessionReportIds: ['', 'invented-report'],
+    categoryInsights: [{
+      ...makeProviderAnalysis(preview).categoryInsights[0],
+      metricIds: ['invented.metric'],
+    }],
+  };
+
+  const response = await fetch(`${baseUrl}/api/ai/analyze-player`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      modelId: 'gpt-5.6-terra',
+      gameType: 'cash',
+      dateTo: '2026-08-02',
+      datasetRevision: snapshot.datasetRevision,
+    }),
+  });
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(providerCalls, 1);
+  assert.deepEqual(body.analysis.summaryMetricIds, []);
+  assert.deepEqual(body.analysis.summarySessionReportIds, []);
+  assert.equal(body.analysis.categoryInsights[0].metricIds.length, 0);
+  assert.deepEqual(
+    body.referenceWarnings.map(({ path, reason }) => ({ path, reason })),
+    [
+      { path: 'summaryMetricIds', reason: 'missing' },
+      { path: 'summaryMetricIds', reason: 'unknown' },
+      { path: 'summarySessionReportIds', reason: 'missing' },
+      { path: 'summarySessionReportIds', reason: 'unknown' },
+      { path: 'categoryInsights[0].metricIds', reason: 'unknown' },
+    ],
+  );
 });
 
 test('niepełna odpowiedź jest odrzucana bez retry i fallbacku', async (t) => {

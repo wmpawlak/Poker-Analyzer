@@ -277,3 +277,13 @@ test('starszy cache bez playerAnalyses migruje do pustej historii, a raporty gra
     ['same', 'first', 'second'],
   );
 });
+
+test('starsze raporty gracza bez ostrzeżeń normalizują referenceWarnings do pustej tablicy', () => {
+  const cache = {
+    ...createEmptyAiAnalysesCache(),
+    playerAnalyses: [playerReport('legacy-without-warnings')],
+  };
+
+  assert.deepEqual(normalizeServerAiAnalysesCache(cache).playerAnalyses[0].referenceWarnings, []);
+  assert.deepEqual(normalizeAiAnalysesCache(cache).playerAnalyses[0].referenceWarnings, []);
+});

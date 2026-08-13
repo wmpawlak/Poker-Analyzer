@@ -77,6 +77,12 @@ export const ProfileView = ({
   const previewErrorMessage = analysisPreviewError?.message || analysisPreviewError;
   const analysisErrorMessage = analysisError?.message || analysisError;
   const coverage = analysisPreview?.sessionEvidence?.coverage;
+  const coverageFor = (category) => coverage?.byGameType?.[category] || {
+    usedReports: analysisPreview?.criteria?.gameType === category ? coverage?.usedReports || 0 : 0,
+    availableReports: analysisPreview?.criteria?.gameType === category ? coverage?.availableReports || 0 : 0,
+  };
+  const cashCoverage = coverageFor('cash');
+  const tournamentCoverage = coverageFor('tournament');
 
   return (
     <div data-testid="profile-view" className="mx-auto flex max-w-6xl flex-col gap-4 animate-in fade-in duration-300">
@@ -202,6 +208,10 @@ export const ProfileView = ({
                     <div className="mt-1 break-words text-sm font-black text-slate-800">{value}</div>
                   </div>
                 ))}
+              </div>
+              <div data-testid="player-analysis-coverage-by-game-type" className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs font-bold text-slate-600">
+                <span>Cash: {cashCoverage.usedReports} z {cashCoverage.availableReports} raportów</span>
+                <span>Turnieje: {tournamentCoverage.usedReports} z {tournamentCoverage.availableReports} raportów</span>
               </div>
               {analysisPreview.warning && (
                 <div role="status" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900">{analysisPreview.warning}</div>

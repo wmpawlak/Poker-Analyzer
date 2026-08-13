@@ -26,9 +26,10 @@ import {
   validateSessionGroupAnalysisInput,
 } from '../../src/ai/sessionGroupAnalysisContract.js';
 import {
+  buildPlayerAnalysisGeminiResponseSchema,
+  buildPlayerAnalysisResponseSchema,
   buildPlayerAnalysisPrompt,
-  playerAnalysisGeminiResponseSchema,
-  playerAnalysisResponseSchema,
+  normalizePlayerAnalysisReferences,
   validatePlayerAnalysis,
   validatePlayerAnalysisInput,
 } from '../../src/ai/playerAnalysisContract.js';
@@ -311,6 +312,9 @@ export const analyzePlayerWithModel = async ({
   }
 
   const adapter = providerAdapters[definition.provider];
+  const responseSchema = definition.provider === 'gemini'
+    ? buildPlayerAnalysisGeminiResponseSchema(validatedPlayer)
+    : buildPlayerAnalysisResponseSchema(validatedPlayer);
   const openAiPlayerProfile = definition.provider === 'openai'
     ? {
       maxOutputTokens: 32_000,
@@ -322,16 +326,17 @@ export const analyzePlayerWithModel = async ({
     modelId: definition.id,
     apiKey: environment[definition.environmentKey],
     prompt: buildPlayerAnalysisPrompt(validatedPlayer),
-    schema: definition.provider === 'gemini'
-      ? playerAnalysisGeminiResponseSchema
-      : playerAnalysisResponseSchema,
+    schema: responseSchema,
     schemaName: 'poker_player_analysis',
     fetchImpl,
     ...openAiPlayerProfile,
   });
   let validatedAnalysis;
+  let referenceWarnings;
   try {
-    validatedAnalysis = validatePlayerAnalysis(analysis, validatedPlayer);
+    const normalized = normalizePlayerAnalysisReferences(analysis, validatedPlayer);
+    validatedAnalysis = validatePlayerAnalysis(normalized.analysis, validatedPlayer);
+    referenceWarnings = normalized.referenceWarnings;
   } catch (error) {
     throw new AiServiceError(error.message, {
       status: 422,
@@ -343,5 +348,6 @@ export const analyzePlayerWithModel = async ({
     model: getPublicAiModel(definition),
     fingerprint: validatedPlayer.fingerprint,
     analysis: validatedAnalysis,
+    referenceWarnings,
   };
 };

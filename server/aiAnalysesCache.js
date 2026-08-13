@@ -138,7 +138,23 @@ export const migrateLocalStorageAiAnalyses = (value, importedAt = new Date().toI
   });
 };
 
-const normalizeReportList = (reports, label) => {
+const normalizeReferenceWarnings = (warnings) => (
+  Array.isArray(warnings)
+    ? warnings
+      .filter((warning) => isObject(warning))
+      .map((warning) => ({
+        path: typeof warning.path === 'string' ? warning.path.trim() : '',
+        kind: typeof warning.kind === 'string' ? warning.kind.trim() : '',
+        reason: typeof warning.reason === 'string' ? warning.reason.trim() : '',
+        discardedIds: Array.isArray(warning.discardedIds)
+          ? warning.discardedIds.map((id) => String(id ?? '').trim())
+          : [],
+      }))
+      .filter((warning) => warning.path && warning.kind && warning.reason)
+    : []
+);
+
+const normalizeReportList = (reports, label, includeReferenceWarnings = false) => {
   if (!Array.isArray(reports)) throw cacheError(`Cache AI: pole ${label} musi być tablicą.`);
   const seen = new Set();
   return reports.filter((report) => {
@@ -148,7 +164,12 @@ const normalizeReportList = (reports, label) => {
     if (seen.has(reportId)) return false;
     seen.add(reportId);
     return true;
-  }).map(clone);
+  }).map((report) => ({
+    ...clone(report),
+    ...(includeReferenceWarnings
+      ? { referenceWarnings: normalizeReferenceWarnings(report.referenceWarnings) }
+      : {}),
+  }));
 };
 
 const normalizeReportMap = (reports, label) => {
@@ -181,7 +202,11 @@ export const normalizeAiAnalysesCache = (value) => {
     handAnalyses: normalizeReportMap(value.handAnalyses, 'handAnalyses'),
     sessionAnalyses: normalizeReportMap(value.sessionAnalyses, 'sessionAnalyses'),
     sessionGroupAnalyses: normalizeReportList(value.sessionGroupAnalyses, 'sessionGroupAnalyses'),
-    playerAnalyses: normalizeReportList(value.playerAnalyses || [], 'playerAnalyses'),
+    playerAnalyses: normalizeReportList(
+      value.playerAnalyses || [],
+      'playerAnalyses',
+      true,
+    ),
   };
 };
 

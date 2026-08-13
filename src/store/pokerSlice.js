@@ -188,6 +188,9 @@ export const loadPlayerAiAnalyses = (storage = getBrowserStorage()) => {
     .map((report, index) => ({
       ...report,
       reportId: report.reportId || `legacy-player-v1-${index + 1}`,
+      referenceWarnings: Array.isArray(report.referenceWarnings)
+        ? report.referenceWarnings
+        : [],
     }));
   storage.setItem(PLAYER_AI_ANALYSES_CACHE_KEY, JSON.stringify(normalized));
   return normalized;
@@ -1174,6 +1177,9 @@ export const analyzePlayerWithAI = createAsyncThunk(
         },
         sourceCoverage: result.sessionEvidence.coverage,
         sources: result.sessionEvidence.reports,
+        referenceWarnings: Array.isArray(result.referenceWarnings)
+          ? result.referenceWarnings
+          : [],
         analysis: result.analysis,
       };
     } catch (error) {

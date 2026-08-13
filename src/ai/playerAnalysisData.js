@@ -73,6 +73,10 @@ const getCurrentReports = (reports, sessionInput) => (
     ))
 );
 
+const getNewestCurrentReport = (reports, sessionInput) => (
+  getCurrentReports(reports, sessionInput).at(-1) || null
+);
+
 export const selectEvenlySpacedItems = (items, limit = PLAYER_ANALYSIS_MAX_SESSION_REPORTS) => {
   const values = Array.isArray(items) ? items : [];
   const maximum = Math.max(0, Math.floor(Number(limit) || 0));
@@ -117,6 +121,41 @@ const emptyCoverageByType = () => ({
   tournament: { sessionsInPeriod: 0, availableReports: 0, usedReports: 0 },
 });
 
+const normalizeReportLimit = (limit) => Math.max(0, Math.floor(Number(limit) || 0));
+
+const compareEvidenceCandidates = (left, right) => (
+  left.bounds.fromTimestamp - right.bounds.fromTimestamp
+  || reportTimestamp(left.report) - reportTimestamp(right.report)
+  || asString(left.session.id).localeCompare(asString(right.session.id))
+  || asString(left.report.reportId).localeCompare(asString(right.report.reportId))
+);
+
+const selectCandidatesByGameType = (candidates, gameType, maxReports) => {
+  const maximum = Math.min(PLAYER_ANALYSIS_MAX_SESSION_REPORTS, normalizeReportLimit(maxReports));
+  if (maximum === 0) return [];
+
+  const byType = {
+    cash: candidates.filter((candidate) => sessionGameType(candidate.session) === 'cash'),
+    tournament: candidates.filter((candidate) => sessionGameType(candidate.session) === 'tournament'),
+  };
+
+  if (gameType !== PROFILE_GAME_TYPES.BOTH) {
+    return selectEvenlySpacedItems(byType[gameType], maximum);
+  }
+
+  const cashLimit = Math.floor(maximum / 2);
+  const tournamentLimit = maximum - cashLimit;
+  const cashExtra = Math.max(0, tournamentLimit - byType.tournament.length);
+  const tournamentExtra = Math.max(0, cashLimit - byType.cash.length);
+  const cashTarget = Math.min(byType.cash.length, cashLimit + cashExtra);
+  const tournamentTarget = Math.min(byType.tournament.length, tournamentLimit + tournamentExtra);
+
+  return [
+    ...selectEvenlySpacedItems(byType.cash, cashTarget),
+    ...selectEvenlySpacedItems(byType.tournament, tournamentTarget),
+  ].sort(compareEvidenceCandidates);
+};
+
 export const selectPlayerSessionEvidence = ({
   sessions = [],
   sessionAnalyses = {},
@@ -144,15 +183,10 @@ export const selectPlayerSessionEvidence = ({
       hands: session.hands,
       gameType: type,
     });
-    return getCurrentReports(sessionAnalyses?.[session.id], sessionInput)
-      .map((report) => ({ session, bounds, sessionInput, report }));
-  }).sort((left, right) => (
-    left.bounds.fromTimestamp - right.bounds.fromTimestamp
-    || reportTimestamp(left.report) - reportTimestamp(right.report)
-    || asString(left.session.id).localeCompare(asString(right.session.id))
-    || asString(left.report.reportId).localeCompare(asString(right.report.reportId))
-  ));
-  const usedCandidates = selectEvenlySpacedItems(candidates, maxReports);
+    const report = getNewestCurrentReport(sessionAnalyses?.[session.id], sessionInput);
+    return report ? [{ session, bounds, sessionInput, report }] : [];
+  }).sort(compareEvidenceCandidates);
+  const usedCandidates = selectCandidatesByGameType(candidates, normalizedGameType, maxReports);
   const byType = emptyCoverageByType();
   eligibleSessions.forEach(({ session }) => {
     byType[sessionGameType(session)].sessionsInPeriod += 1;

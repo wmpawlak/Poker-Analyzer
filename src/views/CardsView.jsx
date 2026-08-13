@@ -3,9 +3,69 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { CardIcon } from '../components/CardIcon.jsx';
 import { DateRangePicker } from '../components/DateRangePicker.jsx';
-import { Grid, Maximize2, Minimize2, X } from 'lucide-react';
+import { Download, Grid, Maximize2, Minimize2, X } from 'lucide-react';
 import { STARTING_HAND_RANKS } from '../utils/startingHandStats.js';
 import { fetchCards, setDateRange } from '../store/pokerSlice.js';
+
+const HEATMAP_EXPORT_SCALE = 2;
+// Ręcznie zmieniaj tę wartość, aby zwiększyć lub zmniejszyć wszystkie fonty w JPEG-u.
+const HEATMAP_EXPORT_FONT_SCALE = 1.15;
+const getHeatmapExportFont = (weight, size) => (
+  `${weight} ${Math.round(size * HEATMAP_EXPORT_FONT_SCALE)}px Inter, ui-sans-serif, system-ui, sans-serif`
+);
+const HEATMAP_EXPORT_COLORS = {
+  none: { fill: '#ffffff', text: '#cbd5e1', border: '#e2e8f0' },
+  insufficient: { fill: '#cbd5e1', text: '#334155', border: '#94a3b8' },
+  critical: { fill: '#be123c', text: '#ffffff', border: '#9f1239' },
+  pink: { fill: '#fb7185', text: '#4c0519', border: '#f43f5e' },
+  yellow: { fill: '#fcd34d', text: '#451a03', border: '#fbbf24' },
+  'light-green': { fill: '#bef264', text: '#365314', border: '#a3e635' },
+  green: { fill: '#34d399', text: '#022c22', border: '#10b981' },
+  'dark-green': { fill: '#047857', text: '#ffffff', border: '#065f46' },
+};
+
+const getExportCountBadgeColors = (count, maxCount) => {
+  const ratio = count / maxCount;
+  if (ratio >= 0.75) return { fill: '#22c55e', text: '#ffffff' };
+  if (ratio >= 0.55) return { fill: '#a3e635', text: '#365314' };
+  if (ratio >= 0.45) return { fill: '#fde047', text: '#422006' };
+  if (ratio >= 0.20) return { fill: '#fb923c', text: '#ffffff' };
+  return { fill: '#ef4444', text: '#ffffff' };
+};
+
+const drawRoundedRect = (context, x, y, width, height, radius) => {
+  context.beginPath();
+  context.roundRect(x, y, width, height, radius);
+  context.fill();
+  context.stroke();
+};
+
+const getHeatmapGridCells = (type, handsByKey) => {
+  const cells = [];
+
+  STARTING_HAND_RANKS.forEach((firstRank, column) => {
+    let row = 0;
+
+    STARTING_HAND_RANKS.forEach((secondRank) => {
+      let lookupKey;
+      if (firstRank === secondRank) {
+        if (type !== 'suited') return;
+        lookupKey = firstRank + secondRank;
+      } else if (type === 'suited') {
+        if (STARTING_HAND_RANKS.indexOf(firstRank) > STARTING_HAND_RANKS.indexOf(secondRank)) return;
+        lookupKey = firstRank + secondRank + 's';
+      } else {
+        if (STARTING_HAND_RANKS.indexOf(firstRank) > STARTING_HAND_RANKS.indexOf(secondRank)) return;
+        lookupKey = firstRank + secondRank + 'o';
+      }
+
+      const hand = handsByKey.get(lookupKey);
+      if (hand) cells.push({ column, row: row++, firstRank, secondRank, hand });
+    });
+  });
+
+  return cells;
+};
 
 export const CardsView = () => {
   const dispatch = useDispatch();
@@ -19,6 +79,8 @@ export const CardsView = () => {
   const [cardsSortOrder, setCardsSortOrder] = useState('desc');
   const [activeModal, setActiveModal] = useState(null); // 'suited', 'offsuit' lub null
   const [isHeatmapFullscreen, setIsHeatmapFullscreen] = useState(false);
+  const [isExportingHeatmap, setIsExportingHeatmap] = useState(false);
+  const [heatmapExportError, setHeatmapExportError] = useState('');
   const [riverOrShowdownOnly, setRiverOrShowdownOnly] = useState(false);
   const [heatmapLayout, setHeatmapLayout] = useState({ scale: 1, width: 0, height: 0 });
   const heatmapRef = useRef(null);
@@ -94,6 +156,149 @@ export const CardsView = () => {
       document.exitFullscreen();
     }
     setActiveModal(null);
+  };
+
+  const exportHeatmap = async () => {
+    if (!activeModal || isExportingHeatmap) return;
+
+    setIsExportingHeatmap(true);
+    setHeatmapExportError('');
+
+    try {
+      const currentHands = Array.isArray(cards.data?.hands) ? cards.data.hands : [];
+      const handsByKey = new Map(currentHands.map((hand) => [hand.key, hand]));
+      const maxExportCount = Math.max(...currentHands.map((hand) => Number(hand.count) || 0), 1);
+      const exportDateRangeLabel = cardsDateFrom || cardsDateTo
+        ? `${cardsDateFrom || 'początek historii'} — ${cardsDateTo || 'dziś'}`
+        : 'cała historia';
+      const cells = getHeatmapGridCells(activeModal, handsByKey);
+      const cellWidth = 144;
+      const cellHeight = 104;
+      const cellGap = 10;
+      const padding = 64;
+      const headerHeight = 190;
+      const badgeOverflow = 28;
+      const maxRows = Math.max(...cells.map((cell) => cell.row + 1), 1);
+      const gridWidth = STARTING_HAND_RANKS.length * cellWidth + (STARTING_HAND_RANKS.length - 1) * cellGap;
+      const gridHeight = maxRows * cellHeight + (maxRows - 1) * cellGap;
+      const legendTop = headerHeight + gridHeight + 48;
+      const legendHeight = 180;
+      const canvasWidth = padding * 2 + gridWidth + badgeOverflow;
+      const canvasHeight = legendTop + legendHeight + padding;
+      const canvas = document.createElement('canvas');
+      canvas.width = canvasWidth * HEATMAP_EXPORT_SCALE;
+      canvas.height = canvasHeight * HEATMAP_EXPORT_SCALE;
+
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Canvas context is unavailable');
+      context.scale(HEATMAP_EXPORT_SCALE, HEATMAP_EXPORT_SCALE);
+      context.textBaseline = 'middle';
+
+      context.fillStyle = '#f8fafc';
+      context.fillRect(0, 0, canvasWidth, canvasHeight);
+      context.fillStyle = '#ffffff';
+      context.strokeStyle = '#e2e8f0';
+      context.lineWidth = 2;
+      drawRoundedRect(context, 18, 18, canvasWidth - 36, canvasHeight - 36, 26);
+
+      context.fillStyle = '#1e293b';
+      context.font = getHeatmapExportFont(900, 34);
+      context.fillText('Mapa Termiczna Układów', padding, 65);
+      context.fillStyle = '#475569';
+      context.font = getHeatmapExportFont(600, 19);
+      context.fillText(activeModal === 'suited' ? 'Pary & Suited' : 'Off-Suit', padding, 105);
+      context.fillText(`Zakres: ${exportDateRangeLabel}`, padding, 137);
+      if (riverOrShowdownOnly) context.fillText('River / Showdown (Hero)', padding, 162);
+
+      cells.forEach(({ column, row, firstRank, secondRank, hand }) => {
+        const x = padding + column * (cellWidth + cellGap);
+        const y = headerHeight + row * (cellHeight + cellGap);
+        const colors = HEATMAP_EXPORT_COLORS[hand.colorTier] || HEATMAP_EXPORT_COLORS.none;
+        const count = Number(hand.count) || 0;
+        const winRate = Number(hand.winRate) || 0;
+
+        context.fillStyle = colors.fill;
+        context.strokeStyle = colors.border;
+        context.lineWidth = 2;
+        drawRoundedRect(context, x, y, cellWidth, cellHeight, 16);
+
+        context.fillStyle = colors.text;
+        context.textAlign = 'center';
+        context.font = getHeatmapExportFont(900, 25);
+        context.fillText(`${firstRank}-${secondRank}`, x + cellWidth / 2, y + 38);
+        if (count > 0) {
+          context.font = getHeatmapExportFont(900, 20);
+          context.fillText(`${winRate.toFixed(0)}%`, x + cellWidth / 2, y + 70);
+        }
+      });
+
+      // Kółka są rysowane po wszystkich kafelkach, aby zawsze były na pierwszej warstwie.
+      cells.forEach(({ column, row, hand }) => {
+        const count = Number(hand.count) || 0;
+        if (count <= 0) return;
+
+        const x = padding + column * (cellWidth + cellGap);
+        const y = headerHeight + row * (cellHeight + cellGap);
+        const badgeColors = getExportCountBadgeColors(count, maxExportCount);
+        context.fillStyle = badgeColors.fill;
+        context.strokeStyle = '#0f172a';
+        context.lineWidth = 2;
+        context.beginPath();
+        context.arc(x + cellWidth + 4, y + 4, 20, 0, Math.PI * 2);
+        context.fill();
+        context.stroke();
+        context.fillStyle = badgeColors.text;
+        context.textAlign = 'center';
+        context.font = getHeatmapExportFont(900, 15);
+        context.fillText(String(count), x + cellWidth + 4, y + 5);
+      });
+
+      const legend = [
+        ['#047857', '≥ 85%'], ['#34d399', '70–84%'], ['#bef264', '56–69%'],
+        ['#fcd34d', '45–55%'], ['#fb7185', '25–44%'], ['#be123c', '< 25%'],
+        ['#cbd5e1', 'Próba < 10'], ['#ffffff', 'Brak danych'],
+      ];
+      context.textAlign = 'left';
+      context.fillStyle = '#475569';
+      context.font = getHeatmapExportFont(900, 20);
+      context.fillText('LEGENDA KOLORÓW WYGRYWALNOŚCI', padding, legendTop + 14);
+      context.font = getHeatmapExportFont(600, 16);
+      context.fillText('Kółko = liczba rozdań; jego kolor pokazuje częstotliwość względem maksimum.', padding, legendTop + 42);
+      legend.forEach(([color, label], index) => {
+        const itemWidth = 260;
+        const x = padding + (index % 4) * itemWidth;
+        const y = legendTop + 82 + Math.floor(index / 4) * 42;
+        context.fillStyle = color;
+        context.strokeStyle = '#cbd5e1';
+        context.lineWidth = 2;
+        drawRoundedRect(context, x, y - 13, 26, 26, 6);
+        context.fillStyle = '#475569';
+        context.font = getHeatmapExportFont(700, 18);
+        context.fillText(label, x + 38, y);
+      });
+
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob((result) => {
+          if (result) resolve(result);
+          else reject(new Error('JPEG export failed'));
+        }, 'image/jpeg', 0.95);
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const configName = activeModal === 'suited' ? 'pary-suited' : 'off-suit';
+      const rangeName = `${cardsDateFrom || 'poczatek'}-${cardsDateTo || 'dzis'}`.replace(/[^a-z0-9-]+/gi, '-');
+      link.href = url;
+      link.download = `heatmapa-kart-startowych-${configName}-${rangeName}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      setHeatmapExportError('Nie udało się przygotować pliku JPEG.');
+      console.error(error);
+    } finally {
+      setIsExportingHeatmap(false);
+    }
   };
 
   useEffect(() => {
@@ -254,6 +459,16 @@ const renderGrid = (type) => {
             <div className="flex items-center gap-2 self-end xl:self-auto">
               <button
                 type="button"
+                onClick={exportHeatmap}
+                disabled={isExportingHeatmap}
+                className="p-2.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:cursor-wait disabled:opacity-60 rounded-full transition-colors z-50"
+                title="Pobierz aktualną mapę jako JPEG"
+                aria-label="Pobierz aktualną mapę termiczną jako JPEG"
+              >
+                <Download size={24} />
+              </button>
+              <button
+                type="button"
                 onClick={toggleHeatmapFullscreen}
                 className="p-2.5 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors z-50"
                 title={isHeatmapFullscreen ? 'Wyjdź z pełnego ekranu' : 'Otwórz na pełnym ekranie'}
@@ -274,6 +489,7 @@ const renderGrid = (type) => {
               </button>
             </div>
           </div>
+          {heatmapExportError && <div role="alert" className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 shrink-0">{heatmapExportError}</div>}
           
           {/* Legenda */}
           <div className="flex gap-5 mb-4 text-xs font-bold uppercase tracking-wider text-gray-600 flex-wrap bg-slate-50 p-3 rounded-xl border shrink-0">

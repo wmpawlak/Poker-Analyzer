@@ -1,10 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  buildPlayerAnalysisGeminiResponseSchema,
   buildPlayerAnalysisInput,
   buildPlayerAnalysisModelContext,
   buildPlayerAnalysisPrompt,
+  buildPlayerAnalysisResponseSchema,
   createPlayerAnalysisFingerprint,
+  normalizePlayerAnalysisReferences,
   playerAnalysisGeminiResponseSchema,
   playerAnalysisResponseSchema,
   validatePlayerAnalysis,
@@ -112,6 +115,9 @@ test('prompt przekazuje wyłącznie metryki i skróty źródeł oraz jasno wymag
   assert.match(prompt, /Każdy wniosek/);
   assert.match(prompt, /metricIds/);
   assert.match(prompt, /sessionReportIds są opcjonalne/);
+  assert.match(prompt, /Dozwolone metricIds to wyłącznie/);
+  assert.match(prompt, /Nie powtarzaj tego samego metricId/);
+  assert.match(prompt, /powtarzalnymi wzorcami znalezionymi/);
 });
 
 test('walidator przyjmuje kompletny raport z opcjonalnie pustymi źródłami sesji', () => {
@@ -121,6 +127,36 @@ test('walidator przyjmuje kompletny raport z opcjonalnie pustymi źródłami ses
   assert.deepEqual(validatePlayerAnalysis(analysis, input), analysis);
   assert.equal(analysis.trainingPriorities.length, 3);
   assert.deepEqual(analysis.categoryInsights.map(({ category }) => category), ['cash', 'tournament']);
+});
+
+test('normalizator zachowuje kolejność poprawnych referencji i raportuje odrzucone ID', () => {
+  const input = buildInput('both');
+  const metricIds = Object.keys(input.metricCatalog);
+  const analysis = makeAnalysis(input);
+  analysis.summaryMetricIds = [
+    metricIds[0], '', 'unknown.metric', metricIds[0], ...metricIds.slice(1, 7),
+  ];
+  analysis.summarySessionReportIds = [null, 'unknown-report'];
+  analysis.categoryInsights[0].metricIds = ['tournament.winrate'];
+
+  const normalized = normalizePlayerAnalysisReferences(analysis, input);
+
+  assert.deepEqual(normalized.analysis.summaryMetricIds, metricIds.slice(0, 5));
+  assert.deepEqual(normalized.analysis.summarySessionReportIds, []);
+  assert.deepEqual(normalized.analysis.categoryInsights[0].metricIds, []);
+  assert.deepEqual(
+    normalized.referenceWarnings.map(({ path, kind, reason }) => ({ path, kind, reason })),
+    [
+      { path: 'summaryMetricIds', kind: 'metric', reason: 'missing' },
+      { path: 'summaryMetricIds', kind: 'metric', reason: 'unknown' },
+      { path: 'summaryMetricIds', kind: 'metric', reason: 'duplicate' },
+      { path: 'summaryMetricIds', kind: 'metric', reason: 'limit' },
+      { path: 'summarySessionReportIds', kind: 'sessionReport', reason: 'missing' },
+      { path: 'summarySessionReportIds', kind: 'sessionReport', reason: 'unknown' },
+      { path: 'categoryInsights[0].metricIds', kind: 'metric', reason: 'wrongCategory' },
+    ],
+  );
+  assert.doesNotThrow(() => validatePlayerAnalysis(normalized.analysis, input));
 });
 
 test('walidator przyjmuje istniejący reportId, a kontekst modelu pomija fingerprint sesji', () => {
@@ -227,6 +263,34 @@ test('schemat ma wymagane limity, a wariant Gemini pozostawia je walidatorowi se
   assert.equal(playerAnalysisResponseSchema.properties.trainingPriorities.maxItems, 3);
   assert.equal(JSON.stringify(playerAnalysisGeminiResponseSchema).includes('minItems'), false);
   assert.equal(JSON.stringify(playerAnalysisGeminiResponseSchema).includes('maxItems'), false);
+});
+
+test('dynamiczny schemat ogranicza metryki i raporty do bieżącego wejścia oraz używa $defs', () => {
+  const input = buildInput('cash');
+  const reportIds = ['session-report-1', 'session-report-2'];
+  const schemaInput = {
+    ...input,
+    sessionEvidence: {
+      ...input.sessionEvidence,
+      reports: reportIds.map((reportId) => ({ reportId })),
+    },
+  };
+  const schema = buildPlayerAnalysisResponseSchema(schemaInput);
+  const geminiSchema = buildPlayerAnalysisGeminiResponseSchema(schemaInput);
+
+  assert.deepEqual(schema.$defs.metricIds.items.enum, Object.keys(input.metricCatalog));
+  assert.deepEqual(schema.$defs.sessionReportIds.items.enum, reportIds);
+  assert.equal(schema.properties.summaryMetricIds.$ref, '#/$defs/metricIds');
+  assert.equal(schema.properties.strengths.items.$ref, '#/$defs/finding');
+  assert.equal(schema.properties.categoryInsights.minItems, 1);
+  assert.equal(schema.properties.categoryInsights.maxItems, 1);
+  assert.equal(geminiSchema.$defs.metricIds.items.enum.length, Object.keys(input.metricCatalog).length);
+  assert.equal(geminiSchema.$defs.metricIds.minItems, 1);
+  assert.equal(geminiSchema.properties.trainingPriorities.maxItems, 3);
+
+  const noReportsSchema = buildPlayerAnalysisResponseSchema(input);
+  assert.equal(noReportsSchema.$defs.sessionReportIds.maxItems, 0);
+  assert.equal(noReportsSchema.$defs.sessionReportIds.items.enum.length, 1);
 });
 
 test('kontrakt odrzuca próbę dodania wspólnego wyniku ekonomicznego do wejścia', () => {

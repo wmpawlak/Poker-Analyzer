@@ -32,7 +32,7 @@ const analysis = ({ summary, sessionReportIds = [] }) => ({
   ],
   categoryInsights: [{ category: 'cash', summary: 'Stabilny wynik Cash.', metricIds: ['cash.winrate'], sessionReportIds: [] }],
 });
-const makeReport = ({ reportId, analyzedAt, revision, hands, summary, sources = [], sessionReportIds = [] }) => ({
+const makeReport = ({ reportId, analyzedAt, revision, hands, summary, sources = [], sessionReportIds = [], referenceWarnings = [] }) => ({
   reportId,
   analyzedAt,
   datasetRevision: revision,
@@ -54,6 +54,7 @@ const makeReport = ({ reportId, analyzedAt, revision, hands, summary, sources = 
     },
   },
   sources,
+  referenceWarnings,
   analysis: analysis({ summary, sessionReportIds }),
 });
 
@@ -131,4 +132,29 @@ test('źródło otwiera dokładny raport sesji, a brakujące pozostaje widoczne 
   } finally {
     await act(() => root.unmount());
   }
+});
+
+test('raport pokazuje zbiorcze ostrzeżenie i utracone źródła sekcji', () => {
+  const report = makeReport({
+    reportId: 'warnings',
+    analyzedAt: '2026-08-11T10:00:00.000Z',
+    revision: 'revision-current',
+    hands: 80,
+    summary: 'Raport z oczyszczonymi referencjami.',
+    referenceWarnings: [{
+      path: 'summarySessionReportIds',
+      kind: 'sessionReport',
+      reason: 'unknown',
+      discardedIds: ['missing-report'],
+    }],
+  });
+  const html = renderToStaticMarkup(createElement(PlayerAnalysisHistory, {
+    reports: [report],
+    selectedReportId: report.reportId,
+  }));
+
+  assert.match(html, /data-testid="player-analysis-reference-warnings"/);
+  assert.match(html, /Oczyszczono 1 nieprawidłowych referencji/);
+  assert.match(html, /data-testid="player-analysis-missing-sources-warning"/);
+  assert.match(html, /Nie zachowano żadnego źródła sesyjnego/);
 });

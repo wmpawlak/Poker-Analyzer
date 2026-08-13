@@ -137,6 +137,10 @@ Każde ręczne uruchomienie wykonuje dokładnie jedno potencjalnie płatne żąd
 
 Raporty istniejących sesji są wyłącznie opcjonalnym materiałem uzupełniającym. Ich brak nie blokuje analizy i nie uruchamia dodatkowych zapytań AI. Jeżeli raport gracza cytuje raport sesji, link otwiera dokładną historyczną wersję tego raportu; usunięte źródło pozostaje widoczne, ale nieaktywne.
 
+Filtr typu gry jest respektowany przez analizę profilu: `Cash` analizuje tylko Cash, `Turnieje` tylko turnieje, a `Wszystko` łączy oba typy. Dla każdej sesji używany jest najwyżej jeden najnowszy aktualny raport, a liczba źródeł przekazanych do modelu nie przekracza 20. W trybie `Wszystko` limit jest początkowo dzielony po 10 raportów na typ i niewykorzystane miejsca przechodzą do drugiej kategorii. Licznik `availableReports` oznacza liczbę sesji z aktualnym raportem, nie liczbę historycznych wersji.
+
+Podgląd pokazuje pokrycie raportami osobno dla Cash i Turniejów. Jeśli model poda nieprawidłowe identyfikatory referencji, serwer zachowuje poprawną treść, oczyszcza referencje i zapisuje ostrzeżenia w raporcie; nie wykonuje w tym celu dodatkowego płatnego żądania.
+
 Analiza statystyk gracza nie zastępuje zakładki „Analiza wielu sesji”. Profil analizuje wszystkie lokalne metryki z okresu i może działać bez raportów sesji. Analiza wielu sesji jest ręcznym porównaniem od 2 do 5 konkretnie zaznaczonych, wcześniej przeanalizowanych sesji i korzysta z ich raportów jako wymaganych źródeł.
 
 ### Analiza całej sesji

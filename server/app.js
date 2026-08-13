@@ -538,6 +538,9 @@ export const createApiApp = ({
       });
       response.json({
         ...result,
+        referenceWarnings: Array.isArray(result.referenceWarnings)
+          ? result.referenceWarnings
+          : [],
         ...createPlayerAnalysisResponseData(resolved.player, { includeReports: true }),
       });
     } catch (error) {

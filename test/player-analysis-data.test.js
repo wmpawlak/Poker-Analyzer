@@ -260,6 +260,7 @@ test('maksymalnie 20 raportów jest wybieranych deterministycznie i równomierni
     sessionAnalyses,
     gameType: 'cash',
     dateRange: getProfileDateRange('', ''),
+    maxReports: PLAYER_ANALYSIS_MAX_SESSION_REPORTS + 10,
   };
   const first = selectPlayerSessionEvidence(input);
   const second = selectPlayerSessionEvidence(input);
@@ -276,7 +277,44 @@ test('maksymalnie 20 raportów jest wybieranych deterministycznie i równomierni
   assert.deepEqual(first.reports.map((report) => report.reportId), second.reports.map((report) => report.reportId));
 });
 
-test('wszystkie historyczne raporty zgodne z bieżącą sesją pozostają dostępnymi dowodami', () => {
+test('tryb Wszystko dzieli limit po równo i przekazuje wolne miejsca drugiej kategorii', () => {
+  const createEvidence = (cashCount, tournamentCount, maxReports = 20) => {
+    const sessions = [
+      ...Array.from({ length: cashCount }, (_, index) => makeSession({
+        id: `cash-${index + 1}`,
+        day: index + 1,
+        type: 'Cash',
+      })),
+      ...Array.from({ length: tournamentCount }, (_, index) => makeSession({
+        id: `tournament-${index + 1}`,
+        day: index + 1,
+        type: 'Tournament',
+      })),
+    ];
+    return selectPlayerSessionEvidence({
+      sessions,
+      sessionAnalyses: Object.fromEntries(sessions.map((session) => [
+        session.id,
+        [makeCurrentReport(session)],
+      ])),
+      gameType: 'both',
+      dateRange: getProfileDateRange('', ''),
+      maxReports,
+    });
+  };
+
+  const balanced = createEvidence(15, 15);
+  assert.equal(balanced.reports.length, 20);
+  assert.equal(balanced.coverage.byGameType.cash.usedReports, 10);
+  assert.equal(balanced.coverage.byGameType.tournament.usedReports, 10);
+
+  const redistributed = createEvidence(4, 20);
+  assert.equal(redistributed.reports.length, 20);
+  assert.equal(redistributed.coverage.byGameType.cash.usedReports, 4);
+  assert.equal(redistributed.coverage.byGameType.tournament.usedReports, 16);
+});
+
+test('builder wybiera wyłącznie najnowszy aktualny raport dla sesji', () => {
   const session = makeSession({ id: 'history', day: 5 });
   const older = makeCurrentReport(session, {
     reportId: 'older',
@@ -293,8 +331,8 @@ test('wszystkie historyczne raporty zgodne z bieżącą sesją pozostają dostę
     dateRange: getProfileDateRange('', ''),
   });
 
-  assert.equal(evidence.coverage.availableReports, 2);
-  assert.equal(evidence.coverage.usedReports, 2);
-  assert.deepEqual(evidence.reports.map((report) => report.reportId), ['older', 'newer']);
-  assert.equal(new Set(evidence.reports.map((report) => report.sourceId)).size, 2);
+  assert.equal(evidence.coverage.availableReports, 1);
+  assert.equal(evidence.coverage.usedReports, 1);
+  assert.deepEqual(evidence.reports.map((report) => report.reportId), ['newer']);
+  assert.equal(new Set(evidence.reports.map((report) => report.sourceId)).size, 1);
 });

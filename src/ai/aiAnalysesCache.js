@@ -13,7 +13,23 @@ export const createEmptyAiAnalysesCache = () => ({
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
-const normalizeReportList = (reports) => {
+const normalizeReferenceWarnings = (warnings) => (
+  Array.isArray(warnings)
+    ? warnings
+      .filter((warning) => isObject(warning))
+      .map((warning) => ({
+        path: typeof warning.path === 'string' ? warning.path.trim() : '',
+        kind: typeof warning.kind === 'string' ? warning.kind.trim() : '',
+        reason: typeof warning.reason === 'string' ? warning.reason.trim() : '',
+        discardedIds: Array.isArray(warning.discardedIds)
+          ? warning.discardedIds.map((id) => String(id ?? '').trim())
+          : [],
+      }))
+      .filter((warning) => warning.path && warning.kind && warning.reason)
+    : []
+);
+
+const normalizeReportList = (reports, includeReferenceWarnings = false) => {
   if (!Array.isArray(reports)) return [];
   const seen = new Set();
   return reports.filter((report) => {
@@ -21,7 +37,12 @@ const normalizeReportList = (reports) => {
     if (seen.has(report.reportId)) return false;
     seen.add(report.reportId);
     return true;
-  }).map(clone);
+  }).map((report) => ({
+    ...clone(report),
+    ...(includeReferenceWarnings
+      ? { referenceWarnings: normalizeReferenceWarnings(report.referenceWarnings) }
+      : {}),
+  }));
 };
 
 const normalizeReportMap = (reports) => (
@@ -38,7 +59,7 @@ export const normalizeAiAnalysesCache = (value) => {
     handAnalyses: normalizeReportMap(value.handAnalyses),
     sessionAnalyses: normalizeReportMap(value.sessionAnalyses),
     sessionGroupAnalyses: normalizeReportList(value.sessionGroupAnalyses),
-    playerAnalyses: normalizeReportList(value.playerAnalyses),
+    playerAnalyses: normalizeReportList(value.playerAnalyses, true),
   };
 };
 

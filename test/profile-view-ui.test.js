@@ -88,7 +88,15 @@ test('podzakładka Analizy AI pokazuje preview, model i jedno płatne żądanie'
       reliabilityId: 'PRELIMINARY',
       reliability: { id: 'PRELIMINARY', label: 'Wstępny profil' },
       sessionEvidence: {
-        coverage: { sessionsInPeriod: 2, availableReports: 2, usedReports: 1 },
+        coverage: {
+          sessionsInPeriod: 2,
+          availableReports: 2,
+          usedReports: 1,
+          byGameType: {
+            cash: { sessionsInPeriod: 2, availableReports: 2, usedReports: 1 },
+            tournament: { sessionsInPeriod: 0, availableReports: 0, usedReports: 0 },
+          },
+        },
       },
     },
     aiModels: [{ id: 'gpt-5.6-terra', name: 'GPT-5.6 Terra', configured: true }],
@@ -103,6 +111,9 @@ test('podzakładka Analizy AI pokazuje preview, model i jedno płatne żądanie'
   assert.match(html, /Mieszany/);
   assert.match(html, /Wstępny profil/);
   assert.match(html, /1 z 2/);
+  assert.match(html, /data-testid="player-analysis-coverage-by-game-type"/);
+  assert.match(html, /Cash: 1 z 2 raportów/);
+  assert.match(html, /Turnieje: 0 z 0 raportów/);
   assert.match(html, /GPT-5.6 Terra/);
   assert.match(html, /Utwórz analizę AI — jedno płatne żądanie/);
   assert.doesNotMatch(html, /<button[^>]*disabled=""[^>]*>Utwórz analizę AI — jedno płatne żądanie<\/button>/);

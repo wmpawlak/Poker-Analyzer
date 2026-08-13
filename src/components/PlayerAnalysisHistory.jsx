@@ -62,6 +62,36 @@ const sourceIsAvailable = (source, sessionAiAnalyses) => Boolean(
     .some((sessionReport) => sessionReport.reportId === source.reportId)
 );
 
+const hasLostAllSessionSources = (report, path, sessionReportIds) => (
+  Array.isArray(sessionReportIds)
+  && sessionReportIds.length === 0
+  && (Array.isArray(report?.referenceWarnings) ? report.referenceWarnings : [])
+    .some((warning) => warning.path === path && warning.kind === 'sessionReport')
+);
+
+const ReferenceWarningSummary = ({ warnings = [] }) => {
+  if (!Array.isArray(warnings) || warnings.length === 0) return null;
+  const discardedCount = warnings.reduce(
+    (total, warning) => total + (Array.isArray(warning?.discardedIds) ? warning.discardedIds.length : 0),
+    0,
+  );
+  return (
+    <div data-testid="player-analysis-reference-warnings" role="status" className="mt-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900">
+      <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+      <span>Oczyszczono {discardedCount || warnings.length} nieprawidłowych referencji. Treść raportu została zachowana.</span>
+    </div>
+  );
+};
+
+const MissingSourcesWarning = ({ visible }) => {
+  if (!visible) return null;
+  return (
+    <div data-testid="player-analysis-missing-sources-warning" className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-amber-800">
+      <AlertTriangle size={13} /> Nie zachowano żadnego źródła sesyjnego dla tej sekcji.
+    </div>
+  );
+};
+
 const ReferenceChips = ({
   report,
   metricIds = [],
@@ -131,14 +161,22 @@ const PlayerAnalysisReport = ({ report, currentDatasetRevision, sessionAiAnalyse
   const analysis = report.analysis || {};
   const snapshot = report.snapshot || {};
   const stale = isReportStale(report, currentDatasetRevision);
-  const references = (metricIds, sessionReportIds) => (
-    <ReferenceChips
-      report={report}
-      metricIds={metricIds}
-      sessionReportIds={sessionReportIds}
-      sessionAiAnalyses={sessionAiAnalyses}
-      onOpenSession={onOpenSession}
-    />
+  const referenceWarnings = Array.isArray(report.referenceWarnings)
+    ? report.referenceWarnings
+    : [];
+  const references = (metricIds, sessionReportIds, sessionPath) => (
+    <>
+      <ReferenceChips
+        report={report}
+        metricIds={metricIds}
+        sessionReportIds={sessionReportIds}
+        sessionAiAnalyses={sessionAiAnalyses}
+        onOpenSession={onOpenSession}
+      />
+      <MissingSourcesWarning
+        visible={hasLostAllSessionSources(report, sessionPath, sessionReportIds)}
+      />
+    </>
   );
 
   return (
@@ -152,6 +190,7 @@ const PlayerAnalysisReport = ({ report, currentDatasetRevision, sessionAiAnalyse
           </div>
           {stale && <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-amber-900"><AlertTriangle size={13} /> Dane zmienione</span>}
         </div>
+        <ReferenceWarningSummary warnings={referenceWarnings} />
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
             ['Ręce', snapshot.handCount ?? report.handCount, BarChart3],
@@ -172,17 +211,17 @@ const PlayerAnalysisReport = ({ report, currentDatasetRevision, sessionAiAnalyse
         <section>
           <h4 className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-700"><BrainCircuit size={17} className="text-indigo-600" /> Podsumowanie</h4>
           <p className="mt-2 text-sm leading-relaxed text-slate-700">{analysis.summary || 'Brak podsumowania w tym historycznym raporcie.'}</p>
-          {references(analysis.summaryMetricIds, analysis.summarySessionReportIds)}
+          {references(analysis.summaryMetricIds, analysis.summarySessionReportIds, 'summarySessionReportIds')}
         </section>
 
         {analysis.categoryInsights?.length > 0 && <section>
           <h4 className="mb-3 text-sm font-black uppercase tracking-wide text-slate-700">Wnioski według typu gry</h4>
           <div className="grid gap-3 md:grid-cols-2">
-            {analysis.categoryInsights.map((insight) => <InsightCard
+            {analysis.categoryInsights.map((insight, index) => <InsightCard
               key={insight.category}
               title={CATEGORY_LABELS[insight.category] || insight.category}
               tone={insight.category === 'tournament' ? 'amber' : 'indigo'}
-              references={references(insight.metricIds, insight.sessionReportIds)}
+              references={references(insight.metricIds, insight.sessionReportIds, `categoryInsights[${index}].sessionReportIds`)}
             >{insight.summary}</InsightCard>)}
           </div>
         </section>}
@@ -192,7 +231,7 @@ const PlayerAnalysisReport = ({ report, currentDatasetRevision, sessionAiAnalyse
             <h4 className="mb-3 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-emerald-800"><CheckCircle2 size={17} /> Mocne strony</h4>
             <div className="space-y-3">
               {analysis.strengths?.length > 0
-                ? analysis.strengths.map((item, index) => <InsightCard key={`${item.title}-${index}`} title={item.title} tone="emerald" references={references(item.metricIds, item.sessionReportIds)}>{item.description}</InsightCard>)
+                ? analysis.strengths.map((item, index) => <InsightCard key={`${item.title}-${index}`} title={item.title} tone="emerald" references={references(item.metricIds, item.sessionReportIds, `strengths[${index}].sessionReportIds`)}>{item.description}</InsightCard>)
                 : <p className="text-sm text-slate-500">Brak wskazanych mocnych stron.</p>}
             </div>
           </section>
@@ -200,7 +239,7 @@ const PlayerAnalysisReport = ({ report, currentDatasetRevision, sessionAiAnalyse
             <h4 className="mb-3 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-red-800"><Target size={17} /> Leaki</h4>
             <div className="space-y-3">
               {analysis.leaks?.length > 0
-                ? analysis.leaks.map((item, index) => <InsightCard key={`${item.title}-${index}`} title={item.title} tone="red" references={references(item.metricIds, item.sessionReportIds)}><p>{item.description}</p><p className="mt-2 font-bold text-emerald-800">Korekta: {item.correction}</p></InsightCard>)
+                ? analysis.leaks.map((item, index) => <InsightCard key={`${item.title}-${index}`} title={item.title} tone="red" references={references(item.metricIds, item.sessionReportIds, `leaks[${index}].sessionReportIds`)}><p>{item.description}</p><p className="mt-2 font-bold text-emerald-800">Korekta: {item.correction}</p></InsightCard>)
                 : <p className="text-sm text-slate-500">Brak wskazanych leaków.</p>}
             </div>
           </section>
@@ -209,7 +248,7 @@ const PlayerAnalysisReport = ({ report, currentDatasetRevision, sessionAiAnalyse
         {analysis.trainingPriorities?.length > 0 && <section>
           <h4 className="mb-3 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-indigo-800"><Dumbbell size={17} /> Trzy priorytety treningowe</h4>
           <ol className="grid gap-3 lg:grid-cols-3">
-            {analysis.trainingPriorities.map((item, index) => <li key={`${item.title}-${index}`}><InsightCard title={`${index + 1}. ${item.title}`} tone="indigo" references={references(item.metricIds, item.sessionReportIds)}><p>{item.description}</p><p className="mt-2 font-bold text-indigo-800">Ćwiczenie: {item.exercise}</p></InsightCard></li>)}
+            {analysis.trainingPriorities.map((item, index) => <li key={`${item.title}-${index}`}><InsightCard title={`${index + 1}. ${item.title}`} tone="indigo" references={references(item.metricIds, item.sessionReportIds, `trainingPriorities[${index}].sessionReportIds`)}><p>{item.description}</p><p className="mt-2 font-bold text-indigo-800">Ćwiczenie: {item.exercise}</p></InsightCard></li>)}
           </ol>
         </section>}
       </div>
@@ -276,6 +315,7 @@ export const PlayerAnalysisHistory = ({
                 <div className="mt-3 text-[10px] text-slate-500">{formatDateTime(report.analyzedAt)}</div>
                 <div className="mt-0.5 text-[10px] font-bold text-slate-700">{report.model?.name || 'Nieznany model'}</div>
                 {stale && <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-amber-900"><AlertTriangle size={11} /> Dane zmienione</div>}
+                {Array.isArray(report.referenceWarnings) && report.referenceWarnings.length > 0 && <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-amber-900"><AlertTriangle size={11} /> Oczyszczone referencje</div>}
               </button>
             );
           })}
