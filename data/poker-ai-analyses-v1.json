@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-13T17:59:38.863Z",
+  "updatedAt": "2026-08-13T20:27:42.336Z",
   "handAnalyses": {
     "594100596": [
       {
@@ -3594,6 +3594,75 @@
             }
           ]
         }
+      },
+      {
+        "model": {
+          "id": "gpt-5.6-terra",
+          "name": "GPT-5.6 Terra"
+        },
+        "sessionId": "tourney_87547_2026/08/11",
+        "fingerprint": "fnv1a-da734e54",
+        "analysis": {
+          "profileStyleId": "LAG",
+          "sessionSummary": "Na próbie 91 rozdań profil Hero jest zgodny z LAG: widoczna jest gotowość do szerokiej inicjatywy, presji po flopie i podejmowania wariancyjnych spotów. Największy obszar do poprawy to spójność planu preflop przy limpach oraz dopasowanie sizingów otwarć do efektywnych stacków. Ocena dotyczy jakości decyzji, zakresów i sizingów, a nie tego, czy konkretne showdowny zostały wygrane.",
+          "keyMistakes": [
+            {
+              "title": "Niespójna strategia limpowa z rękami o ograniczonej realizacji equity",
+              "description": "Hero kilkukrotnie wchodził limpem w spoty, w których później albo oddawał pulę pod presją, albo budował pulę bez klarownego planu. W #132296200035 A9o z UTG zostało zlimpowane i złożone po shove'ie; w #132296200080 K9o z HJ zostało zlimpowane przy około 14 BB, a następnie Hero zabetował flop i spasował do jamu; w #132296200072 A3s ze SB limp-calluje duży raise BB, donkuje flop i folduje do raise'u. Szczególnie poza SB limpowanie takich rąk oddaje inicjatywę, a limp-calle często tworzą niekomfortowe pule bez pozycji.",
+              "correction": "Przed rozdaniem ustal prostą gałąź dla każdej głębokości: open małym sizingiem albo fold przy głębszych stackach, a przy około 10–15 BB przede wszystkim raise/jam albo fold zależnie od pozycji i stacków rywali. Limp ze SB może pozostać częścią strategii, ale po limpie planuj z góry reakcję na izolację i unikaj limp-calli bez wystarczającej realizacji equity.",
+              "handIds": [
+                "132296200035",
+                "132296200080",
+                "132296200072"
+              ]
+            },
+            {
+              "title": "Za duże sizingi otwarć przy stackach pozwalających na mniejsze raise'y",
+              "description": "W kilku miejscach Hero otwierał wyraźnie większym sizingiem niż potrzebny do realizacji szerokiej, agresywnej strategii turniejowej: 4 BB z UTG w #132293500002, 4 BB z UTG w #132296200016 oraz 3,5 BB z HJ w #132296200033. Takie otwarcia podnoszą koszt foldów i calli do 3-betów, dają rywalom lepszy stosunek nagrody do ryzyka przy shove'ach oraz nie muszą generować proporcjonalnie więcej fold equity.",
+              "correction": "Bez konkretnego readu na bardzo pasywny stół preferuj zwykle otwarcia około 2–2,3 BB z ante, a większe sizingi stosuj celowo przeciwko konkretnym calling stationom. Zostaw większą część stacka na decyzje po flopie i obronę przeciwko reshove'om.",
+              "handIds": [
+                "132293500002",
+                "132296200016",
+                "132296200033"
+              ]
+            },
+            {
+              "title": "Bet-foldy na boardach, na których zakres callera jest mocny, bez wystarczającego planu na raise",
+              "description": "W #132296200050 Hero c-betuje A9o na niskim, skoordynowanym flopie 8s-6h-4h i folduje do jamu; bez silnego readu check back często lepiej chroni equity A-high na boardzie sprzyjającym callerowi. W #132296200080 K9o po limpie betuje flop Qs-6c-5d i oddaje pulę po jamie. Najważniejszy jest #132296200069: Ad9d na Qd-Td-8h ma nut flush draw i gutshota, a po check-raise'ie Hero folduje mimo bardzo dużej puli oraz znacznej equity przeciwko wielu zakresom raise'u.",
+              "correction": "Przed c-betem określ, czy ręka może rozsądnie kontynuować przeciwko check-raise'owi. Na boardach lepszych dla callera częściej checkuj back ręce typu A-high/K-high bez mocnego drawu; z bardzo silnym drawem, jak Ad9d na Qd-Td-8h, policz pot oddsy i wybieraj call lub jam zamiast automatycznego folda.",
+              "handIds": [
+                "132296200050",
+                "132296200080",
+                "132296200069"
+              ]
+            }
+          ],
+          "notableHands": [
+            {
+              "handId": "132293500001",
+              "reason": "Wielostreetowa linia value z AdKd: riverowy shove z top pair/top kicker powinien być oceniany względem zakresu calla rywala, a nie przez to, że QQ sprawdziło i Hero wygrał."
+            },
+            {
+              "handId": "132296200044",
+              "reason": "Duży preflop stack-off A5s na BTN przeciwko shove'owi około 15 BB; istotny spot do wyznaczenia progu calla przeciwko zakresowi reshove'u."
+            },
+            {
+              "handId": "132296200056",
+              "reason": "Flat call z KK na BTN w puli wieloosobowej, a następnie bet za około pulę na flopie; ważny wybór między 3-betem preflop a trappingiem oraz sizingiem ochronno-value."
+            },
+            {
+              "handId": "132296200072",
+              "reason": "A3s ze SB: limp-call izolacji, donk na sparowanym flopie i fold do raise'u. To reprezentatywny przykład kosztu niespójnej linii limpowej."
+            },
+            {
+              "handId": "132296200091",
+              "reason": "Największy bezwzględny swing sesji. All-in z QQ za krótki stack po openie jest zasadniczo standardową decyzją preflop; przegrana z AcKc po runoucie nie stanowi błędu decyzyjnego."
+            }
+          ]
+        },
+        "reportId": "8c42f048-7a9d-4ac4-be08-30371528789e",
+        "analyzedAt": "2026-08-13T20:00:45.702Z",
+        "datasetRevision": "p1-34b60b5f023402a3608f1ee4746436800015d95aace58d1e6c9bd717caf2b8d4"
       }
     ],
     "tourney_87871_2026/08/12": [
@@ -3893,6 +3962,560 @@
         },
         "reportId": "8a069652-6fdf-4cf6-b994-d82e6080e1b6",
         "analyzedAt": "2026-08-13T08:24:26.128Z",
+        "datasetRevision": "p1-34b60b5f023402a3608f1ee4746436800015d95aace58d1e6c9bd717caf2b8d4"
+      }
+    ],
+    "cash_a518560b11845079": [
+      {
+        "model": {
+          "id": "gpt-5.6-terra",
+          "name": "GPT-5.6 Terra"
+        },
+        "sessionId": "cash_a518560b11845079",
+        "fingerprint": "fnv1a-abc4759b",
+        "analysis": {
+          "profileStyleId": "RECREATIONAL",
+          "sessionSummary": "Profil sesji to RECREATIONAL. W tej liczącej kilkadziesiąt rozdań próbce Hero mieszał sensowne openy i foldy z limpami słabych offsuitów oraz zbyt luźnym kontynuowaniem przeciwko dużej agresji preflop. Największy priorytet poprawy to selekcja rąk przed flopem i unikanie budowania dużych pul z marginalną siłą bez wyraźnych readów.",
+          "keyMistakes": [
+            {
+              "title": "Limpowanie słabych rąk zamiast strategii raise-or-fold",
+              "description": "Hero kilkukrotnie wszedł do puli z rękami, które nie powinny być częścią aktywnego zakresu z tych pozycji. W #109487000021 nastąpił limp Q2o z UTG, a następnie call podbicia i fold na flopie; w #109487000026 limp A3o z HJ zakończył się foldem po izolacji; w #109383900350 Hero zalimpował 42o z CO. Takie wejścia oddają inicjatywę, prowadzą do trudnych pul po flopie i często generują stratę już bez realizacji equity.",
+              "correction": "Stosuj prostą bazę raise-or-fold: słabe offsuitowe ręce, zwłaszcza Q2o, A3o i 42o, folduj przed flopem. Limp zostaw najwyżej na bardzo konkretne exploity przeciw słabym graczom, a nie jako standardową linię otwarcia.",
+              "handIds": [
+                "109487000021",
+                "109487000026",
+                "109383900350"
+              ]
+            },
+            {
+              "title": "Zbyt szerokie calle przeciwko 3-betom i squeeze'om",
+              "description": "Hero podejmował kosztowne kontynuacje z rękami o słabej realizacji equity w pulach 3-bet. W #109487000018 cold-call JTo przeciw squeeze'owi stworzył wieloosobową dużą pulę, po czym Hero sprawdził duży bet na flopie A-Q-9 tylko z gutshotem. W #109487000024 T9s zostało sprawdzone po openie i następnie po squeeze'ie do ₮1.20, a w #109487000025 para 55 sprawdziła duży squeeze do ₮1.25. Bez mocnych danych o bardzo szerokim zakresie agresora takie ręce zwykle nie zarabiają wystarczająco po uwzględnieniu rake'u i niekorzystnych struktur boardów.",
+              "correction": "Przeciw dużym 3-betom zawężaj range calla: preferuj mocne broadwaye, wysokie pary i ręce, które dobrze znoszą wysokie SPR. JTo oraz większość suited connectorów często foldują przeciw squeeze'om, a małe pary kontynuuj tylko wtedy, gdy sizing, pozycja i efektywne stacki rzeczywiście dają odpowiednie implied odds.",
+              "handIds": [
+                "109487000018",
+                "109487000024",
+                "109487000025"
+              ]
+            },
+            {
+              "title": "Przecenianie marginalnych made hands w dużych pulach",
+              "description": "W kilku spotach Hero inwestował za dużo z rękami, które słabo stoją przeciw zakresom kontynuacji rywala. W #109487000008 para 77 została zamieniona w 4-bet do ₮3.74, a następnie shove na flopie K-9-5; w #109383900365 Hero z top parą A6 zrobił check-raise na turnie, choć słabsze ręce nie muszą często płacić; w #109383900367 Hero sprawdził riverowy bet niemal wielkości puli z jedną parą dziewiątek na boardzie z trzema treflami. Szczególnie w pulach po 3-becie i przy dużych betach riverowych zakres przeciwnika jest zazwyczaj wyraźnie silniejszy niż pojedyncza para.",
+              "correction": "Przed dużą inwestycją nazwij ręce, które rywal value-betuje gorzej, oraz realne blefy w jego linii. Z overpairami na wysokich boardach i ze słabym top pairem częściej wybieraj fold albo call na małych sizingach; duże check-raise'y i hero calle zostaw dla sytuacji z konkretnymi blockerami oraz wiarygodną pulą blefów rywala.",
+              "handIds": [
+                "109487000008",
+                "109383900365",
+                "109383900367"
+              ]
+            }
+          ],
+          "notableHands": [
+            {
+              "handId": "109487000008",
+              "reason": "Największy bezwzględny swing sesji: 77 zostało użyte do dużego 4-betu i stack-offu na flopie K-9-5. Kluczowa lekcja dotyczy decyzji preflop i zbyt niskiego progu commitmentu, nie samego wyniku showdownu."
+            },
+            {
+              "handId": "109487000018",
+              "reason": "Cold-call JTo przeciw squeeze'owi, a potem call dużego betu na flopie A-Q-9 z samym gutshotem. To ważny przykład kosztu luźnej selekcji rąk w dużych pulach preflop."
+            },
+            {
+              "handId": "109487000024",
+              "reason": "T9s zostało najpierw sprawdzone po openie, a następnie po dużym squeeze'ie. Ręka pokazuje, że atrakcyjność suited connectora nie rekompensuje automatycznie wysokiej ceny wejścia i ograniczonego SPR."
+            },
+            {
+              "handId": "109383900365",
+              "reason": "Top para ze słabym kickerem została zagrana betem na flopie i check-raise'em na turnie. To dobry spot do przeanalizowania, które słabsze ręce rzeczywiście zapłacą za raise."
+            },
+            {
+              "handId": "109383900367",
+              "reason": "Call dużego betu na riverze z parą dziewiątek na K♣-7♣-8♣-4♦-9♠. Warto przećwiczyć ocenę zakresu value rywala, blockerów i wymaganej częstotliwości blefów przed takim bluff-catcherem."
+            }
+          ]
+        },
+        "reportId": "39be57ba-3eeb-45f8-ba51-4cb7724c107d",
+        "analyzedAt": "2026-08-13T20:00:09.139Z",
+        "datasetRevision": "p1-34b60b5f023402a3608f1ee4746436800015d95aace58d1e6c9bd717caf2b8d4"
+      }
+    ],
+    "tourney_87770_2026/08/12": [
+      {
+        "model": {
+          "id": "gpt-5.6-terra",
+          "name": "GPT-5.6 Terra"
+        },
+        "sessionId": "tourney_87770_2026/08/12",
+        "fingerprint": "fnv1a-dd537e3f",
+        "analysis": {
+          "profileStyleId": "MANIAC",
+          "sessionSummary": "Profil stylu sesji: MANIAC. W tej niewielkiej próbce głównym problemem nie są pojedyncze wyniki, lecz powtarzalne przeinwestowywanie przed flopem po 3-betach, squeeze’ach i all-inach oraz zbyt duże otwarcia przy stackach około 30–55 BB. Ocena dotyczy decyzji, zakresów i sizingów; linie RETURN nie są traktowane jako inwestycja.",
+          "keyMistakes": [
+            {
+              "title": "Przeinwestowywanie z rękami poniżej zakresu do stack-offu",
+              "description": "Hero kilkukrotnie eskalował pulę po wyraźnych sygnałach siły, bez wystarczająco mocnej ręki względem typowych zakresów. W #132709300006 KdQd po izolacji limpera, 3-becie i własnym ogromnym 4-becie zostało dopłacone do 5-bet all-ina; bez konkretnego readu KQs zwykle nie powinno budować puli na cały około 80-BB stack. W #132709300015 KTo zostało zagrane małym 3-betem przy około 19 BB, a następnie sprawdzone po all-inie pierwotnego raisera i obecności cold-callera; w #132709300016 TT zostało wsunięte po otwarciu, 3-becie Hero, cold callu i bardzo dużym squeeze’ie, czyli przeciwko silnie zawężonym zakresom.",
+              "correction": "Przed 3-betem ustal plan na odpowiedź wobec shove’a. KTo przeciw wczesnemu otwarciu zazwyczaj powinno zostać spasowane, a KQs po 3-becie częściej callowane w pozycji lub foldowane, zamiast 4-bet/callować. Po sekwencji open–3-bet–cold call–squeeze zakres do stack-offu powinien być wyraźnie mocniejszy, zwykle zbliżony do QQ+/AK bez wiarygodnej informacji, że rywal szeroko squeeze’uje.",
+              "handIds": [
+                "132709300006",
+                "132709300015",
+                "132709300016"
+              ]
+            },
+            {
+              "title": "Zbyt duże sizingi otwarć przy średnich stackach",
+              "description": "Otwarcia 3,5–4 BB przy obecności ante niepotrzebnie zwiększały koszt foldów i upraszczały rywalom decyzję o reshove’ie. W #132721100021 Hero otworzył AhQs z CO do 4 BB przy stacku około 56 BB, w #132721100022 Kc9c z UTG do 3,5 BB przy około 39 BB, a w #132721100029 QhJd z UTG również do 3,5 BB przy około 31 BB. Szczególnie w #132721100022 duży sizing dodatkowo powiększył pulę z marginalnym UTG-range’em i doprowadził do gry wieloosobowej na niekorzystnym boardzie.",
+              "correction": "Jako domyślny sizing stosuj około 2–2,3 BB przy ante, ewentualnie nieco większy wyłącznie z jasnego powodu eksploatacyjnego. Przy 20–35 BB ogranicz marginalne otwarcia z UTG i HJ oraz wybieraj prostszy plan: standardowy mały raise z rękami zdolnymi do foldowania albo selektywny shove, zamiast budować duże pule przed flopem.",
+              "handIds": [
+                "132721100021",
+                "132721100022",
+                "132721100029"
+              ]
+            }
+          ],
+          "notableHands": [
+            {
+              "handId": "132721100032",
+              "reason": "Największy bezwzględny swing sesji: -11 825,18. KcQc po otwarciu BTN sprawdziło bezpośredni all-in rywala; przy efektywnym stacku około 34 BB decyzja jest silnie zależna od realnego zakresu shove’a i bez readu wymaga bardzo ostrożnej analizy."
+            },
+            {
+              "handId": "132709300006",
+              "reason": "Kluczowy przykład eskalacji KdQd: izolacja, 4-bet do 5 715 i dopłata do 5-bet all-ina stworzyły sytuację, w której KQs zwykle ma zbyt mało equity przeciwko standardowemu zakresowi."
+            },
+            {
+              "handId": "132709300010",
+              "reason": "Z KdKc Hero zagrał wieloosobową pulę, a następnie sprawdził riverowy all-in na boardzie 7c-2s-8h-Th-Qh. Overpair bez kiera jest tu słabym bluff-catcherem wobec zakresu zawierającego wiele dwóch par, setów i skompletowanych drawów."
+            },
+            {
+              "handId": "132709300015",
+              "reason": "KTo przy około 19 BB zostało zagrane małym 3-betem i doprowadziło do all-ina w puli wieloosobowej. Wygrana część puli nie zmienia faktu, że preflopowy plan przeciwko otwarciu i shove’owi wymagał ciaśniejszego zakresu."
+            },
+            {
+              "handId": "132709300016",
+              "reason": "TT po 3-becie, cold callu i dużym squeeze’ie zostało wsunięte za cały stack. To ważna sytuacja do pracy nad rozpoznawaniem, jak mocno taka sekwencja zawęża zakres przeciwnika."
+            }
+          ]
+        },
+        "reportId": "41303560-4165-42ff-9c2c-2089fe93b255",
+        "analyzedAt": "2026-08-13T20:00:32.303Z",
+        "datasetRevision": "p1-34b60b5f023402a3608f1ee4746436800015d95aace58d1e6c9bd717caf2b8d4"
+      }
+    ],
+    "tourney_87750_2026/08/12": [
+      {
+        "model": {
+          "id": "gpt-5.6-terra",
+          "name": "GPT-5.6 Terra"
+        },
+        "sessionId": "tourney_87750_2026/08/12",
+        "fingerprint": "fnv1a-7a020a4a",
+        "analysis": {
+          "profileStyleId": "BALANCED",
+          "sessionSummary": "Na małej próbie 32 rozdań profil Hero pozostaje BALANCED: standardowe foldy preflop przeplatały się z próbami kradzieży blindów, 3-betami i aktywną grą po flopie. Najistotniejszy obszar poprawy to dyscyplina po dużej agresji rywala — szczególnie unikanie stack-offów z rękami, które nie mają wymaganej equity. Ocena dotyczy decyzji, zakresów i sizingów, niezależnie od wyniku; zwroty RETURN nie są traktowane jako zainwestowane żetony.",
+          "keyMistakes": [
+            {
+              "title": "Zbyt luźne stack-offy po silnej agresji rywala",
+              "description": "W #132654100053 Hero sprawdził riverową presję all-in z parą ósemek na boardzie 5h-6c-2s-Qs-8c po linii call 3-betu, call flopa i call turna przeciwnika; taki zakres jest zwykle mocno nastawiony na Qx+, overpary lub lepsze układy, a posiadane 9s8s słabo łapie blefy. W #132654100063 po c-becie na flopie Kh-8d-6s Hero dołożył ostatnie 3 432 z Ad7d przeciwko check-jamowi, mając głównie A-high i bez gotowego drawu do strita na jednej karcie. W obu sytuacjach wcześniejsze żetony nie powinny uzasadniać calla, jeśli bieżąca cena nie daje wymaganych pot odds.",
+              "correction": "Przed sprawdzeniem all-ina nazwij realistyczne value ręce rywala, jego naturalne blefy i policz minimalną equity. Przy riverowej linii o dużej sile z jedną parą bez istotnych blockerów częściej wybieraj fold; przy flopowym check-jamie z A-high i krótkim stackiem folduj, o ile nie masz konkretnych readów na nadmierne jamowanie.",
+              "handIds": [
+                "132654100053",
+                "132654100063"
+              ]
+            },
+            {
+              "title": "Niejednolity plan dla średnich asów przy stackach 19–36 BB",
+              "description": "W #132654100041 Hero cold-callował z As9s? (As9d według danych: As9d) 3-bet w small blindzie, pozostając poza pozycją w puli o niskim SPR; A9s zazwyczaj lepiej realizuje equity jako 4-bet shove albo fold, zależnie od zakresu 3-betu. W #132654100056 A8o zostało otwarte z UTG+1 za 3 BB przy około 25 BB, co czyni graniczny otwierający zakres droższym i trudniejszym do obrony przeciw shove’owi. W #132654100063 A7s zostało zagrane małym 3-betem do 3 456 przy około 19 BB zamiast uproszczenia decyzji poprzez 3-bet shove albo fold, co stworzyło niewygodną pulę po flopie.",
+              "correction": "Ustal preflopowy plan według stack depth: bez readów zacieśniaj offsuitowe średnie asy we wczesnych pozycjach, otwieraj mniejszym sizingiem około 2–2,2 BB oraz unikaj cold-callowania 3-betów OOP. Przy około 20 BB wybieraj z Axs klarowną strategię shove/fold lub bardzo świadomy mały 3-bet z planem foldu na jam, zamiast inwestować dużą część stacka bez jasnej reakcji na presję.",
+              "handIds": [
+                "132654100041",
+                "132654100056",
+                "132654100063"
+              ]
+            }
+          ],
+          "notableHands": [
+            {
+              "handId": "132654100053",
+              "reason": "Największy bezwzględny swing sesji. Kluczowa ręka do analizy całej sekwencji: 3-bet z 9s8s, dwa barrele jako półblef oraz riverowy call all-in z jedną parą."
+            },
+            {
+              "handId": "132654100063",
+              "reason": "Przy około 19 BB warto przeanalizować wybór małego 3-betu z Ad7d i późniejszy call check-jama na flopie z A-high."
+            },
+            {
+              "handId": "132654100041",
+              "reason": "Wygrana pula nie zmienia jakości decyzji: cold-call 3-betu z A9s w small blindzie przy około 36 BB wymaga bardzo dobrych powodów exploitacyjnych."
+            },
+            {
+              "handId": "132654100040",
+              "reason": "Lead z As9d jako BB na flopie 3s-Qc-5d przeciwko dwóm zakresom po callu preflop jest dobrym spotem do sprawdzenia selekcji blefów multiway."
+            },
+            {
+              "handId": "132654100056",
+              "reason": "Graniczne otwarcie A8o z UTG+1 za 3 BB przy około 25 BB pokazuje wagę dopasowania zakresu i sizingu do efektywnego stacka oraz ryzyka reshove’a."
+            }
+          ]
+        },
+        "reportId": "6c71d634-3817-4f3b-b7d2-f5fe69ce3597",
+        "analyzedAt": "2026-08-13T20:00:39.065Z",
+        "datasetRevision": "p1-34b60b5f023402a3608f1ee4746436800015d95aace58d1e6c9bd717caf2b8d4"
+      }
+    ],
+    "tourney_87764_2026/08/12": [
+      {
+        "model": {
+          "id": "gpt-5.6-terra",
+          "name": "GPT-5.6 Terra"
+        },
+        "sessionId": "tourney_87764_2026/08/12",
+        "fingerprint": "fnv1a-c2217358",
+        "analysis": {
+          "profileStyleId": "LAG",
+          "sessionSummary": "Profil LAG jest widoczny przede wszystkim w wysokiej częstotliwości przejęć inicjatywy preflop i gotowości do budowania dużych pul. Próba 41 rozdań jest ograniczona, ale powtarza się problem z doborem najsłabszych rąk do obrony lub stack-offu przy malejących stackach oraz z otwarciami za 3–4 BB. Najważniejsza korekta to połączenie agresji z bardziej zdyscyplinowanymi zakresami zależnymi od efektywnego stacka i pozycji, a nie ograniczanie agresji jako takiej.",
+          "keyMistakes": [
+            {
+              "title": "Za luźne angażowanie słabych offsuitów przy płytkich stackach",
+              "description": "W kilku rozdaniach słabe, nieblokujące układy trafiały do pul, w których decyzja szybko stawała się grą o stack. W #132684500018 obrona 2s3d z BB przy ok. 19 BB po otwarciu do 2 BB nie ma wystarczającej realizacji equity. W #132684500040 3-bet 7c8d z BB do 5,2 BB przy ok. 15 BB tworzy niekorzystny SPR przeciwko krótkiemu otwierającemu, a w #132684500041 shove 4c3s z SB po wcześniejszym all-inie jest zdecydowanie zbyt szeroki, zwłaszcza z graczem za Hero.",
+              "correction": "Przy stackach 8–20 BB usuń z zakresu obrony i reshove'ów najsłabsze offsuity. Przed wejściem do puli ustal, czy ręka jest foldem, min-raise/callem lub jamem; unikaj małych 3-betów z rękami, których nie chcesz sprawdzić przeciwko shove'owi. Szczególnie po open-shovie używaj zakresu call-off wyraźnie mocniejszego niż zakres zwykłego open-jamu.",
+              "handIds": [
+                "132684500018",
+                "132684500040",
+                "132684500041"
+              ]
+            },
+            {
+              "title": "Zbyt duże sizingi otwarć preflop",
+              "description": "Hero wielokrotnie otwierał za 4 BB: w #132684500010 z 76 BB, w #132684500014 z BTN przy głębokim stacku oraz w #132684500024 z BTN mając tylko ok. 17 BB. Tak duży rozmiar niepotrzebnie zwiększa koszt foldów, zawęża możliwość manewru po 3-becie i przy płytkim stacku pogarsza stosunek ryzyka do nagrody.",
+              "correction": "Bez konkretnego exploita preferuj zwykle otwarcia około 2–2,3 BB. W zakresie 12–20 BB buduj spójny plan min-raise/fold, min-raise/call lub open-jam zależnie od pozycji, stacków blindów i zakresów reshove; 4 BB powinno być rzadkim, świadomym odstępstwem.",
+              "handIds": [
+                "132684500010",
+                "132684500014",
+                "132684500024"
+              ]
+            },
+            {
+              "title": "Przecenianie relatywnej siły ręki na sparowanych i wieloosobowych boardach",
+              "description": "W #132684500012 Hero z Jc7h? Nie — Hero miał 7cJh, czyli parę siódemek i gutshot, a mimo to prowadził za pulę na bardzo skoordynowanym flopie 8h9d7s przeciwko kilku zakresom. W #132684500015 na turnie 2h2dAhAs para 77 była relatywnie słabą ręką wobec zakresu otwierającego, który c-betował flop i sprawdził overbet turna; riverowy call z full housem nadal przegrywa z każdym Ax, bo przeciwnik ma wtedy trips asów. To pokazuje potrzebę oceny ręki względem zakresu, a nie wyłącznie według nazwy układu.",
+              "correction": "W pulach multiway częściej checkuj ręce o średniej sile i inwestuj duże sizingi głównie z mocnym value albo przemyślanym drawem z fold equity. Na sparowanych boardach przed call’em na riverze policz, które konkretne ręce przeciwnika faktycznie bijesz oraz ile bluffów pozostaje po jego wcześniejszej linii.",
+              "handIds": [
+                "132684500012",
+                "132684500015"
+              ]
+            }
+          ],
+          "notableHands": [
+            {
+              "handId": "132684500015",
+              "reason": "Największy bezwzględny swing sesji. Kluczowa ręka do analizy relatywnej siły 77 na boardzie 2h2dAhAs7h: overbet turna i decyzja o callu riverowego shova powinny być oceniane przede wszystkim względem zakresu Ax po linii bet–check/call–jam."
+            },
+            {
+              "handId": "132684500040",
+              "reason": "Przykład kosztownego 3-betu z 7c8d przy ok. 15 BB. Decyzja preflop zbudowała pulę, w której Hero miał mało miejsca na realizację equity i niekomfortową grę przeciwko krótkiemu stackowi."
+            },
+            {
+              "handId": "132684500041",
+              "reason": "All-in z 4c3s z SB po wcześniejszym open-shovie to najczystszy przykład zbyt szerokiego wejścia o stack przy krótkim stacku i graczu pozostającym za Hero."
+            },
+            {
+              "handId": "132684500035",
+              "reason": "KQs po otwarciu i shove’ie wymaga analizy zakresów otwierającego, shovującego oraz ryzyka wejścia kolejnego gracza do puli. Sam wynik nie rozstrzyga jakości decyzji, ale jest to ważny spot do ustawienia progu izolacji versus fold/call."
+            },
+            {
+              "handId": "132684500010",
+              "reason": "Dobre rozdanie do rozdzielenia problemu preflopowego sizingu od gry postflop: otwarcie za 4 BB było duże, natomiast po skompletowaniu Q-high flush na turnie agresywne value betowanie przeciwko zakresowi z overpairami i parami miało strategiczne uzasadnienie."
+            }
+          ]
+        },
+        "reportId": "b4e420c9-0608-45e9-8d37-44470ca0f29d",
+        "analyzedAt": "2026-08-13T20:01:02.813Z",
+        "datasetRevision": "p1-34b60b5f023402a3608f1ee4746436800015d95aace58d1e6c9bd717caf2b8d4"
+      }
+    ],
+    "tourney_87503_2026/08/11": [
+      {
+        "model": {
+          "id": "gpt-5.6-terra",
+          "name": "GPT-5.6 Terra"
+        },
+        "sessionId": "tourney_87503_2026/08/11",
+        "fingerprint": "fnv1a-1629e69e",
+        "analysis": {
+          "profileStyleId": "LAG",
+          "sessionSummary": "Na próbie 81 rozdań profil Hero jest LAG: aktywnie atakuje pule preflop, często 3-betuje i podejmuje wysokowariancyjne decyzje przy krótszych stackach. Największą rezerwę widzę nie w samych wynikach, lecz w niższych sizingach otwarć oraz ciaśniejszych progach sprawdzania shove’ów i dużych betów. Ocena konkretnych marginesowych spotów pozostaje ostrożna bez readów, ICM i pełnych zakresów przeciwników.",
+          "keyMistakes": [
+            {
+              "title": "Zbyt duże standardowe sizingi otwarć",
+              "description": "Hero kilkukrotnie otwierał wyraźnie za duży rozmiar mimo ante: do 4 BB z KJs UTG w #132213800014, do 4 BB z A7s na HJ w #132213800031 oraz do 3,6 BB z AQo na BTN przy około 19 BB w #132278800011. Takie sizingi niepotrzebnie podnoszą koszt foldów, pogarszają stosunek ryzyka do nagrody i przy krótszym stacku ograniczają manewrowość po reshovie.",
+              "correction": "Ustal bazowy open na około 2–2,3 BB, a większych rozmiarów używaj tylko z konkretnym powodem exploitacyjnym. Przy stacku 15–25 BB przed otwarciem miej gotowy plan: mały open/call z górą zakresu albo bezpośredni shove w odpowiednich konfiguracjach, zamiast otwierać 3,5–4 BB.",
+              "handIds": [
+                "132213800014",
+                "132213800031",
+                "132278800011"
+              ]
+            },
+            {
+              "title": "Za szerokie sprawdzanie silnej agresji i stack-offy z marginalną equity",
+              "description": "W #132213800043 Q9s po 3-becie przeciwko raise-jamowi efektywnie za około 16 BB jest bez readów zbyt blisko dolnej granicy calla. W #132213800046 94s funkcjonalnie zaakceptowało shove za 4,35 BB z wczesnej pozycji, a w #132213800039 AK na podwójnie sparowanym boardzie sprawdziło river all-in po flopowym callu rywala; blokery AdKd dodatkowo redukują część naturalnych blefów drawowych przeciwnika. To trzy różne sytuacje, ale wspólny problem to przypisywanie rywalowi zbyt wielu blefów lub zbyt szerokiego zakresu all-in.",
+              "correction": "Oddziel zakresy calla przeciw bezpośredniemu short-stack shove’owi, raise-jamowi po 3-becie i river jamowi. Przed sprawdzeniem nazwij ręce value przeciwnika, realne blefy oraz policz wymagane equity; bez konkretnych readów folduj dolną część takich bluff-catcherów i marginalnych rąk suited.",
+              "handIds": [
+                "132213800043",
+                "132213800046",
+                "132213800039"
+              ]
+            },
+            {
+              "title": "Dobór blefów bez wystarczającej przewagi zakresu lub blockerów",
+              "description": "W #132213800013 Hero blefował river z A4 po flopowym callu na boardzie Kc-2c-Ts-Jd-8c, bez trefla blokującego flushowe calle rywala. W #132213800063 86s donk-betowało na Ah-Kh-Ac, choć ta ręka nie blokuje najważniejszych kontynuacji otwierającego, a w #132278800001 Q8 na K-9-T zagrało bet za pulę mając jedynie gutshota. Fakt, że przeciwnicy spasowali w tych pojedynczych rozdaniach, nie potwierdza jeszcze dodatniej wartości całej linii.",
+              "correction": "Blefuj częściej rękami blokującymi mocne kontynuacje rywala i wybieraj boardy, na których Twoja linia reprezentuje wiarygodną przewagę zakresu. Zanim postawisz bet, określ konkretnie: które lepsze ręce mają spasować, jakie ręce sprawdzą oraz czy sizing osiąga ten cel bez nadmiernego ryzyka.",
+              "handIds": [
+                "132213800013",
+                "132213800063",
+                "132278800001"
+              ]
+            }
+          ],
+          "notableHands": [
+            {
+              "handId": "132278800011",
+              "reason": "Największy bezwzględny swing sesji. AQo na BTN przy około 19 BB jest ważnym spotem zakresowym przeciw shove’owi ze small blinda, ale open do 3,6 BB był nieefektywny i powinien zostać przeanalizowany niezależnie od wyniku starcia z AKo."
+            },
+            {
+              "handId": "132213800039",
+              "reason": "Kluczowy test river-call: po dużym c-becie na sparowanym, drawowym flopie rywal sprawdził, a następnie zagrał all-in na podwójnie sparowanym riverze. Najważniejsza jest tu dyscyplina range-vs-range, nie wynik showdownu."
+            },
+            {
+              "handId": "132213800043",
+              "reason": "Q9s w BB przeciwko otwarciu SB: 3-bet do 2 400 i call raise-jamu efektywnie za około 16 BB tworzą kosztowną, marginalną decyzję preflop."
+            },
+            {
+              "handId": "132213800046",
+              "reason": "94s przeciwko short-stack shove’owi jest dobrym punktem do kalibracji minimalnego progu equity dla calli all-in, zwłaszcza gdy za Hero pozostają jeszcze gracze."
+            },
+            {
+              "handId": "132278800010",
+              "reason": "Wielostronny all-in z KK przeciwko 33 i 88. Preflopowe wejście z KK jest standardowo bardzo mocne; przegrana z full housem na riverze nie powinna wpływać na ocenę tej decyzji."
+            }
+          ]
+        },
+        "reportId": "aa2602d1-31fe-4014-b028-171a5abcd93b",
+        "analyzedAt": "2026-08-13T20:02:17.041Z",
+        "datasetRevision": "p1-34b60b5f023402a3608f1ee4746436800015d95aace58d1e6c9bd717caf2b8d4"
+      }
+    ],
+    "cash_e4ec822e5c579765": [
+      {
+        "model": {
+          "id": "gpt-5.6-terra",
+          "name": "GPT-5.6 Terra"
+        },
+        "sessionId": "cash_e4ec822e5c579765",
+        "fingerprint": "fnv1a-08606cb3",
+        "analysis": {
+          "profileStyleId": "RECREATIONAL",
+          "sessionSummary": "Na próbie 117 rozdań profil RECREATIONAL jest trafny: Hero często zachowywał się pasywnie preflop, ale okresowo przechodził do bardzo dużej agresji bez dostatecznie mocnego zakresu. Widać też poprawne foldy i kilka sensownych zagrań value, jednak luźne obrony blindów, limpy oraz eskalacje w pulach 3-bet/4-bet są ważniejszymi punktami do poprawy. Dodatni wynik sesji nie potwierdza jakości tych decyzji, a sama próbka nadal wymaga ostrożnej interpretacji.",
+          "keyMistakes": [
+            {
+              "title": "Zbyt luźne 4-bety i stackowanie się bez odpowiedniego zakresu",
+              "description": "Hero kilka razy budował pulę 4-betową rękami, które przeciwko typowym zakresom 3-betu lub 5-bet shove'a mają za mało equity. Najbardziej kosztowny był call all-inu za efektywne około 98 BB z KJo w #108805901337; wygrana z QQ po królu na riverze nie czyni calla dobrym. W #108805901307 cold 4-bet z 77 po openie i 3-becie również jest zbyt ambitny bez konkretnych readów, mimo że wszyscy spasowali.",
+              "correction": "Ustal wyraźny zakres na 4-bet dla każdej konfiguracji. Bez historii przeciwko rekreacyjnym/nieznanym rywalom 77 częściej folduj lub rozważ call tylko w dobrych warunkach, a KJo po 3-becie przede wszystkim folduj; po 5-becie nie dokładaj stacka z taką ręką. 4-bet blef powinien mieć dobrych blockerów i plan na odpowiedź przeciwnika.",
+              "handIds": [
+                "108805901337",
+                "108805901307"
+              ]
+            },
+            {
+              "title": "Obrona big blinda ze zbyt słabymi offsuitami, potem szybki fold na flopie",
+              "description": "Powtarza się call przeciwko openowi rękami o słabej realizacji equity poza pozycją. W #108805901271 Hero bronił 63o przeciwko openowi 2,5 BB, w #108805901301 K4o przeciwko 2,2 BB, a w #108805901335 93o przeciwko 2,5 BB; w każdym przypadku Hero nie trafił flopa i oddał dodatkową część blinda. To nie są pojedyncze pechowe flopy, lecz zbyt szeroki zakres wejścia.",
+              "correction": "Zacieśnij obronę BB szczególnie dla offsuitowych rąk bez wysokiej karty, koloru i łączności. Przeciwko standardowym sizingom preferuj ręce suited, connected oraz te z użytecznym blockerem; 63o, K4o i 93o powinny zwykle być foldem.",
+              "handIds": [
+                "108805901271",
+                "108805901301",
+                "108805901335"
+              ]
+            },
+            {
+              "title": "Limpowanie słabych rąk i kontynuowanie po izolacji",
+              "description": "Hero limpował ręce, które lepiej realizują equity jako raise albo fold, a czasem kontynuował mimo niekorzystnej puli wieloosobowej. W #108805901358 A4s zostało zlimpowane z UTG, w #108805901364 podobnie A7s z UTG, a w #108805901374 Hero zlimpował 53s z HJ, po czym sprawdził duży raise izolujący do 5 BB oraz grał multiway. Fakt, że część tych rozdań została wygrana, nie rekompensuje problemu strukturalnego z zakresem i inicjatywą.",
+              "correction": "Z pozycji wczesnych i środkowych graj strategią raise-or-fold. A4s/A7s zwykle otwieraj standardowym sizingiem albo dostosuj do stołu, natomiast 53s z HJ najczęściej folduj. Po limpie unikaj callowania dużych izolacji ze słabymi suited rękami, zwłaszcza gdy w puli jest już dodatkowy caller.",
+              "handIds": [
+                "108805901358",
+                "108805901364",
+                "108805901374"
+              ]
+            },
+            {
+              "title": "Eskalowanie blefów i drawów zbyt dużymi sizingami",
+              "description": "W kilku pulach Hero dokładał znaczące żetony z marginalną wartością, drawem lub bez showdown value, gdy zakres rywala był już relatywnie mocny. W #108805901298 po 3-becie z A5o Hero zabetował duży river na boardzie Q-J-8-2-9 po callu flopa, a rywal sprawdził z AJ. W #108805901332 Hero zrobił bardzo duży raise na turnie z A4s na boardzie 5-8-6-4, mając jedynie parę i draw, a w #108805901347 sprawdził flop raise z 76o przy drawie do strita, bez wystarczających bezpośrednich oddsów i poza pozycją.",
+              "correction": "Przed dużym blefem określ, jakie lepsze ręce realnie zmuszasz do foldu oraz które value ręce wiarygodnie reprezentujesz. Z drawami porównuj wymagane equity z pot oddsami i uwzględniaj słabą realizację equity OOP; częściej wybieraj check/call, check/fold albo mniejszy, przemyślany semi-blef zamiast automatycznego budowania wielkiej puli.",
+              "handIds": [
+                "108805901298",
+                "108805901332",
+                "108805901347"
+              ]
+            }
+          ],
+          "notableHands": [
+            {
+              "handId": "108805901337",
+              "reason": "Największy bezwzględny swing sesji. Preflop 4-bet i call all-inu z KJo przeciwko 5-betowi za około 98 BB są bardzo ryzykowne względem typowych zakresów; wygrana z QQ po riverze nie potwierdza poprawności decyzji."
+            },
+            {
+              "handId": "108805901298",
+              "reason": "Dobry przykład zbyt ambitnego barrelowania: A5o nie ma showdown value, ale riverowy blef na Q-J-8-2-9 trafia w wiele par i nie ma wyraźnych blockerów do najsilniejszych rąk rywala."
+            },
+            {
+              "handId": "108805901332",
+              "reason": "Turnowy raise z A4s na 5-8-6-4 radykalnie zwiększył wariancję z parą i ograniczonym drawem. To ważne rozdanie do pracy nad equity, sizingiem oraz zakresem kontynuacji rywala."
+            },
+            {
+              "handId": "108805901324",
+              "reason": "Call 3-betu z QJo w BB, a następnie duży donk bet na A-Q-6, stworzyły trudną pulę poza pozycją przeciwko silnemu zakresowi. Główną korektą jest fold preflop przeciwko większości nieznanych 3-betów."
+            },
+            {
+              "handId": "108805901359",
+              "reason": "Pozytywny przykład: Hero rozsądnie kontrolował pulę z tripsami na flopie, a następnie wyciągnął value na turnie i riverze od słabszego zakresu rywala."
+            }
+          ]
+        },
+        "reportId": "77e1f652-1ceb-481d-b649-7a0310dc123d",
+        "analyzedAt": "2026-08-13T20:02:35.599Z",
+        "datasetRevision": "p1-34b60b5f023402a3608f1ee4746436800015d95aace58d1e6c9bd717caf2b8d4"
+      }
+    ],
+    "tourney_87452_2026/08/11": [
+      {
+        "model": {
+          "id": "gpt-5.6-terra",
+          "name": "GPT-5.6 Terra"
+        },
+        "sessionId": "tourney_87452_2026/08/11",
+        "fingerprint": "fnv1a-2ffcf86b",
+        "analysis": {
+          "profileStyleId": "LAG",
+          "sessionSummary": "Profil LAG jest w tej próbce wyraźny: Hero często otwiera, 3-betuje i przejmuje inicjatywę dużymi betami, również z szeroką częścią zakresu. Agresja tworzy fold equity, ale kilka linii pokazuje zbyt wysoką gotowość do budowania puli z marginalną parą albo drawem po silnej odpowiedzi rywala. Próba jest ograniczona, więc wnioski o zakresach przeciwników powinny pozostać ostrożne; główny kierunek poprawy to selekcja spotów do eskalacji i wcześniejsze planowanie reakcji na raise.",
+          "keyMistakes": [
+            {
+              "title": "Przecenianie marginalnej pary wobec silnych zakresów i dużej akcji",
+              "description": "W #132077200001 Hero z KJ na Qh-Jh-7h zagrał ponadpotowy flop i turn, a następnie zainwestował cały stack po dwóch callach na bardzo mokrym boardzie. W #132080300026 A8s po 3-becie i callu 4-betu zostało stack-offowane na flopie Ah-Qs-4h przeciwko bardzo wąskiemu zakresowi 4-betu. W #132127300014 A2o jako UTG zagrało bet 4 116 na Kc-5d-2c z dolną parą bez trefla; sizing budował pulę głównie przeciwko rękom, które mają dobrą kontynuację.",
+              "correction": "Przed dużym betem określ, jakie słabsze ręce realnie zapłacą i jakie lepsze ręce spasują. Na boardach z drawami oraz po 4-becie używaj częściej checku, małego beta albo foldu do bardzo silnej akcji; top pair ze słabym kickerem i dolna para nie powinny automatycznie grać o stack.",
+              "handIds": [
+                "132077200001",
+                "132080300026",
+                "132127300014"
+              ]
+            },
+            {
+              "title": "Eskalowanie blefów i semi-blefów bez wystarczającego planu na raise",
+              "description": "W #132080300001 Hero sprawdził 3-bet z QTo, a następnie check-raise'ował c-bet na 6c-6d-5s praktycznie bez bezpośredniej equity. W #132080300025 T6o po complecie ze small blinda zagrało trzy bety na Ac-Qc-7c-9c-3d, mimo że kolejne calle mocno wzmacniały zakres rywala. W #132127300009 QTo miało open-ended straight draw na Jd-6s-9c, ale duży donk bet i shove po raise'ie rywala wymagały znacznie lepszej fold equity niż ta dostępna po tak silnej odpowiedzi.",
+              "correction": "Wybieraj blefy z lepszymi blockerami, equity i wiarygodną przewagą zakresu. Zanim zagrasz duży donk bet lub check-raise, ustal plan na raise: jeśli nie możesz komfortowo kontynuować po przebiciu, częściej wybieraj check-call z drawem albo check-fold z ręką bez equity.",
+              "handIds": [
+                "132080300001",
+                "132080300025",
+                "132127300009"
+              ]
+            },
+            {
+              "title": "Za szerokie i niespójne wejścia z UTG",
+              "description": "W #132080300006 Q5s zostało zlimpowane z UTG i od razu spasowane do izolacji, co oddaje inicjatywę bez wyraźnej korzyści strategicznej. W #132080300041 QTo również weszło limpem z UTG, a późniejszy duży bet na flopie nie zmienia faktu, że preflop range jest trudny do zbalansowania. W #132127300014 A2o zostało otwarte z UTG przy około 17 BB, tworząc trudny spot po flopie z ręką o ograniczonej wartości showdownowej.",
+              "correction": "Ustal prostszy zakres UTG zależny od stacka: przy głębszych stackach preferuj raise/fold zamiast open-limpów z dolną częścią zakresu, a przy 15–20 BB ogranicz słabe offsuit asy. Jeśli stosujesz limpy, potrzebujesz także mocnych rąk w tym zakresie oraz jasnego planu przeciwko izolacji.",
+              "handIds": [
+                "132080300006",
+                "132080300041",
+                "132127300014"
+              ]
+            }
+          ],
+          "notableHands": [
+            {
+              "handId": "132127300009",
+              "reason": "Największy bezwzględny swing sesji. QTo w BB miało open-ended straight draw, lecz donk bet 3 150 i shove po dużym raise'ie rywala stworzyły sytuację, w której zakres przeciwnika po eskalacji był bardzo mocny."
+            },
+            {
+              "handId": "132077200001",
+              "reason": "Ważny przykład zbyt dużego budowania puli z KJ na boardzie z trzema kierami: ponadpotowe bety na flopie i turnie oraz inwestycja całego stacka po callach rywala."
+            },
+            {
+              "handId": "132080300026",
+              "reason": "Kluczowy spot preflop-postflop: 3-bet A8s, call 4-betu, a potem call shova na Ah-Qs-4h. To dobry punkt do pracy nad zakresem kontynuacji przeciwko 4-betom."
+            },
+            {
+              "handId": "132127300014",
+              "reason": "Przy krótszym stacku Hero otworzył A2o z UTG i użył bardzo dużego c-betu z dolną parą na boardzie z dwoma treflami. Ręka dobrze ilustruje potrzebę kontroli puli."
+            },
+            {
+              "handId": "132080300012",
+              "reason": "Pozytywny kontrast dla agresji: QQ na 9c-6d-8s miało silną wartość przeciwko draw-heavy zakresowi po check-raise'ie i mogło sensownie budować pulę, niezależnie od końcowego runoutu."
+            }
+          ]
+        },
+        "reportId": "ccc74bb4-a341-4137-adc1-7dc3ad9cab3b",
+        "analyzedAt": "2026-08-13T20:02:54.463Z",
+        "datasetRevision": "p1-34b60b5f023402a3608f1ee4746436800015d95aace58d1e6c9bd717caf2b8d4"
+      }
+    ],
+    "tourney_87476_2026/08/11": [
+      {
+        "model": {
+          "id": "gpt-5.6-terra",
+          "name": "GPT-5.6 Terra"
+        },
+        "sessionId": "tourney_87476_2026/08/11",
+        "fingerprint": "fnv1a-528d7e41",
+        "analysis": {
+          "keyMistakes": [
+            {
+              "correction": "Ustal bazowe sizingi zależne od efektywnego stacka i od liczby graczy w puli: bez szczególnych readów otwieraj zwykle około 2–2,3bb przy głębszych stackach, jeszcze oszczędniej przy 20–25bb, a izolacje z BB przeciw limperowi rób wyraźnie większe, zwykle 4–5bb. Odstępstwa powinny mieć konkretny exploitacyjny powód.",
+              "description": "Sizingi są zbyt zmienne i czasem nie chronią ani zakresu, ani stacka. W #132145800003 izolacja limpera z BB do 3bb była zbyt mała OOP i dała rywalowi tani flop; w #132145800008 otwarcie 77 UTG do 4bb przy około 63bb efektywnego stacka niepotrzebnie podniosło koszt całego zakresu otwarć; w #132166700038 otwarcie 98s UTG do 2,5bb przy około 22,7bb zmniejszyło elastyczność po reshovie. Bez danych exploitacyjnych taki miks sizingów jest kosztowny dla agresywnego stylu.",
+              "title": "Niekonsekwentne sizingi preflop",
+              "handIds": [
+                "132145800003",
+                "132145800008",
+                "132166700038"
+              ]
+            },
+            {
+              "correction": "Zawęź zakres kontynuacji offsuit po wcześniejszej agresji. Po openie i cold callu broń BB głównie rękami, które dobrze realizują equity, a wobec squeeze’ów częściej folduj słabe offsuit Kx; przeciw krótkiemu all-inowi zawsze uwzględniaj możliwość ponownego otwarcia licytacji.",
+              "description": "Hero kilka razy dokładał żetony rękami o słabej realizacji equity w pulach, w których zakresy przeciwników są już wzmocnione. W #132145800009 T5o sprawdziło krótki all-in po openie i callu, po czym musiało spasować do kolejnego podbicia; w #132151500003 95o z BB weszło wieloosobowo po openie i callu; w #132166700029 K6o otworzyło z BTN, a następnie sprawdziło squeeze BB po cold callu SB. Szczególnie ostatnia linia ma dużo dominowanych kombinacji i niewiele komfortowych flopów.",
+              "title": "Za luźne kontynuacje rękami offsuit po agresji",
+              "handIds": [
+                "132145800009",
+                "132151500003",
+                "132166700029"
+              ]
+            },
+            {
+              "correction": "Przy 10–15bb wybieraj przede wszystkim spójne decyzje jam/fold, zamiast małego squeeze’u tworzącego niski SPR po flopie. Przy 20–25bb zawęź wczesne otwarcia i przed openem określ, przeciw którym zakresom reshove’u dana ręka może sprawdzić; same pot oddsy nie powinny zastępować oceny zakresu przeciwnika.",
+              "description": "W późniejszej fazie turnieju agresja nie zawsze była dopasowana do efektywnego stacka. W #132166700038 98s zostało otwarte UTG przy około 22,7bb, a potem Hero dopłacił 4 157 do reshove’u; z dodatkową martwą pulą call może być bliski tylko przeciw wystarczająco szerokiemu zakresowi shove’u, czego bez readów nie należy zakładać. W #132166700040 przy niespełna 13bb KQo wykonało mały squeeze z SB przeciw openowi i callowi, a następnie zagrało check-jam z K-high po becie w puli wieloosobowej — lepszy plan to decyzja all-in albo fold już preflop, zależnie od zakresów.",
+              "title": "Brak prostego planu przy stackach 13–23bb",
+              "handIds": [
+                "132166700038",
+                "132166700040"
+              ]
+            }
+          ],
+          "notableHands": [
+            {
+              "handId": "132145800008",
+              "reason": "Największy bezwzględny swing sesji (+9 634). Po otwarciu 77 Hero trafił seta na flopie Q-7-5 z drawem do koloru; 3-bet i stack-off przeciw check-raise’owi są technicznie uzasadnione silą ręki i dynamiką boardu, niezależnie od wyniku."
+            },
+            {
+              "handId": "132166700017",
+              "reason": "Dobry przykład gry value: QQ w SB prawidłowo sprawdza dwa preflopowe all-iny krótszych stacków. To ręka, w której szeroki styl nie zastępuje fundamentów — Hero wykorzystuje wyraźną przewagę zakresową."
+            },
+            {
+              "handId": "132166700029",
+              "reason": "Kluczowa decyzja zakresowa: K6o z BTN może otwierać, ale call squeeze’u BB po cold callu SB jest bardzo trudny do obrony bez mocnych readów. Ręka dobrze pokazuje koszt kontynuowania z dominowanym offsuit Kx."
+            },
+            {
+              "handId": "132166700038",
+              "reason": "Ważny spot przy około 22,7bb: open 98s UTG, reshove rywala i call Hero. Ocena calla zależy od realnej szerokości zakresu shove’u oraz martwej puli, ale sam wybór luźnego wczesnego opena ograniczył późniejszą elastyczność."
+            },
+            {
+              "handId": "132166700040",
+              "reason": "Najpoważniejszy problem konstrukcji rozdania: przy niespełna 13bb mały squeeze KQo z SB przeciw openowi i callowi stworzył niewygodny stack-to-pot ratio, a check-jam z K-high po becie reprezentuje zbyt optymistyczną ocenę fold equity."
+            }
+          ],
+          "profileStyleId": "LAG",
+          "sessionSummary": "Próba 68 rozdań jest zgodna z profilem LAG: Hero często przejmuje inicjatywę otwarciami, 3-betami i próbami zdobywania pul bez showdownu. Najlepsze technicznie momenty to value stack-off z setem 77 oraz preflopowe calle z QQ; ich jakość wynika z siły zakresu, nie z końcowego wyniku. Bez readów na rywali główne obszary poprawy to sizing preflop, selekcja offsuitowych kontynuacji oraz prostszy plan gry przy krótszych stackach."
+        },
+        "reportId": "2ff39070-3add-480a-9241-ecd97162537c",
+        "analyzedAt": "2026-08-13T20:04:23.411Z",
         "datasetRevision": "p1-34b60b5f023402a3608f1ee4746436800015d95aace58d1e6c9bd717caf2b8d4"
       }
     ]
@@ -6972,6 +7595,1137 @@
                       "131444600043",
                       "131444600049",
                       "131444600072"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "reportId": "271193fe-a8c9-4372-b4ea-f6ff2f086195",
+      "model": {
+        "id": "gpt-5.6-terra",
+        "name": "GPT-5.6 Terra"
+      },
+      "analyzedAt": "2026-08-13T20:27:42.146Z",
+      "sessionIds": [
+        "cash_a518560b11845079",
+        "cash_e4ec822e5c579765",
+        "tourney_87452_2026/08/11",
+        "tourney_87476_2026/08/11",
+        "tourney_87503_2026/08/11",
+        "tourney_87547_2026/08/11",
+        "tourney_87750_2026/08/12",
+        "tourney_87764_2026/08/12",
+        "tourney_87770_2026/08/12",
+        "tourney_87785_2026/08/12",
+        "tourney_87871_2026/08/12"
+      ],
+      "sessionCount": 11,
+      "fingerprint": "fnv1a-22c3dd41",
+      "datasetRevision": "p1-34b60b5f023402a3608f1ee4746436800015d95aace58d1e6c9bd717caf2b8d4",
+      "activeCategory": "both",
+      "dateRange": {
+        "from": "",
+        "to": ""
+      },
+      "sources": [
+        {
+          "sourceId": "cash:cash_a518560b11845079",
+          "type": "cash",
+          "sessionId": "cash_a518560b11845079",
+          "sessionFingerprint": "fnv1a-abc4759b",
+          "metadata": {
+            "label": "Stół 200897",
+            "date": "2026/08/12 08:17:43 CEST",
+            "startTime": 1786515463000,
+            "handCount": 54,
+            "tableId": "200897",
+            "tournamentId": "",
+            "tournamentName": ""
+          },
+          "reportId": "39be57ba-3eeb-45f8-ba51-4cb7724c107d",
+          "reportFingerprint": "fnv1a-abc4759b"
+        },
+        {
+          "sourceId": "cash:cash_e4ec822e5c579765",
+          "type": "cash",
+          "sessionId": "cash_e4ec822e5c579765",
+          "sessionFingerprint": "fnv1a-08606cb3",
+          "metadata": {
+            "label": "Stół 200897",
+            "date": "2026/08/12 00:37:39 CEST",
+            "startTime": 1786487859000,
+            "handCount": 117,
+            "tableId": "200897",
+            "tournamentId": "",
+            "tournamentName": ""
+          },
+          "reportId": "77e1f652-1ceb-481d-b649-7a0310dc123d",
+          "reportFingerprint": "fnv1a-08606cb3"
+        },
+        {
+          "sourceId": "tournament:tourney_87452_2026/08/11",
+          "type": "tournament",
+          "sessionId": "tourney_87452_2026/08/11",
+          "sessionFingerprint": "fnv1a-2ffcf86b",
+          "metadata": {
+            "label": "₮11 Turbo #87452",
+            "date": "2026/08/11 18:10:10 CEST",
+            "startTime": 1786464610000,
+            "handCount": 70,
+            "tableId": "",
+            "tournamentId": "87452",
+            "tournamentName": "₮11 Turbo"
+          },
+          "reportId": "ccc74bb4-a341-4137-adc1-7dc3ad9cab3b",
+          "reportFingerprint": "fnv1a-2ffcf86b"
+        },
+        {
+          "sourceId": "tournament:tourney_87476_2026/08/11",
+          "type": "tournament",
+          "sessionId": "tourney_87476_2026/08/11",
+          "sessionFingerprint": "fnv1a-528d7e41",
+          "metadata": {
+            "label": "₮15 Turbo #87476",
+            "date": "2026/08/11 19:17:56 CEST",
+            "startTime": 1786468676000,
+            "handCount": 68,
+            "tableId": "",
+            "tournamentId": "87476",
+            "tournamentName": "₮15 Turbo"
+          },
+          "reportId": "2ff39070-3add-480a-9241-ecd97162537c",
+          "reportFingerprint": "fnv1a-528d7e41"
+        },
+        {
+          "sourceId": "tournament:tourney_87503_2026/08/11",
+          "type": "tournament",
+          "sessionId": "tourney_87503_2026/08/11",
+          "sessionFingerprint": "fnv1a-1629e69e",
+          "metadata": {
+            "label": "₮11 Primetime 6-Max Blitz #87503",
+            "date": "2026/08/11 20:18:14 CEST",
+            "startTime": 1786472294000,
+            "handCount": 81,
+            "tableId": "",
+            "tournamentId": "87503",
+            "tournamentName": "₮11 Primetime 6-Max Blitz"
+          },
+          "reportId": "aa2602d1-31fe-4014-b028-171a5abcd93b",
+          "reportFingerprint": "fnv1a-1629e69e"
+        },
+        {
+          "sourceId": "tournament:tourney_87547_2026/08/11",
+          "type": "tournament",
+          "sessionId": "tourney_87547_2026/08/11",
+          "sessionFingerprint": "fnv1a-da734e54",
+          "metadata": {
+            "label": "₮11 Hyper #87547",
+            "date": "2026/08/11 21:40:10 CEST",
+            "startTime": 1786477210000,
+            "handCount": 92,
+            "tableId": "",
+            "tournamentId": "87547",
+            "tournamentName": "₮11 Hyper"
+          },
+          "reportId": "8c42f048-7a9d-4ac4-be08-30371528789e",
+          "reportFingerprint": "fnv1a-da734e54"
+        },
+        {
+          "sourceId": "tournament:tourney_87750_2026/08/12",
+          "type": "tournament",
+          "sessionId": "tourney_87750_2026/08/12",
+          "sessionFingerprint": "fnv1a-7a020a4a",
+          "metadata": {
+            "label": "₮11 Asia Rapid Fire PKO [Turbo] #87750",
+            "date": "2026/08/12 12:01:58 CEST",
+            "startTime": 1786528918000,
+            "handCount": 32,
+            "tableId": "",
+            "tournamentId": "87750",
+            "tournamentName": "₮11 Asia Rapid Fire PKO [Turbo]"
+          },
+          "reportId": "6c71d634-3817-4f3b-b7d2-f5fe69ce3597",
+          "reportFingerprint": "fnv1a-7a020a4a"
+        },
+        {
+          "sourceId": "tournament:tourney_87764_2026/08/12",
+          "type": "tournament",
+          "sessionId": "tourney_87764_2026/08/12",
+          "sessionFingerprint": "fnv1a-c2217358",
+          "metadata": {
+            "label": "₮5.50 Hyper #87764",
+            "date": "2026/08/12 12:40:11 CEST",
+            "startTime": 1786531211000,
+            "handCount": 41,
+            "tableId": "",
+            "tournamentId": "87764",
+            "tournamentName": "₮5.50 Hyper"
+          },
+          "reportId": "b4e420c9-0608-45e9-8d37-44470ca0f29d",
+          "reportFingerprint": "fnv1a-c2217358"
+        },
+        {
+          "sourceId": "tournament:tourney_87770_2026/08/12",
+          "type": "tournament",
+          "sessionId": "tourney_87770_2026/08/12",
+          "sessionFingerprint": "fnv1a-dd537e3f",
+          "metadata": {
+            "label": "₮5.50 Quickdraw PKO [Turbo] #87770",
+            "date": "2026/08/12 13:30:11 CEST",
+            "startTime": 1786534211000,
+            "handCount": 40,
+            "tableId": "",
+            "tournamentId": "87770",
+            "tournamentName": "₮5.50 Quickdraw PKO [Turbo]"
+          },
+          "reportId": "41303560-4165-42ff-9c2c-2089fe93b255",
+          "reportFingerprint": "fnv1a-dd537e3f"
+        },
+        {
+          "sourceId": "tournament:tourney_87785_2026/08/12",
+          "type": "tournament",
+          "sessionId": "tourney_87785_2026/08/12",
+          "sessionFingerprint": "fnv1a-f239fc1d",
+          "metadata": {
+            "label": "₮5.50 Hyper #87785",
+            "date": "2026/08/12 14:51:15 CEST",
+            "startTime": 1786539075000,
+            "handCount": 129,
+            "tableId": "",
+            "tournamentId": "87785",
+            "tournamentName": "₮5.50 Hyper"
+          },
+          "reportId": "8a069652-6fdf-4cf6-b994-d82e6080e1b6",
+          "reportFingerprint": "fnv1a-f239fc1d"
+        },
+        {
+          "sourceId": "tournament:tourney_87871_2026/08/12",
+          "type": "tournament",
+          "sessionId": "tourney_87871_2026/08/12",
+          "sessionFingerprint": "fnv1a-84db4baa",
+          "metadata": {
+            "label": "₮4.40 6-Max Turbo #87871",
+            "date": "2026/08/12 21:14:43 CEST",
+            "startTime": 1786562083000,
+            "handCount": 207,
+            "tableId": "",
+            "tournamentId": "87871",
+            "tournamentName": "₮4.40 6-Max Turbo"
+          },
+          "reportId": "c003edc2-b4eb-4f7a-8741-acb72595b134",
+          "reportFingerprint": "fnv1a-84db4baa"
+        }
+      ],
+      "handCount": 931,
+      "categoryBreakdown": {
+        "cash": {
+          "sessionCount": 2,
+          "handCount": 171
+        },
+        "tournament": {
+          "sessionCount": 9,
+          "handCount": 760
+        }
+      },
+      "analysis": {
+        "profileStyleId": "LAG",
+        "reliabilityId": "STATISTICAL",
+        "summary": "Przekrojowo Hero gra aktywny, luźno-agresywny styl: wspólne metryki pokazują wysokie VPIP 36,9%, PFR 21,9%, 3-bet 9,6%, c-bet 82,5% oraz AF 5,03. Agresja jest realnym atutem, ale zbyt często łączy się z luźnymi wejściami preflop, niepotrzebnie dużymi sizingami turniejowymi i kontynuowaniem po silnej akcji z rękami poniżej wymaganego progu equity. Największy zwrot jakościowy da selekcja zakresów przed flopem, prostsze plany zależne od głębokości stacka oraz większa dyscyplina w dużych pulach.",
+        "summarySourceRefs": [
+          {
+            "sourceId": "cash:cash_a518560b11845079",
+            "reportId": "39be57ba-3eeb-45f8-ba51-4cb7724c107d",
+            "handIds": [
+              "109487000021",
+              "109487000018",
+              "109487000008"
+            ]
+          },
+          {
+            "sourceId": "cash:cash_e4ec822e5c579765",
+            "reportId": "77e1f652-1ceb-481d-b649-7a0310dc123d",
+            "handIds": [
+              "108805901271",
+              "108805901337",
+              "108805901332"
+            ]
+          },
+          {
+            "sourceId": "tournament:tourney_87503_2026/08/11",
+            "reportId": "aa2602d1-31fe-4014-b028-171a5abcd93b",
+            "handIds": [
+              "132213800014",
+              "132213800043",
+              "132213800013"
+            ]
+          },
+          {
+            "sourceId": "tournament:tourney_87770_2026/08/12",
+            "reportId": "41303560-4165-42ff-9c2c-2089fe93b255",
+            "handIds": [
+              "132709300006",
+              "132709300015",
+              "132721100021"
+            ]
+          },
+          {
+            "sourceId": "tournament:tourney_87871_2026/08/12",
+            "reportId": "c003edc2-b4eb-4f7a-8741-acb72595b134",
+            "handIds": [
+              "133115900010",
+              "133149300088",
+              "133149300134"
+            ]
+          }
+        ],
+        "strengths": [
+          {
+            "title": "Aktywne przejmowanie inicjatywy",
+            "description": "Wspólny profil LAG jest wsparty wysoką częstotliwością 3-betów i c-betów. Hero regularnie wykorzystuje inicjatywę preflop i po flopie; problem dotyczy przede wszystkim selekcji rąk oraz sytuacji, a nie braku presji.",
+            "sourceRefs": [
+              {
+                "sourceId": "tournament:tourney_87452_2026/08/11",
+                "reportId": "ccc74bb4-a341-4137-adc1-7dc3ad9cab3b",
+                "handIds": [
+                  "132080300012"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87476_2026/08/11",
+                "reportId": "2ff39070-3add-480a-9241-ecd97162537c",
+                "handIds": [
+                  "132145800008",
+                  "132166700017"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87764_2026/08/12",
+                "reportId": "b4e420c9-0608-45e9-8d37-44470ca0f29d",
+                "handIds": [
+                  "132684500010"
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Potrafi budować pulę z rzeczywiście mocnym value",
+            "description": "Gdy zakres Hero jest wyraźnie silny, pojawiają się technicznie uzasadnione decyzje o grze o duże pule: value stack-off z setem, poprawne calle z QQ przeciw krótszym all-inom oraz agresywne value z gotowym kolorem.",
+            "sourceRefs": [
+              {
+                "sourceId": "tournament:tourney_87476_2026/08/11",
+                "reportId": "2ff39070-3add-480a-9241-ecd97162537c",
+                "handIds": [
+                  "132145800008",
+                  "132166700017"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87452_2026/08/11",
+                "reportId": "ccc74bb4-a341-4137-adc1-7dc3ad9cab3b",
+                "handIds": [
+                  "132080300012"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87764_2026/08/12",
+                "reportId": "b4e420c9-0608-45e9-8d37-44470ca0f29d",
+                "handIds": [
+                  "132684500010"
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Ma przykłady kontroli puli z ręką o średniej sile",
+            "description": "Nie każda linia Hero jest nadmiernie agresywna: w Cash pojawiła się rozsądna kontrola puli z tripsami, a następnie wyciągnięcie value od słabszego zakresu. To dobra baza do przeniesienia na częstsze spoty z top pair i overpairami.",
+            "sourceRefs": [
+              {
+                "sourceId": "cash:cash_e4ec822e5c579765",
+                "reportId": "77e1f652-1ceb-481d-b649-7a0310dc123d",
+                "handIds": [
+                  "108805901359"
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Rozpoznaje wartość premium w standardowych konfiguracjach all-in",
+            "description": "W raportach występują poprawne wejścia z bardzo silnymi zakresami, niezależnie od późniejszego runoutu. Wskazuje to, że fundament wyboru premium jest obecny; potrzebne jest przede wszystkim wyraźniejsze odcięcie rąk marginalnych od tych samych linii.",
+            "sourceRefs": [
+              {
+                "sourceId": "tournament:tourney_87503_2026/08/11",
+                "reportId": "aa2602d1-31fe-4014-b028-171a5abcd93b",
+                "handIds": [
+                  "132278800010"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87547_2026/08/11",
+                "reportId": "8c42f048-7a9d-4ac4-be08-30371528789e",
+                "handIds": [
+                  "132296200091"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87785_2026/08/12",
+                "reportId": "8a069652-6fdf-4cf6-b994-d82e6080e1b6",
+                "handIds": [
+                  "132755100012",
+                  "132755100020"
+                ]
+              }
+            ]
+          }
+        ],
+        "repeatedMistakes": [
+          {
+            "title": "Za luźne wejścia i kontynuacje preflop słabymi rękami",
+            "description": "W wielu sesjach Hero wprowadza do puli słabe offsuity, limpy lub marginalne cold-calle, zwłaszcza z blindów albo po wcześniejszej agresji. Takie ręce mają niską realizację equity, często są zdominowane i tworzą trudne pule bez inicjatywy.",
+            "correction": "Zbuduj pozycjowe zakresy raise-or-fold oraz osobne, ciaśniejsze zakresy obrony BB i calli przeciw 3-betom. Zasadniczo folduj słabe offsuity bez koloru i łączności; po openie, callu lub squeeze'ie podnoś próg kontynuacji zamiast traktować atrakcyjność ręki jako wystarczający powód do calla.",
+            "sourceRefs": [
+              {
+                "sourceId": "cash:cash_e4ec822e5c579765",
+                "reportId": "77e1f652-1ceb-481d-b649-7a0310dc123d",
+                "handIds": [
+                  "108805901271",
+                  "108805901301",
+                  "108805901335",
+                  "108805901374"
+                ]
+              },
+              {
+                "sourceId": "cash:cash_a518560b11845079",
+                "reportId": "39be57ba-3eeb-45f8-ba51-4cb7724c107d",
+                "handIds": [
+                  "109487000021",
+                  "109487000026",
+                  "109487000024"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87476_2026/08/11",
+                "reportId": "2ff39070-3add-480a-9241-ecd97162537c",
+                "handIds": [
+                  "132145800009",
+                  "132151500003",
+                  "132166700029"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87764_2026/08/12",
+                "reportId": "b4e420c9-0608-45e9-8d37-44470ca0f29d",
+                "handIds": [
+                  "132684500018",
+                  "132684500040",
+                  "132684500041"
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Przeinwestowywanie po 3-betach, squeeze'ach i all-inach",
+            "description": "Hero wielokrotnie dokłada żetony lub stackuje się rękami, które są za słabe względem typowo zawężonych zakresów po 4-becie, squeeze'ie, 5-becie albo silnym check-jamie. Problem jest obecny zarówno w Cash, jak i w turniejach oraz nie zależy od wyniku pojedynczego showdownu.",
+            "correction": "Dla każdej sekwencji open–3-bet–4-bet i open–3-bet–squeeze ustal wcześniej zakres stack-offu. Przed callem wyznacz value rywala, naturalne blefy, pot oddsy i minimalną equity. Bez konkretnych readów folduj dominowane broadwaye, średnie pary i marginalne suited asy w miejscach, gdzie zakres rywala jest już bardzo mocny.",
+            "sourceRefs": [
+              {
+                "sourceId": "cash:cash_e4ec822e5c579765",
+                "reportId": "77e1f652-1ceb-481d-b649-7a0310dc123d",
+                "handIds": [
+                  "108805901337",
+                  "108805901307",
+                  "108805901324"
+                ]
+              },
+              {
+                "sourceId": "cash:cash_a518560b11845079",
+                "reportId": "39be57ba-3eeb-45f8-ba51-4cb7724c107d",
+                "handIds": [
+                  "109487000008",
+                  "109487000018",
+                  "109487000025"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87770_2026/08/12",
+                "reportId": "41303560-4165-42ff-9c2c-2089fe93b255",
+                "handIds": [
+                  "132709300006",
+                  "132709300015",
+                  "132709300016"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87750_2026/08/12",
+                "reportId": "6c71d634-3817-4f3b-b7d2-f5fe69ce3597",
+                "handIds": [
+                  "132654100041",
+                  "132654100063"
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Zbyt duże i niespójne sizingi otwarć turniejowych",
+            "description": "W licznych turniejach Hero otwiera za 3,5–4 BB, również przy ante oraz stackach około 15–30 BB. Taki rozmiar niepotrzebnie zwiększa koszt foldów, ogranicza manewrowość przeciw reshove'om i nie daje udokumentowanej rekompensaty exploitacyjnej.",
+            "correction": "Przyjmij domyślnie open około 2–2,3 BB z ante. Przy 12–25 BB przed otwarciem przypisz rękę do jasnej gałęzi: min-raise/fold, min-raise/call albo open-jam. Większe otwarcia stosuj wyłącznie z konkretnym readem i jasno określonym celem.",
+            "sourceRefs": [
+              {
+                "sourceId": "tournament:tourney_87476_2026/08/11",
+                "reportId": "2ff39070-3add-480a-9241-ecd97162537c",
+                "handIds": [
+                  "132145800008",
+                  "132166700038"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87503_2026/08/11",
+                "reportId": "aa2602d1-31fe-4014-b028-171a5abcd93b",
+                "handIds": [
+                  "132213800014",
+                  "132213800031",
+                  "132278800011"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87547_2026/08/11",
+                "reportId": "8c42f048-7a9d-4ac4-be08-30371528789e",
+                "handIds": [
+                  "132293500002",
+                  "132296200016",
+                  "132296200033"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87770_2026/08/12",
+                "reportId": "41303560-4165-42ff-9c2c-2089fe93b255",
+                "handIds": [
+                  "132721100021",
+                  "132721100022",
+                  "132721100029"
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Eskalowanie blefów, drawów i marginalnych par bez planu na opór",
+            "description": "Hero zbyt często wybiera duże bety, check-raise'y, donki lub kolejne barrele z ograniczoną equity albo marginalną wartością, mimo że zakres rywala po callu lub raise'ie jest silniejszy. Powtarza się także brak wcześniejszego planu, co robić po przebiciu.",
+            "correction": "Przed betem odpowiedz na trzy pytania: które lepsze ręce foldują, które gorsze ręce płacą oraz jak zareagujesz na raise. Blefy wybieraj z blockerami i wiarygodną przewagą zakresu; z drawami porównuj equity z pot oddsami. W pulach multiway i OOP częściej wybieraj check zamiast automatycznego budowania puli.",
+            "sourceRefs": [
+              {
+                "sourceId": "cash:cash_e4ec822e5c579765",
+                "reportId": "77e1f652-1ceb-481d-b649-7a0310dc123d",
+                "handIds": [
+                  "108805901298",
+                  "108805901332",
+                  "108805901347"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87452_2026/08/11",
+                "reportId": "ccc74bb4-a341-4137-adc1-7dc3ad9cab3b",
+                "handIds": [
+                  "132080300001",
+                  "132080300025",
+                  "132127300009"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87503_2026/08/11",
+                "reportId": "aa2602d1-31fe-4014-b028-171a5abcd93b",
+                "handIds": [
+                  "132213800013",
+                  "132213800063",
+                  "132278800001"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87785_2026/08/12",
+                "reportId": "8a069652-6fdf-4cf6-b994-d82e6080e1b6",
+                "handIds": [
+                  "132755100011",
+                  "132753500055",
+                  "132753500121"
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Przecenianie jednej pary lub marginalnej made hand po dużej agresji",
+            "description": "W kilku niezależnych sesjach Hero traktuje top pair ze słabym kickerem, overpair lub słabszą parę jako rękę wystarczającą do dużej puli albo bluff-catchu, mimo że struktura boardu i linia przeciwnika wyraźnie wzmacniają jego zakres.",
+            "correction": "W dużej puli oceń relatywną, a nie nominalną siłę ręki. Przed value raise'em lub bluff-callem wypisz gorsze ręce płacące, lepsze ręce foldujące oraz realną liczbę blefów. Bez przewagi w tych kategoriach wybieraj kontrolę puli, mniejszy call albo fold.",
+            "sourceRefs": [
+              {
+                "sourceId": "cash:cash_a518560b11845079",
+                "reportId": "39be57ba-3eeb-45f8-ba51-4cb7724c107d",
+                "handIds": [
+                  "109383900365",
+                  "109383900367",
+                  "109487000008"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87452_2026/08/11",
+                "reportId": "ccc74bb4-a341-4137-adc1-7dc3ad9cab3b",
+                "handIds": [
+                  "132077200001",
+                  "132080300026",
+                  "132127300014"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87750_2026/08/12",
+                "reportId": "6c71d634-3817-4f3b-b7d2-f5fe69ce3597",
+                "handIds": [
+                  "132654100053",
+                  "132654100063"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87871_2026/08/12",
+                "reportId": "c003edc2-b4eb-4f7a-8741-acb72595b134",
+                "handIds": [
+                  "133115900019",
+                  "133149300134"
+                ]
+              }
+            ]
+          }
+        ],
+        "trainingPriorities": [
+          {
+            "title": "1. Preflop: zakresy raise-or-fold, obrony i stack-offu",
+            "description": "Najpierw ogranicz luźne limpy, obrony słabymi offsuitami i calle przeciw 3-betom. Przygotuj osobne tabele dla RFI, BB defence, calli versus 3-bet oraz stack-offów po 4-becie i squeeze'ie. Celem jest zachowanie agresji LAG wyłącznie w rękach, które mają realizację equity i plan na dalszą akcję.",
+            "sourceRefs": [
+              {
+                "sourceId": "cash:cash_e4ec822e5c579765",
+                "reportId": "77e1f652-1ceb-481d-b649-7a0310dc123d",
+                "handIds": [
+                  "108805901271",
+                  "108805901337",
+                  "108805901358"
+                ]
+              },
+              {
+                "sourceId": "cash:cash_a518560b11845079",
+                "reportId": "39be57ba-3eeb-45f8-ba51-4cb7724c107d",
+                "handIds": [
+                  "109487000021",
+                  "109487000018",
+                  "109487000024"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87764_2026/08/12",
+                "reportId": "b4e420c9-0608-45e9-8d37-44470ca0f29d",
+                "handIds": [
+                  "132684500018",
+                  "132684500040",
+                  "132684500041"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87770_2026/08/12",
+                "reportId": "41303560-4165-42ff-9c2c-2089fe93b255",
+                "handIds": [
+                  "132709300006",
+                  "132709300015",
+                  "132709300016"
+                ]
+              }
+            ]
+          },
+          {
+            "title": "2. Turnieje: sizing i decyzje według efektywnego stacka",
+            "description": "Ustandaryzuj otwarcia do około 2–2,3 BB i ćwicz decyzje min-raise/fold, min-raise/call oraz jam/fold dla 10–25 BB. Szczególną uwagę poświęć średnim asom, offsuitowym broadwayom i suited connectorom z wczesnych pozycji, ponieważ to z nimi najczęściej powstają kosztowne reshove i niskie SPR.",
+            "sourceRefs": [
+              {
+                "sourceId": "tournament:tourney_87476_2026/08/11",
+                "reportId": "2ff39070-3add-480a-9241-ecd97162537c",
+                "handIds": [
+                  "132145800008",
+                  "132166700038",
+                  "132166700040"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87503_2026/08/11",
+                "reportId": "aa2602d1-31fe-4014-b028-171a5abcd93b",
+                "handIds": [
+                  "132213800014",
+                  "132213800031",
+                  "132278800011"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87547_2026/08/11",
+                "reportId": "8c42f048-7a9d-4ac4-be08-30371528789e",
+                "handIds": [
+                  "132293500002",
+                  "132296200016",
+                  "132296200035"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87770_2026/08/12",
+                "reportId": "41303560-4165-42ff-9c2c-2089fe93b255",
+                "handIds": [
+                  "132721100021",
+                  "132721100022",
+                  "132721100029"
+                ]
+              }
+            ]
+          },
+          {
+            "title": "3. Postflop: decyzje range-vs-range po callu, raise'ie i jamie",
+            "description": "Wprowadź obowiązkowy proces przed dużą inwestycją: określ zakres value i blefów rywala, wymagane equity, swoje blockery oraz ręce, które realnie płacą gorsze lub foldują lepsze. Ćwicz szczególnie bluff-catche z jedną parą, bet-foldy na boardach korzystnych dla callera oraz drawy po check-raise'ie.",
+            "sourceRefs": [
+              {
+                "sourceId": "cash:cash_a518560b11845079",
+                "reportId": "39be57ba-3eeb-45f8-ba51-4cb7724c107d",
+                "handIds": [
+                  "109383900365",
+                  "109383900367"
+                ]
+              },
+              {
+                "sourceId": "cash:cash_e4ec822e5c579765",
+                "reportId": "77e1f652-1ceb-481d-b649-7a0310dc123d",
+                "handIds": [
+                  "108805901298",
+                  "108805901332",
+                  "108805901347"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87452_2026/08/11",
+                "reportId": "ccc74bb4-a341-4137-adc1-7dc3ad9cab3b",
+                "handIds": [
+                  "132077200001",
+                  "132080300001",
+                  "132127300009"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87750_2026/08/12",
+                "reportId": "6c71d634-3817-4f3b-b7d2-f5fe69ce3597",
+                "handIds": [
+                  "132654100053",
+                  "132654100063"
+                ]
+              }
+            ]
+          }
+        ],
+        "categoryInsights": [
+          {
+            "category": "cash",
+            "summary": "Cash obejmuje 171 rozdań i ma statystyczną wiarygodność próby. Lokalne metryki wskazują bardzo luźne wejścia do puli (VPIP 42,7% przy PFR 20,5%), niski 3-bet 2,2% oraz niższą agresję po flopie niż w turniejach (AF 3,17, c-bet 62,5%). Obraz jest bliższy pasywno-luźnemu preflopowi przeplatanemu okresowymi, zbyt dużymi eskalacjami w dużych pulach.",
+            "sourceRefs": [
+              {
+                "sourceId": "cash:cash_a518560b11845079",
+                "reportId": "39be57ba-3eeb-45f8-ba51-4cb7724c107d",
+                "handIds": [
+                  "109487000021",
+                  "109487000026",
+                  "109487000018",
+                  "109383900367"
+                ]
+              },
+              {
+                "sourceId": "cash:cash_e4ec822e5c579765",
+                "reportId": "77e1f652-1ceb-481d-b649-7a0310dc123d",
+                "handIds": [
+                  "108805901271",
+                  "108805901335",
+                  "108805901337",
+                  "108805901332"
+                ]
+              }
+            ],
+            "tendencies": [
+              {
+                "title": "Limpowanie zamiast konsekwentnego raise-or-fold",
+                "description": "Powtarzają się limpy słabych offsuitów i rąk, które powinny być standardowym openem albo foldem. Szczególnie kosztowne są limp-calle po izolacji, ponieważ Hero oddaje inicjatywę i trafia do trudnych pul wieloosobowych.",
+                "sourceRefs": [
+                  {
+                    "sourceId": "cash:cash_a518560b11845079",
+                    "reportId": "39be57ba-3eeb-45f8-ba51-4cb7724c107d",
+                    "handIds": [
+                      "109487000021",
+                      "109487000026",
+                      "109383900350"
+                    ]
+                  },
+                  {
+                    "sourceId": "cash:cash_e4ec822e5c579765",
+                    "reportId": "77e1f652-1ceb-481d-b649-7a0310dc123d",
+                    "handIds": [
+                      "108805901358",
+                      "108805901364",
+                      "108805901374"
+                    ]
+                  }
+                ]
+              },
+              {
+                "title": "Szeroka obrona i słabe calle przeciw agresji preflop",
+                "description": "Obrona BB słabymi offsuitami oraz kontynuacje przeciw squeeze'om i 3-betom są zbyt szerokie względem realizacji equity poza pozycją i w pulach o obniżonym SPR.",
+                "sourceRefs": [
+                  {
+                    "sourceId": "cash:cash_e4ec822e5c579765",
+                    "reportId": "77e1f652-1ceb-481d-b649-7a0310dc123d",
+                    "handIds": [
+                      "108805901271",
+                      "108805901301",
+                      "108805901335",
+                      "108805901324"
+                    ]
+                  },
+                  {
+                    "sourceId": "cash:cash_a518560b11845079",
+                    "reportId": "39be57ba-3eeb-45f8-ba51-4cb7724c107d",
+                    "handIds": [
+                      "109487000018",
+                      "109487000024",
+                      "109487000025"
+                    ]
+                  }
+                ]
+              },
+              {
+                "title": "Nadmierne commitmenty z marginalną siłą",
+                "description": "Gdy Hero przechodzi od pasywnego wejścia do agresji, czasem zbyt szybko buduje pulę 4-betową lub angażuje duże sizingi z jedną parą, drawem albo ręką bez wystarczającej equity przeciw zawężonemu zakresowi.",
+                "sourceRefs": [
+                  {
+                    "sourceId": "cash:cash_a518560b11845079",
+                    "reportId": "39be57ba-3eeb-45f8-ba51-4cb7724c107d",
+                    "handIds": [
+                      "109487000008",
+                      "109383900365",
+                      "109383900367"
+                    ]
+                  },
+                  {
+                    "sourceId": "cash:cash_e4ec822e5c579765",
+                    "reportId": "77e1f652-1ceb-481d-b649-7a0310dc123d",
+                    "handIds": [
+                      "108805901337",
+                      "108805901298",
+                      "108805901332"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "recommendations": [
+              {
+                "title": "Uprość grę preflop w Cash",
+                "description": "Wprowadź domyślne raise-or-fold z każdej pozycji, usuń limpy poza świadomymi exploitami oraz zacieśnij BB defence dla offsuitów. Po dużym 3-becie lub squeeze'ie stosuj zasadę: bez pozycji i bez wyraźnych implied odds ręce marginalne są foldem.",
+                "sourceRefs": [
+                  {
+                    "sourceId": "cash:cash_a518560b11845079",
+                    "reportId": "39be57ba-3eeb-45f8-ba51-4cb7724c107d",
+                    "handIds": [
+                      "109487000021",
+                      "109487000018",
+                      "109487000024"
+                    ]
+                  },
+                  {
+                    "sourceId": "cash:cash_e4ec822e5c579765",
+                    "reportId": "77e1f652-1ceb-481d-b649-7a0310dc123d",
+                    "handIds": [
+                      "108805901271",
+                      "108805901335",
+                      "108805901374"
+                    ]
+                  }
+                ]
+              },
+              {
+                "title": "Podnieś próg gry o duże pule",
+                "description": "W pulach po 3-becie i przy dużym becie riverowym nie stackuj się automatycznie z overpairą, top parą lub bluff-catcherem. Duże inwestycje rezerwuj dla silnego value, mocnych drawów z odpowiednią equity albo linii z konkretnym readem na blefy rywala.",
+                "sourceRefs": [
+                  {
+                    "sourceId": "cash:cash_a518560b11845079",
+                    "reportId": "39be57ba-3eeb-45f8-ba51-4cb7724c107d",
+                    "handIds": [
+                      "109487000008",
+                      "109383900365",
+                      "109383900367"
+                    ]
+                  },
+                  {
+                    "sourceId": "cash:cash_e4ec822e5c579765",
+                    "reportId": "77e1f652-1ceb-481d-b649-7a0310dc123d",
+                    "handIds": [
+                      "108805901337",
+                      "108805901332",
+                      "108805901347"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "category": "tournament",
+            "summary": "Turnieje obejmują 760 rozdań i również mają statystyczną wiarygodność próby. Lokalne metryki są spójne z LAG: VPIP 35,7%, PFR 22,2%, 3-bet 11,5%, c-bet 85,7% i AF 6,0. Hero często skutecznie przejmuje inicjatywę, lecz agresja jest za droga przez otwarcia 3,5–4 BB, luźne decyzje o stack-offie oraz nierówne dopasowanie strategii do stacków 10–25 BB.",
+            "sourceRefs": [
+              {
+                "sourceId": "tournament:tourney_87476_2026/08/11",
+                "reportId": "2ff39070-3add-480a-9241-ecd97162537c",
+                "handIds": [
+                  "132145800008",
+                  "132166700038",
+                  "132166700040"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87503_2026/08/11",
+                "reportId": "aa2602d1-31fe-4014-b028-171a5abcd93b",
+                "handIds": [
+                  "132213800014",
+                  "132213800043",
+                  "132278800011"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87764_2026/08/12",
+                "reportId": "b4e420c9-0608-45e9-8d37-44470ca0f29d",
+                "handIds": [
+                  "132684500024",
+                  "132684500040",
+                  "132684500041"
+                ]
+              },
+              {
+                "sourceId": "tournament:tourney_87871_2026/08/12",
+                "reportId": "c003edc2-b4eb-4f7a-8741-acb72595b134",
+                "handIds": [
+                  "133115900010",
+                  "133149300088",
+                  "133149300114"
+                ]
+              }
+            ],
+            "tendencies": [
+              {
+                "title": "Za duże otwarcia ograniczają elastyczność",
+                "description": "Otwarcia za 3,5–4 BB pojawiają się w wielu strukturach i głębokościach. Szczególnie przy 15–25 BB taki sizing tworzy zbyt wysoki koszt folda oraz niewygodne decyzje po reshovie.",
+                "sourceRefs": [
+                  {
+                    "sourceId": "tournament:tourney_87503_2026/08/11",
+                    "reportId": "aa2602d1-31fe-4014-b028-171a5abcd93b",
+                    "handIds": [
+                      "132213800014",
+                      "132213800031",
+                      "132278800011"
+                    ]
+                  },
+                  {
+                    "sourceId": "tournament:tourney_87547_2026/08/11",
+                    "reportId": "8c42f048-7a9d-4ac4-be08-30371528789e",
+                    "handIds": [
+                      "132293500002",
+                      "132296200016",
+                      "132296200033"
+                    ]
+                  },
+                  {
+                    "sourceId": "tournament:tourney_87770_2026/08/12",
+                    "reportId": "41303560-4165-42ff-9c2c-2089fe93b255",
+                    "handIds": [
+                      "132721100021",
+                      "132721100022",
+                      "132721100029"
+                    ]
+                  }
+                ]
+              },
+              {
+                "title": "Brak dostatecznie prostego planu przy płytkich i średnich stackach",
+                "description": "Przy około 10–25 BB Hero czasem wybiera małe 3-bety, limpy lub marginalne otwarcia, które prowadzą do niskiego SPR bez jasnej decyzji na jam. Dotyczy to szczególnie średnich asów, offsuitów i marginalnych broadwayów.",
+                "sourceRefs": [
+                  {
+                    "sourceId": "tournament:tourney_87476_2026/08/11",
+                    "reportId": "2ff39070-3add-480a-9241-ecd97162537c",
+                    "handIds": [
+                      "132166700038",
+                      "132166700040"
+                    ]
+                  },
+                  {
+                    "sourceId": "tournament:tourney_87547_2026/08/11",
+                    "reportId": "8c42f048-7a9d-4ac4-be08-30371528789e",
+                    "handIds": [
+                      "132296200035",
+                      "132296200080",
+                      "132296200050"
+                    ]
+                  },
+                  {
+                    "sourceId": "tournament:tourney_87750_2026/08/12",
+                    "reportId": "6c71d634-3817-4f3b-b7d2-f5fe69ce3597",
+                    "handIds": [
+                      "132654100056",
+                      "132654100063"
+                    ]
+                  },
+                  {
+                    "sourceId": "tournament:tourney_87764_2026/08/12",
+                    "reportId": "b4e420c9-0608-45e9-8d37-44470ca0f29d",
+                    "handIds": [
+                      "132684500040",
+                      "132684500041"
+                    ]
+                  }
+                ]
+              },
+              {
+                "title": "Za szerokie calle i stack-offy wobec silnej agresji",
+                "description": "Powtarzają się call-offy oraz eskalacje z rękami poniżej typowego progu przeciwko 4-betom, squeeze'om, raise-jamom i riverowym all-inom. W tych punktach Hero prawdopodobnie przypisuje rywalom zbyt szerokie zakresy blefów lub shove'ów.",
+                "sourceRefs": [
+                  {
+                    "sourceId": "tournament:tourney_87503_2026/08/11",
+                    "reportId": "aa2602d1-31fe-4014-b028-171a5abcd93b",
+                    "handIds": [
+                      "132213800043",
+                      "132213800046",
+                      "132213800039"
+                    ]
+                  },
+                  {
+                    "sourceId": "tournament:tourney_87750_2026/08/12",
+                    "reportId": "6c71d634-3817-4f3b-b7d2-f5fe69ce3597",
+                    "handIds": [
+                      "132654100053",
+                      "132654100063"
+                    ]
+                  },
+                  {
+                    "sourceId": "tournament:tourney_87770_2026/08/12",
+                    "reportId": "41303560-4165-42ff-9c2c-2089fe93b255",
+                    "handIds": [
+                      "132709300006",
+                      "132709300015",
+                      "132709300016"
+                    ]
+                  },
+                  {
+                    "sourceId": "tournament:tourney_87871_2026/08/12",
+                    "reportId": "c003edc2-b4eb-4f7a-8741-acb72595b134",
+                    "handIds": [
+                      "133115900010",
+                      "133115900019",
+                      "133149300134"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "recommendations": [
+              {
+                "title": "Ustandaryzuj otwarcia i drzewo decyzji 10–25 BB",
+                "description": "Używaj bazowo 2–2,3 BB z ante. Dla każdej pozycji i głębokości przygotuj zakresy min-raise/fold, min-raise/call i jam/fold; mały 3-bet przy 10–15 BB stosuj tylko wtedy, gdy masz z góry określoną reakcję na shove.",
+                "sourceRefs": [
+                  {
+                    "sourceId": "tournament:tourney_87476_2026/08/11",
+                    "reportId": "2ff39070-3add-480a-9241-ecd97162537c",
+                    "handIds": [
+                      "132145800008",
+                      "132166700038",
+                      "132166700040"
+                    ]
+                  },
+                  {
+                    "sourceId": "tournament:tourney_87503_2026/08/11",
+                    "reportId": "aa2602d1-31fe-4014-b028-171a5abcd93b",
+                    "handIds": [
+                      "132213800014",
+                      "132213800031",
+                      "132278800011"
+                    ]
+                  },
+                  {
+                    "sourceId": "tournament:tourney_87764_2026/08/12",
+                    "reportId": "b4e420c9-0608-45e9-8d37-44470ca0f29d",
+                    "handIds": [
+                      "132684500010",
+                      "132684500014",
+                      "132684500024"
+                    ]
+                  }
+                ]
+              },
+              {
+                "title": "Zacieśnij zakres do stack-offu po wieloetapowej agresji",
+                "description": "Wprowadź zasadę, że każda dodatkowa akcja preflop — cold call, 3-bet, 4-bet lub squeeze — znacząco podnosi wymagany próg siły ręki. Przed call-offem policz equity przeciw realistycznemu, zawężonemu zakresowi, a nie przeciw zakresowi pierwotnego opena.",
+                "sourceRefs": [
+                  {
+                    "sourceId": "tournament:tourney_87770_2026/08/12",
+                    "reportId": "41303560-4165-42ff-9c2c-2089fe93b255",
+                    "handIds": [
+                      "132709300006",
+                      "132709300015",
+                      "132709300016"
+                    ]
+                  },
+                  {
+                    "sourceId": "tournament:tourney_87503_2026/08/11",
+                    "reportId": "aa2602d1-31fe-4014-b028-171a5abcd93b",
+                    "handIds": [
+                      "132213800043",
+                      "132213800046",
+                      "132213800039"
+                    ]
+                  },
+                  {
+                    "sourceId": "tournament:tourney_87750_2026/08/12",
+                    "reportId": "6c71d634-3817-4f3b-b7d2-f5fe69ce3597",
+                    "handIds": [
+                      "132654100041",
+                      "132654100053",
+                      "132654100063"
+                    ]
+                  }
+                ]
+              },
+              {
+                "title": "Zmniejsz częstotliwość bezplanowych dużych betów po flopie",
+                "description": "Na boardach korzystnych dla callera, w pulach multiway i z jedną parą OOP częściej zaczynaj od checku. Duże sizingi pozostaw dla spolaryzowanego value lub blefów z odpowiednimi blockerami, equity i planem na raise.",
+                "sourceRefs": [
+                  {
+                    "sourceId": "tournament:tourney_87452_2026/08/11",
+                    "reportId": "ccc74bb4-a341-4137-adc1-7dc3ad9cab3b",
+                    "handIds": [
+                      "132080300001",
+                      "132080300025",
+                      "132127300009"
+                    ]
+                  },
+                  {
+                    "sourceId": "tournament:tourney_87547_2026/08/11",
+                    "reportId": "8c42f048-7a9d-4ac4-be08-30371528789e",
+                    "handIds": [
+                      "132296200050",
+                      "132296200069",
+                      "132296200080"
+                    ]
+                  },
+                  {
+                    "sourceId": "tournament:tourney_87871_2026/08/12",
+                    "reportId": "c003edc2-b4eb-4f7a-8741-acb72595b134",
+                    "handIds": [
+                      "133115900026",
+                      "133115900033",
+                      "133149300114"
                     ]
                   }
                 ]

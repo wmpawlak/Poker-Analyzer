@@ -5,12 +5,15 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import {
   TRAINING_COLLECTION_FILENAME,
+  buildEquityActivationStatus,
   createEmptyTrainingCollection,
+  createLegacyTrainingRepository,
   createTrainingRepository,
   readTrainingCollection,
   writeTrainingCollection,
 } from '../server/training/trainingRepository.js';
 import { CARD_FACTS_VALIDATION_VERSION } from '../server/training/decisionCardFacts.js';
+import { createTrainingService } from '../server/training/trainingService.js';
 
 const makeDirectory = () => fs.mkdtemp(path.join(os.tmpdir(), 'poker-training-repository-'));
 
@@ -36,6 +39,33 @@ Hero: folds
 Seat 1: Hero folded before Flop`,
 });
 
+const makeTerminalShowdownHand = ({ id, playedAt = '2026-08-01T10:00:00.000Z' } = {}) => ({
+  handId: String(id),
+  gameType: 'cash',
+  playedAt,
+  rawText: `CoinPoker Hand #${id}: NLH (0.50/1) 2026/08/01 12:00:00 UTC
+Table 'training-repository' 2-max Seat #1 is the button
+Seat 1: Hero (100 in chips)
+Seat 2: Villain (100 in chips)
+Hero: posts small blind 0.50
+Villain: posts big blind 1
+*** HOLE CARDS ***
+Dealt to Hero [Ah Kd]
+Hero: calls 0.50
+Villain: checks
+*** FLOP *** [2c 7d Ts]
+Villain: bets 1
+Hero: calls 1
+*** TURN *** [2c 7d Ts] [Qh]
+Villain: ALLIN 98
+Hero: calls 98
+*** SHOWDOWN ***
+Hero: shows [Ah Kd]
+Villain: shows [Qs Qd]
+*** SUMMARY ***
+Seat 1: Hero showed [Ah Kd] and lost (100) with High Card`,
+});
+
 const eligibleKey = (spot, id = `key-${spot.versionId}`) => ({
   id,
   spotVersionId: spot.versionId,
@@ -45,6 +75,28 @@ const eligibleKey = (spot, id = `key-${spot.versionId}`) => ({
   decisionCardFacts: spot.decisionCardFacts,
   factsValidationVersion: CARD_FACTS_VALIDATION_VERSION,
   preferredAnswer: 'fold',
+});
+
+const makeEquitySupplement = (spot, answerKeyId) => ({
+  id: `supplement-${spot.versionId}`,
+  spotVersionId: spot.versionId,
+  answerKeyId,
+  rangeContractVersion: 1,
+  calculatorVersion: 'equity-v1',
+  opponentRange: [{ handClass: 'AKs', weight: 1 }],
+  equityResult: {
+    calculatorVersion: 'equity-v1',
+    method: 'enumeration',
+    samples: 1,
+    wins: 1,
+    ties: 0,
+    losses: 1,
+    equity: 0.5,
+    equityPercent: 50,
+  },
+  model: { id: 'test-model', name: 'Test model' },
+  createdAt: '2026-08-02T10:00:00.000Z',
+  staleAt: null,
 });
 
 test('odczytuje pustą wersjonowaną kolekcję i zapisuje ją atomowo bez rawText', async () => {
@@ -98,6 +150,360 @@ test('skan jest idempotentny i nie przelicza niezmienionego fingerprintu', async
     assert.equal(saved.result.added, 1);
     assert.equal(repeated.result.added, 0);
     assert.equal(repeated.collection.answerKeys.length, 1);
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('suplement equity nie zmienia zwykłej puli ani nie przerywa aktywnej sesji action-only', async () => {
+  const directory = await makeDirectory();
+  try {
+    const repository = createTrainingRepository({ dataDirectory: directory });
+    const scanned = await repository.scanCanonicalHands([makeHand({ id: 83003 })]);
+    const sourceSpot = scanned.collection.spots[0];
+    await repository.saveAnswerKeys([eligibleKey(sourceSpot, 'action-key')]);
+
+    const service = createTrainingService({
+      repository,
+      random: () => 0,
+      idFactory: (prefix) => `${prefix}-compatibility`,
+    });
+    const created = await service.createOrResumeSession({
+      exerciseType: 'preflop_selection',
+      gameType: 'cash',
+      size: 10,
+    });
+    const beforeSupplement = await service.getNextQuestion(created.session.id);
+    assert.equal(beforeSupplement.question.spotVersionId, sourceSpot.versionId);
+
+    await repository.saveSession({
+      id: 'legacy-action-session',
+      exerciseType: 'preflop_selection',
+      gameType: 'cash',
+      status: 'completed',
+      targetSize: 1,
+      availableSpotVersionIds: [sourceSpot.versionId],
+      answeredSpotVersionIds: [sourceSpot.versionId],
+    });
+    await repository.saveAttempt({
+      id: 'legacy-action-attempt',
+      sessionId: 'legacy-action-session',
+      spotVersionId: sourceSpot.versionId,
+      answerKeyId: 'action-key',
+      answer: 'fold',
+      grade: 'correct',
+      answeredAt: '2026-08-01T11:00:00.000Z',
+      createdAt: '2026-08-01T11:00:00.000Z',
+    });
+
+    const before = await repository.getSnapshot();
+    const selectedBefore = [...before.selectionState.selectedSpotVersionIds];
+    const attemptsBefore = structuredClone(before.attempts);
+    const oldKey = before.answerKeys.find(({ id }) => id === 'action-key');
+    assert.ok(oldKey);
+    assert.equal(before.spots.find(({ versionId }) => versionId === sourceSpot.versionId).active, true);
+
+    await repository.saveEquitySupplement(makeEquitySupplement(sourceSpot, oldKey.id));
+    const after = await repository.getSnapshot();
+    const sourceAfter = after.spots.find(({ versionId }) => versionId === sourceSpot.versionId);
+    const derived = after.spots.filter(({ sourceSpotVersionId }) => sourceSpotVersionId === sourceSpot.versionId);
+
+    assert.deepEqual(after.selectionState.selectedSpotVersionIds, selectedBefore);
+    assert.deepEqual(after.attempts, attemptsBefore);
+    assert.equal(sourceAfter.active, true);
+    assert.deepEqual(after.answerKeys.find(({ id }) => id === 'action-key'), oldKey);
+    assert.equal(derived.length >= 1, true);
+    assert.equal(derived.every(({ active }) => active === false), true);
+
+    const resumedQuestion = await service.getNextQuestion(created.session.id);
+    assert.equal(resumedQuestion.question.spotVersionId, sourceSpot.versionId);
+    assert.equal(resumedQuestion.question.equitySupplementAvailable, true);
+    const answer = resumedQuestion.question.answerOptions[0].id;
+    const submitted = await service.submitAnswer(created.session.id, {
+      spotVersionId: sourceSpot.versionId,
+      answer,
+    });
+    assert.equal(submitted.attempt.equityGrade, undefined);
+    assert.equal(submitted.feedback.equity, undefined);
+    assert.equal(submitted.feedback.answerKey.id, 'action-key');
+    assert.equal((await repository.getSnapshot()).attempts.length, 2);
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('lokalna aktywacja equity wybiera gotowe spoty i zachowuje zwykłą pulę oraz sesję', async () => {
+  const directory = await makeDirectory();
+  try {
+    const repository = createTrainingRepository({ dataDirectory: directory });
+    const scanned = await repository.scanCanonicalHands([
+      makeHand({ id: 83030, gameType: 'cash', playedAt: '2026-08-01T10:00:00.000Z' }),
+      makeHand({ id: 83031, gameType: 'cash', playedAt: '2026-08-02T10:00:00.000Z' }),
+      makeHand({ id: 83032, gameType: 'tournament', playedAt: '2026-08-03T10:00:00.000Z' }),
+    ]);
+    const sourceSpots = scanned.collection.spots;
+    const keys = sourceSpots.map((spot) => eligibleKey(spot));
+    await repository.saveAnswerKeys(keys);
+    await Promise.all(sourceSpots.map((spot) => repository.saveEquitySupplement(
+      makeEquitySupplement(spot, `key-${spot.versionId}`),
+    )));
+
+    const service = createTrainingService({ repository, random: () => 0 });
+    const ordinarySession = await service.createOrResumeSession({
+      exerciseType: 'preflop_selection', gameType: 'cash', size: 10,
+    });
+    const before = await repository.getSnapshot();
+    const ordinarySelectedIds = before.selectionState.selectedSpotVersionIds.filter((versionId) => (
+      before.spots.find((spot) => spot.versionId === versionId)?.exerciseType === 'preflop_selection'
+    ));
+    const ordinaryActive = Object.fromEntries(before.spots
+      .filter((spot) => spot.exerciseType === 'preflop_selection')
+      .map((spot) => [spot.versionId, spot.active]));
+    const statusBefore = await service.getStatus();
+
+    assert.equal(statusBefore.equityActivation.needsActivation, true);
+    assert.equal(statusBefore.equityActivation.candidateCount, 3);
+    assert.equal(statusBefore.equityActivation.activeCount, 0);
+    assert.deepEqual(statusBefore.equityActivation.pools.cash.candidateModeCounts, {
+      known_hand: 0, range: 2, pot_odds: 0,
+    });
+    assert.deepEqual(statusBefore.equityActivation.pools.tournament.candidateModeCounts, {
+      known_hand: 0, range: 1, pot_odds: 0,
+    });
+
+    const activated = await repository.activateEquitySpots();
+    assert.equal(activated.result.changed, true);
+    assert.equal(activated.result.selectedSpotVersionIds.length, 3);
+    assert.equal(activated.result.activation.needsActivation, false);
+    assert.equal(activated.result.activation.pools.cash.activeModeCounts.range, 2);
+    assert.equal(activated.result.activation.pools.tournament.activeModeCounts.range, 1);
+
+    const after = await repository.getSnapshot();
+    assert.deepEqual(
+      after.selectionState.selectedSpotVersionIds.filter((versionId) => (
+        after.spots.find((spot) => spot.versionId === versionId)?.exerciseType === 'preflop_selection'
+      )),
+      ordinarySelectedIds,
+    );
+    assert.deepEqual(
+      Object.fromEntries(after.spots
+        .filter((spot) => spot.exerciseType === 'preflop_selection')
+        .map((spot) => [spot.versionId, spot.active])),
+      ordinaryActive,
+    );
+    assert.equal((await repository.getActiveSpots({
+      exerciseType: 'equity_pot_odds', gameType: 'cash',
+    })).length, 2);
+    assert.equal((await repository.getActiveSpots({
+      exerciseType: 'equity_pot_odds', gameType: 'tournament',
+    })).length, 1);
+    assert.equal((await service.getNextQuestion(ordinarySession.session.id)).question.exerciseType, 'preflop_selection');
+
+    const repeated = await repository.activateEquitySpots();
+    assert.equal(repeated.result.changed, false);
+    assert.deepEqual(repeated.result.selectedSpotVersionIds, activated.result.selectedSpotVersionIds);
+    assert.equal((await service.getStatus()).equityActivation.needsActivation, false);
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('repozytorium plikowe aktywuje istniejące spoty equity bez ponownego skanu', async () => {
+  const directory = await makeDirectory();
+  try {
+    const repository = createLegacyTrainingRepository({ dataDirectory: directory });
+    const scanned = await repository.scanCanonicalHands([makeHand({ id: 83033 })]);
+    const sourceSpot = scanned.collection.spots[0];
+    await repository.saveAnswerKeys([eligibleKey(sourceSpot, 'legacy-equity-key')]);
+    await repository.saveEquitySupplement(makeEquitySupplement(sourceSpot, 'legacy-equity-key'));
+    const scanStateBefore = (await repository.getSnapshot()).scanState;
+
+    const activated = await repository.activateEquitySpots();
+    const after = await repository.getSnapshot();
+
+    assert.equal(activated.result.activation.needsActivation, false);
+    assert.equal(activated.result.selectedSpotVersionIds.length, 1);
+    assert.deepEqual(after.scanState, scanStateBefore);
+    assert.equal((await repository.getActiveSpots({ exerciseType: 'equity_pot_odds' })).length, 1);
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('podgląd aktywacji równoważy tylko dostępne poziomy equity', async () => {
+  const directory = await makeDirectory();
+  try {
+    const repository = createTrainingRepository({ dataDirectory: directory });
+    const scanned = await repository.scanCanonicalHands([makeHand({ id: 83034 })]);
+    const sourceSpot = scanned.collection.spots[0];
+    await repository.saveAnswerKeys([eligibleKey(sourceSpot, 'balance-source-key')]);
+    await repository.saveEquitySupplement(makeEquitySupplement(sourceSpot, 'balance-source-key'));
+    const snapshot = await repository.getSnapshot();
+    const baseSpot = snapshot.spots.find((spot) => spot.exerciseType === 'equity_pot_odds');
+    const baseKey = snapshot.answerKeys.find((key) => key.spotVersionId === baseSpot.versionId);
+    const candidates = [];
+    const keys = [];
+    ['range', 'pot_odds'].forEach((equityMode) => {
+      for (let index = 0; index < 4; index += 1) {
+        const versionId = `balance:${equityMode}:${index}`;
+        const keyId = `balance-key:${equityMode}:${index}`;
+        candidates.push({
+          ...structuredClone(baseSpot),
+          id: versionId,
+          versionId,
+          handId: `balance-hand:${equityMode}:${index}`,
+          sourceSpotVersionId: `balance-source:${equityMode}:${index}`,
+          equityMode,
+          currentAnswerKeyId: keyId,
+          active: false,
+          playedAt: new Date(Date.UTC(2026, 0, index + (equityMode === 'range' ? 1 : 10))).toISOString(),
+        });
+        keys.push({
+          ...structuredClone(baseKey),
+          id: keyId,
+          spotVersionId: versionId,
+          equityMode,
+        });
+      }
+    });
+
+    const status = buildEquityActivationStatus({
+      spots: candidates,
+      answerKeys: keys,
+      selectionState: { limit: 6, selectedSpotVersionIds: [] },
+    });
+
+    assert.equal(status.needsActivation, true);
+    assert.equal(status.pools.cash.desiredCount, 6);
+    assert.deepEqual(status.pools.cash.desiredModeCounts, {
+      known_hand: 0, range: 3, pot_odds: 3,
+    });
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('aktywacja gotowego equity udostepnia known hand, range, pot odds i mixed bez naruszania zwyklej sesji', async () => {
+  const directory = await makeDirectory();
+  try {
+    const repository = createTrainingRepository({ dataDirectory: directory });
+    const hand = makeTerminalShowdownHand({ id: 83035 });
+    const scanned = await repository.scanCanonicalHands(
+      [hand],
+      { equitySimulationSamples: 2 },
+    );
+    const sourceSpot = scanned.collection.spots.find((spot) => (
+      spot.exerciseType === 'turn_river' && Number(spot.question?.toCall) > 0
+    ));
+    const knownHandSpot = scanned.collection.spots.find((spot) => (
+      spot.exerciseType === 'equity_pot_odds'
+      && spot.equityMode === 'known_hand'
+      && spot.sourceDecisionId === sourceSpot?.sourceDecisionId
+    ));
+    assert.ok(sourceSpot);
+    assert.ok(knownHandSpot);
+
+    await repository.saveAnswerKeys([eligibleKey(sourceSpot, 'terminal-source-key')]);
+    const service = createTrainingService({
+      repository,
+      random: () => 0,
+      idFactory: (prefix) => `${prefix}-terminal-modes`,
+    });
+    const ordinarySession = await service.createOrResumeSession({
+      exerciseType: 'turn_river', gameType: 'cash', size: 10,
+    });
+    const before = await repository.getSnapshot();
+    const ordinarySelectedIds = before.selectionState.selectedSpotVersionIds.filter((versionId) => (
+      before.spots.find((spot) => spot.versionId === versionId)?.exerciseType === 'turn_river'
+    ));
+    const ordinaryActive = Object.fromEntries(before.spots
+      .filter((spot) => spot.exerciseType === 'turn_river')
+      .map((spot) => [spot.versionId, spot.active]));
+
+    await repository.saveEquitySupplement(makeEquitySupplement(sourceSpot, 'terminal-source-key'));
+    const scanStateBefore = structuredClone((await repository.getSnapshot()).scanState);
+    const beforeActivation = await service.getStatus();
+    assert.equal(beforeActivation.equityActivation.pools.cash.candidateModeCounts.known_hand > 0, true);
+    assert.equal(beforeActivation.equityActivation.pools.cash.candidateModeCounts.range, 1);
+    assert.equal(beforeActivation.equityActivation.pools.cash.candidateModeCounts.pot_odds, 1);
+
+    const activated = await repository.activateEquitySpots();
+    const after = await repository.getSnapshot();
+    assert.equal(activated.result.activation.needsActivation, false);
+    assert.deepEqual(after.scanState, scanStateBefore);
+    assert.deepEqual(
+      after.selectionState.selectedSpotVersionIds.filter((versionId) => (
+        after.spots.find((spot) => spot.versionId === versionId)?.exerciseType === 'turn_river'
+      )),
+      ordinarySelectedIds,
+    );
+    assert.deepEqual(
+      Object.fromEntries(after.spots
+        .filter((spot) => spot.exerciseType === 'turn_river')
+        .map((spot) => [spot.versionId, spot.active])),
+      ordinaryActive,
+    );
+    assert.equal((await service.createOrResumeSession({
+      resumeSessionId: ordinarySession.session.id,
+    })).resumed, true);
+
+    for (const equityMode of ['known_hand', 'range', 'pot_odds']) {
+      const created = await service.createOrResumeSession({
+        exerciseType: 'equity_pot_odds', equityMode, gameType: 'cash', size: 10,
+      });
+      const next = await service.getNextQuestion(created.session.id);
+      assert.equal(next.question.equityMode, equityMode);
+    }
+
+    const mixed = await service.createOrResumeSession({
+      exerciseType: 'equity_pot_odds', equityMode: 'mixed', gameType: 'cash', size: 10,
+    });
+    const mixedSnapshot = await repository.getSnapshot();
+    const mixedSession = mixedSnapshot.sessions.find(({ id }) => id === mixed.session.id);
+    const mixedModes = new Set(mixedSession.availableSpotVersionIds.map((versionId) => (
+      mixedSnapshot.spots.find((spot) => spot.versionId === versionId)?.equityMode
+    )));
+    assert.equal(mixedModes.has('known_hand'), true);
+    assert.equal(mixedModes.has('range'), true);
+    assert.equal(mixedModes.has('pot_odds'), true);
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('spot z suplementem ma dwuetapową odpowiedź, a zapis zachowuje osobne oceny equity i akcji', async () => {
+  const directory = await makeDirectory();
+  try {
+    const repository = createTrainingRepository({ dataDirectory: directory });
+    const scanned = await repository.scanCanonicalHands([makeHand({ id: 83006 })]);
+    const sourceSpot = scanned.collection.spots[0];
+    await repository.saveAnswerKeys([eligibleKey(sourceSpot, 'action-key-two-step')]);
+    await repository.saveEquitySupplement(makeEquitySupplement(sourceSpot, 'action-key-two-step'));
+    await repository.scanCanonicalHands([makeHand({ id: 83006 })], { rebuildSelection: true });
+    const service = createTrainingService({ repository, random: () => 0, idFactory: (prefix) => `${prefix}-two-step` });
+    const created = await service.createOrResumeSession({ exerciseType: 'equity_pot_odds', equityMode: 'range', gameType: 'cash', size: 10 });
+    const next = await service.getNextQuestion(created.session.id);
+    assert.equal(next.question.equityMode, 'range');
+    assert.equal(next.question.equityAnswerOptions.length, 10);
+    assert.equal(next.question.actionAnswerOptions.length > 0, true);
+    assert.equal(next.question.opponentRange[0].handClass, 'AKs');
+    await assert.rejects(
+      () => service.submitAnswer(created.session.id, { spotVersionId: next.question.spotVersionId, answer: 'fold' }),
+      (error) => error.code === 'TRAINING_EQUITY_BUCKET_INVALID',
+    );
+    const submitted = await service.submitAnswer(created.session.id, {
+      spotVersionId: next.question.spotVersionId,
+      equityBucket: 'equity_50',
+      answer: 'fold',
+    });
+    assert.equal(submitted.attempt.answer, 'fold');
+    assert.equal(submitted.attempt.equityBucket, 'equity_50');
+    assert.equal(submitted.attempt.equityGrade, 'correct');
+    assert.equal(submitted.attempt.actionGrade, 'correct');
+    assert.equal(submitted.attempt.grade, 'correct');
+    assert.equal(submitted.feedback.actionAnswerKey.preferredAnswer, 'fold');
+    assert.equal(submitted.feedback.equityDifference, undefined);
+    assert.equal((await repository.getSnapshot()).attempts.at(-1).equityBucket, 'equity_50');
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
   }

@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  compareHoldemHands,
+  compareHoldemHandsDetailed,
   detectGameVariant,
+  evaluateHoldemHandRank,
   evaluateVisibleHand,
   parseRawHandHistory,
 } from '../src/parser/pokerParser.js';
@@ -52,6 +55,53 @@ test('ewaluator wybiera najlepszy układ z 5–7 kart i nie przewiduje drawów',
     'STRAIGHT',
   );
   assert.equal(evaluateVisibleHand(['Ah', 'Kh'], ['2c', '7d', '9s']), 'HIGH_CARD');
+});
+
+test('porownuje pelne uklady z uwzglednieniem kickerow', () => {
+  const result = compareHoldemHands(
+    ['Ah', 'Kd'],
+    ['Ac', 'Qs'],
+    ['2c', '2d', '9h', '3s', '4c'],
+  );
+
+  assert.equal(result, 1);
+  assert.deepEqual(
+    evaluateHoldemHandRank(['Ah', 'Kd'], ['2c', '2d', '9h', '3s', '4c']),
+    { category: 'PAIR', vector: [1, 2, 14, 13, 9] },
+  );
+});
+
+test('rozpoznaje remis, gdy najlepsze uklady maja identyczna sile', () => {
+  const details = compareHoldemHandsDetailed({
+    heroCards: ['Ah', 'Kd'],
+    villainCards: ['As', 'Kc'],
+    boardCards: ['Qh', 'Jd', 'Tc', '2s', '3h'],
+  });
+
+  assert.equal(details.comparison, 0);
+  assert.equal(details.result, 'tie');
+  assert.deepEqual(details.hero.vector, [4, 14]);
+  assert.deepEqual(details.villain.vector, [4, 14]);
+});
+
+test('porownanie odrzuca niekompletny board, duplikaty i nieobslugiwany wariant', () => {
+  assert.throws(
+    () => compareHoldemHands(['Ah', 'Kd'], ['Ac', 'Qs'], ['2c', '2d', '9h']),
+    /boardCards must contain 5 cards/,
+  );
+  assert.throws(
+    () => compareHoldemHands(['Ah', 'Kd'], ['Ah', 'Qs'], ['2c', '2d', '9h', '3s', '4c']),
+    /duplicate cards/,
+  );
+  assert.throws(
+    () => compareHoldemHands({
+      heroCards: ['Ah', 'Kd'],
+      villainCards: ['Ac', 'Qs'],
+      boardCards: ['2c', '2d', '9h', '3s', '4c'],
+      gameVariant: 'PLO 4',
+    }),
+    /Unsupported game variant/,
+  );
 });
 
 test('PLO 4 nie przechodzi przez ewaluator holdemowy', () => {

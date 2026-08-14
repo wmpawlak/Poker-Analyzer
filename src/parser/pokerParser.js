@@ -1,8 +1,29 @@
 // src/parser/pokerParser.js
 
 import { evaluateVisibleHand } from './handEvaluator.js';
+export {
+  calculateEquity,
+  calculateHoldemEquity,
+  calculateHoldemEquityAsync,
+  calculateHoldemRangeEquity,
+  clearEquityCache,
+  EQUITY_BUCKETS,
+  EQUITY_BUCKET_TOLERANCE_PERCENT,
+  EQUITY_CALCULATOR_VERSION,
+  getEquityAnswerOptions,
+  getEquityCacheSize,
+  getEquityBucket,
+  gradeEquityBucket,
+  expandWeightedHandClass,
+} from './equityCalculator.js';
 
-export { evaluateHoldemHand, evaluateVisibleHand } from './handEvaluator.js';
+export {
+  compareHoldemHands,
+  compareHoldemHandsDetailed,
+  evaluateHoldemHand,
+  evaluateHoldemHandRank,
+  evaluateVisibleHand,
+} from './handEvaluator.js';
 
 // Zwiększyć przy każdej zmianie, która może wpłynąć na postać danych
 // parsowanych albo agregatów zależnych od parsera.

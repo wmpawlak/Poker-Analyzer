@@ -1,5 +1,7 @@
 /**
- * @typedef {'preflop_selection'|'preflop_vs_reraise'|'cbet_barrels'|'turn_river'} ExerciseType
+ * @typedef {'preflop_selection'|'preflop_vs_reraise'|'cbet_barrels'|'turn_river'|'equity_pot_odds'} ExerciseType
+ * @typedef {'known_hand'|'range'|'pot_odds'|'mixed'} EquityMode
+ * @typedef {'answer_keys'|'missing_keys'|'equity_supplement'} TrainingRefreshJobKind
  *
  * @typedef {object} DecisionCardFacts
  * @property {string} madeHand
@@ -10,15 +12,36 @@
  * @typedef {object} TrainingSpot
  * @property {string} versionId
  * @property {ExerciseType} exerciseType
+ * @property {EquityMode|null} equityMode
  * @property {'cash'|'tournament'} gameType
  * @property {{notation: string, class: 'offsuit'|'suited'|'pair'}|null} heroHand
  * @property {DecisionCardFacts} decisionCardFacts
  * @property {object} question
- * @property {Array<{id: string, action: string}>} answerOptions
+ * @property {Array<{id: string, action: string, label?: string, lowerPercent?: number, upperPercent?: number, equityPercent?: number}>} answerOptions
+ * @property {Array<{id: string, action: string, label?: string, lowerPercent?: number, upperPercent?: number, equityPercent?: number}>} equityAnswerOptions
+ * @property {Array<{id: string, action: string, label?: string, category?: string}>} actionAnswerOptions
  * @property {boolean} active
  * @property {'pending_key'|'ready'|'review'} readiness
  * @property {string|null} aiFirstSentAt
  * @property {string|null} aiFirstSentJobId
+ * @property {string[]|null} knownOpponentCards
+ * @property {string|null} equityCalculatorVersion
+ * @property {string|null} equityCorrectBucket
+ * @property {object|null} equityResult
+ * @property {Array<{handClass: string, weight: number}>} opponentRange
+ * @property {boolean} equitySupplementAvailable
+
+ * @typedef {object} EquitySupplement
+ * @property {string} id
+ * @property {string} spotVersionId
+ * @property {string} answerKeyId
+ * @property {Array<{handClass: string, weight: number}>} opponentRange
+ * @property {number} rangeContractVersion
+ * @property {string} calculatorVersion
+ * @property {object} equityResult
+ * @property {object|null} model
+ * @property {string} createdAt
+ * @property {string|null} staleAt
  *
  * @typedef {object} AnswerKey
  * @property {string} id
@@ -40,6 +63,9 @@
  * @property {'correct'|'acceptable'|'incorrect'} grade
  * @property {string} answerKeyId
  * @property {string} answeredAt
+ * @property {string|null} equityBucket
+ * @property {'correct'|'acceptable'|'incorrect'} equityGrade
+ * @property {'correct'|'acceptable'|'incorrect'} actionGrade
  *
  * @typedef {object} TrainingSession
  * @property {string} id
@@ -65,6 +91,7 @@
  * @property {number} recoveryCount
  * @property {string|null} lastRecoveredAt
  * @property {number} inFlightSpotCount
+ * @property {TrainingRefreshJobKind} jobKind
  */
 
 export const EXERCISE_TYPES = Object.freeze({
@@ -72,6 +99,14 @@ export const EXERCISE_TYPES = Object.freeze({
   PREFLOP_VS_RERAISE: 'preflop_vs_reraise',
   CBET_BARRELS: 'cbet_barrels',
   TURN_RIVER: 'turn_river',
+  EQUITY_POT_ODDS: 'equity_pot_odds',
+});
+
+export const EQUITY_MODES = Object.freeze({
+  KNOWN_HAND: 'known_hand',
+  RANGE: 'range',
+  POT_ODDS: 'pot_odds',
+  MIXED: 'mixed',
 });
 
 export const TRAINING_GAME_TYPES = Object.freeze({

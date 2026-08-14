@@ -1,5 +1,6 @@
 @import "@daypicker/react/style.css";
-@import "tailwindcss";
+@import "tailwindcss" source(none);
+@source "./";
 
 .date-range-picker .rdp-root {
   --rdp-accent-color: #4f46e5;

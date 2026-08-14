@@ -26,6 +26,16 @@ const EXERCISE_ROWS = [
   ['turn_river', 'Decyzje turn/river'],
 ];
 
+const EQUITY_ACTIVATION_GAME_TYPES = [
+  ['cash', 'Cash'],
+  ['tournament', 'Turnieje'],
+];
+const EQUITY_ACTIVATION_MODES = [
+  ['known_hand', 'Znana ręka'],
+  ['range', 'Zakres'],
+  ['pot_odds', 'Pot odds'],
+];
+
 const JOB_LABELS = {
   running: 'W toku',
   stop_requested: 'Zatrzymywanie po bieżącej partii',
@@ -92,6 +102,53 @@ const TrainingPoolTable = ({ pools, limit = 100 }) => (
   </div>
 );
 
+const EquityActivationPool = ({ label, pool }) => (
+  <div className="rounded-xl border border-emerald-200 bg-white/70 px-3 py-3 text-xs text-emerald-950">
+    <div className="flex items-baseline justify-between gap-2">
+      <strong>{label}</strong>
+      <span className="font-mono font-bold">{asNumber(pool?.activeCount)} / {asNumber(pool?.desiredCount)}</span>
+    </div>
+    <div className="mt-2 grid gap-1 text-emerald-900">
+      {EQUITY_ACTIVATION_MODES.map(([mode, modeLabel]) => (
+        <div key={mode} className="flex justify-between gap-2">
+          <span>{modeLabel}</span>
+          <span>{asNumber(pool?.activeModeCounts?.[mode])} aktywne · {asNumber(pool?.candidateModeCounts?.[mode])} gotowe</span>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const EquitySupplementPanel = ({
+  status,
+  confirmation,
+  selectedModel,
+  busy,
+  blocked,
+  activationBlocked,
+  onRequest,
+  onConfirm,
+  onCancel,
+  onActivate,
+}) => {
+  const equity = status?.equitySupplement || status?.equitySupplementStatus || {};
+  const activation = status?.equityActivation || {};
+  const coverage = Object.entries(equity.coverage || {});
+  const hasActivationCandidates = asNumber(activation.candidateCount) > 0;
+  const needsActivation = hasActivationCandidates && activation.needsActivation === true;
+  return <div data-testid="equity-supplement-status" className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5">
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><h4 className="text-sm font-black text-emerald-950">Uzupełnienie equity</h4><p className="mt-1 max-w-2xl text-xs text-emerald-800">Analizuj ponownie wyłącznie dodatkowy aspekt gotowych, zwykłych ćwiczeń. Ta operacja nie zastępuje ich kluczy ani nie blokuje starych zadań.</p></div><button type="button" data-testid="request-equity-supplement" disabled={busy || blocked || !asNumber(equity.pendingCount)} onClick={onRequest} className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2.5 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-40"><ScanSearch size={15}/> Analizuj ponownie z uwzględnieniem equity</button></div>
+    <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Metric label="Gotowe zwykłe spoty" value={asNumber(equity.readyCount)}/><Metric label="Już uzupełnione" value={asNumber(equity.supplementedCount)}/><Metric label="Oczekujące" value={asNumber(equity.pendingCount)}/><Metric label="Płatne żądania" value={asNumber(equity.estimatedRequests)} note={`partie po ${asNumber(equity.batchSize) || 20}`}/></div>
+    {coverage.length > 0 && <div className="mt-4 grid gap-2 text-xs text-emerald-900 sm:grid-cols-2">{coverage.map(([group, value]) => <div key={group} className="rounded-xl border border-emerald-200 bg-white/70 px-3 py-2"><strong>{group}</strong>: gotowe {value.ready}, uzupełnione {value.supplemented}, oczekuje {value.pending}</div>)}</div>}
+    {hasActivationCandidates && <div data-testid="equity-activation-status" className="mt-4 rounded-xl border border-emerald-300 bg-emerald-100/60 p-4 text-emerald-950">
+      {needsActivation ? <div className="flex flex-wrap items-start justify-between gap-3"><div><strong>Analizy gotowe — aktywuj ćwiczenia</strong><p className="mt-1 max-w-2xl text-xs text-emerald-900">To lokalna operacja bez kosztu AI. Doda wyłącznie gotowe spoty equity i nie zmieni istniejących ćwiczeń.</p></div><button type="button" data-testid="activate-equity-training" disabled={busy || activationBlocked || typeof onActivate !== 'function'} onClick={onActivate} className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2.5 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-40"><Play size={15}/>{busy === 'equity-activate' ? 'Aktywowanie…' : 'Aktywuj ćwiczenia equity'}</button></div> : <p className="text-xs font-bold text-emerald-900">Aktywne ćwiczenia equity: {asNumber(activation.activeCount)} spotów.</p>}
+      {activationBlocked && needsActivation && <p className="mt-3 text-xs font-bold text-emerald-900">Aktywacja będzie dostępna po zakończeniu działającego zadania AI.</p>}
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">{EQUITY_ACTIVATION_GAME_TYPES.map(([gameType, label]) => <EquityActivationPool key={gameType} label={label} pool={activation.pools?.[gameType]}/>)}</div>
+    </div>}
+    {confirmation && <div data-testid="equity-supplement-confirmation" className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950"><strong>Potwierdź dodatkową pracę AI</strong><p className="mt-1 text-xs">Zostanie wysłanych maksymalnie {asNumber(confirmation.estimate?.estimatedRequests)} żądań po {asNumber(confirmation.estimate?.batchSize) || 20} spotów. Model: <strong>{selectedModel?.name || selectedModel?.id || 'brak'}</strong>.</p><div className="mt-3 flex flex-wrap gap-2"><button type="button" data-testid="confirm-equity-supplement" disabled={busy || blocked || !selectedModel?.configured || !confirmation.estimate?.candidateCount} onClick={onConfirm} className="rounded-xl bg-amber-600 px-4 py-2 text-xs font-black text-white disabled:opacity-40">Potwierdzam koszt</button><button type="button" disabled={busy} onClick={onCancel} className="rounded-xl border border-amber-300 bg-white px-4 py-2 text-xs font-black">Anuluj</button></div></div>}
+  </div>;
+};
+
 const RefreshJobPanel = ({ job, busy, onStop, onResume }) => {
   if (!job) return null;
   const progress = Math.round(asNumber(job.progress) * 100);
@@ -142,6 +199,11 @@ export const TrainingCollectionSettings = ({
   onRequestReset,
   onCancelReset,
   onConfirmReset,
+  equityConfirmation,
+  onRequestEquitySupplement,
+  onConfirmEquitySupplement,
+  onCancelEquitySupplement,
+  onActivateEquityTraining,
 }) => {
   const latestJob = status?.refreshJob;
   const resumableJob = status?.resumableRefreshJob || (hasRefreshWork(latestJob) ? latestJob : null);
@@ -186,6 +248,8 @@ export const TrainingCollectionSettings = ({
 
 
       <p data-testid="training-refresh-estimate" className="mt-4 text-xs font-bold text-slate-600">Estymacja: {asNumber(status?.refreshEstimate?.candidateCount)} spotów / {asNumber(status?.refreshEstimate?.estimatedRequests)} żądań po {asNumber(status?.refreshEstimate?.batchSize) || 20}.</p>
+
+      <EquitySupplementPanel status={status} confirmation={equityConfirmation} selectedModel={selectedModel} busy={busy} blocked={refreshBlocked} activationBlocked={ACTIVE_JOB_STATUSES.has(job?.status)} onRequest={onRequestEquitySupplement} onConfirm={onConfirmEquitySupplement} onCancel={onCancelEquitySupplement} onActivate={onActivateEquityTraining}/>
 
       {rebuildWarning && (
         <div data-testid="training-selection-rebuild-warning" className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-900">
@@ -252,6 +316,7 @@ export const SettingsView = ({ trainingApi = defaultTrainingApi }) => {
   const [busy, setBusy] = useState('');
   const [sampleSize, setSampleSize] = useState(DEFAULT_TRAINING_REFRESH_SAMPLE_SIZE);
   const [confirmation, setConfirmation] = useState(null);
+  const [equityConfirmation, setEquityConfirmation] = useState(null);
   const [rebuildWarning, setRebuildWarning] = useState(false);
   const [resetConfirmation, setResetConfirmation] = useState(null);
   const isLoading = aiModelsStatus === 'loading';
@@ -357,6 +422,7 @@ export const SettingsView = ({ trainingApi = defaultTrainingApi }) => {
     setBusy('scan');
     setTrainingError('');
     setConfirmation(null);
+    setEquityConfirmation(null);
     try {
       const result = await trainingApi.scanTrainingCollection({ rebuildSelection, sampleSize });
       setTrainingStatus(result.status);
@@ -388,6 +454,59 @@ export const SettingsView = ({ trainingApi = defaultTrainingApi }) => {
         setConfirmation(null);
       }
       setTrainingError(error.message || 'Nie udało się rozpocząć odświeżania.');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const requestEquitySupplement = async () => {
+    setBusy('equity-scan');
+    setTrainingError('');
+    try {
+      const next = await trainingApi.getTrainingStatus({ sampleSize });
+      setTrainingStatus(next);
+      const supplement = next.equitySupplement || next.equitySupplementStatus || {};
+      setEquityConfirmation({ estimate: {
+        ...(next.refreshEstimate || {}),
+        candidateCount: supplement.pendingCount || 0,
+        estimatedRequests: supplement.estimatedRequests || 0,
+        batchSize: supplement.batchSize || 20,
+        groups: supplement.coverage || {},
+      } });
+    } catch (error) {
+      setTrainingError(error.message || 'Nie udało się pobrać estymacji uzupełnienia equity.');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const confirmEquitySupplement = async () => {
+    if (!equityConfirmation || !selectedModel?.configured) return;
+    setBusy('equity-start');
+    setTrainingError('');
+    try {
+      const result = await trainingApi.startTrainingRefresh({ modelId: defaultAiModel, sampleSize, confirmed: true, scope: 'equity_supplement' });
+      staleRefreshJobId.current = null;
+      setTrainingStatus((current) => mergeRefreshJob(current, result.job));
+      setEquityConfirmation(null);
+      if (result.job?.status === 'completed') await loadTrainingStatus();
+    } catch (error) {
+      if (error.resumableJob) setTrainingStatus((current) => mergeRefreshJob(current, error.resumableJob));
+      setTrainingError(error.message || 'Nie udało się rozpocząć uzupełnienia equity.');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const activateEquityTraining = async () => {
+    setBusy('equity-activate');
+    setTrainingError('');
+    try {
+      const result = await trainingApi.activateEquityTraining({ sampleSize });
+      setTrainingStatus(result.status);
+      setEquityConfirmation(null);
+    } catch (error) {
+      setTrainingError(error.message || 'Nie udało się aktywować ćwiczeń equity.');
     } finally {
       setBusy('');
     }
@@ -445,6 +564,7 @@ export const SettingsView = ({ trainingApi = defaultTrainingApi }) => {
   const changeSampleSize = (value) => {
     setSampleSize(value);
     setConfirmation(null);
+    setEquityConfirmation(null);
   };
 
   return (
@@ -496,6 +616,11 @@ export const SettingsView = ({ trainingApi = defaultTrainingApi }) => {
           onRequestReset={(scope) => { setConfirmation(null); setRebuildWarning(false); setResetConfirmation({ scope }); }}
           onCancelReset={() => setResetConfirmation(null)}
           onConfirmReset={confirmReset}
+          equityConfirmation={equityConfirmation}
+          onRequestEquitySupplement={requestEquitySupplement}
+          onConfirmEquitySupplement={confirmEquitySupplement}
+          onCancelEquitySupplement={() => setEquityConfirmation(null)}
+          onActivateEquityTraining={activateEquityTraining}
         />
       )}
     </div>

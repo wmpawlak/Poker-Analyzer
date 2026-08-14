@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { analyzeTrainingAnswerKeysWithModel } from '../ai/analysisService.js';
+import { analyzeTrainingAnswerKeysWithModel, analyzeEquitySupplementsWithModel } from '../ai/analysisService.js';
 import {
   TRAINING_ANSWER_KEY_BATCH_LIMIT,
   TRAINING_ANSWER_KEY_CONTRACT_VERSION,
@@ -10,6 +10,13 @@ import {
 import { isTrainingAuditExcluded } from './trainingAudit.js';
 import { selectDiverseRecentSpots } from './spotSelection.js';
 import {
+  buildEquitySupplementBatchInput,
+  calculateEquitySupplement,
+  isEquitySupplementEligibleSpot,
+  validateEquitySupplementBatch,
+  EQUITY_RANGE_CONTRACT_VERSION,
+} from './equitySupplementContract.js';
+import {
   DEFAULT_TRAINING_REFRESH_SAMPLE_SIZE,
   isTrainingRefreshSampleSize,
 } from '../../src/training/trainingTypes.js';
@@ -18,6 +25,7 @@ const TERMINAL_STATUSES = new Set(['completed', 'stopped', 'failed', 'superseded
 const RESUMABLE_STATUSES = new Set(['running', 'stop_requested', 'stopped', 'failed']);
 export const MAX_TRAINING_REFRESH_SPOTS = 800;
 export const MAX_TRAINING_REFRESH_REQUESTS = 40;
+export const REFRESH_JOB_KINDS = Object.freeze({ ANSWER_KEYS: 'answer_keys', MISSING_KEYS: 'missing_keys', EQUITY_SUPPLEMENT: 'equity_supplement' });
 export { DEFAULT_TRAINING_REFRESH_SAMPLE_SIZE } from '../../src/training/trainingTypes.js';
 
 export const isTrainingRefreshJobResumable = (job) => RESUMABLE_STATUSES.has(job?.status)
@@ -51,6 +59,14 @@ export const normalizeTrainingRefreshSampleSize = (value = DEFAULT_TRAINING_REFR
   return normalized;
 };
 
+export const normalizeTrainingRefreshScope = (value = REFRESH_JOB_KINDS.ANSWER_KEYS) => {
+  const scope = asString(value) || REFRESH_JOB_KINDS.ANSWER_KEYS;
+  if (![REFRESH_JOB_KINDS.ANSWER_KEYS, REFRESH_JOB_KINDS.MISSING_KEYS, REFRESH_JOB_KINDS.EQUITY_SUPPLEMENT].includes(scope)) {
+    fail('TRAINING_REFRESH_SCOPE_INVALID', 'Nieznany zakres odświeżania treningu.');
+  }
+  return scope;
+};
+
 const asString = (value) => String(value ?? '').trim();
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const asIso = (clock) => clock().toISOString();
@@ -66,18 +82,25 @@ const isLocallyValid = (spot) => {
   }
 };
 
-const collectCandidates = (collection, sampleSize) => {
+const collectCandidates = (collection, sampleSize, scope = REFRESH_JOB_KINDS.ANSWER_KEYS) => {
   const candidates = [];
   const locallyRejectedSpotVersionIds = [];
   (Array.isArray(collection?.spots) ? collection.spots : []).forEach((spot) => {
-    if (spot?.sourceStatus !== 'current'
+    const key = spot.currentAnswerKey || collection.answerKeys?.find((candidate) => candidate.id === spot.currentAnswerKeyId);
+    const currentSupplement = collection.equitySupplements?.find((supplement) => (
+      supplement.spotVersionId === spot.versionId && supplement.answerKeyId === spot.currentAnswerKeyId && !supplement.staleAt
+    )) || spot.currentSupplement;
+    if (scope === REFRESH_JOB_KINDS.EQUITY_SUPPLEMENT) {
+      if (!isEquitySupplementEligibleSpot(spot, key) || currentSupplement) return;
+    } else if (spot?.sourceStatus !== 'current'
+      || spot.exerciseType === 'equity_pot_odds'
       || spot?.aiFirstSentAt
       || isTrainingAuditExcluded(collection?.auditState, {
         handId: spot?.handId,
         fingerprint: spot?.sourceFingerprint,
       })
       || spot.readiness !== 'pending_key') return;
-    if (!isLocallyValid(spot)) {
+    if (scope !== REFRESH_JOB_KINDS.EQUITY_SUPPLEMENT && !isLocallyValid(spot)) {
       locallyRejectedSpotVersionIds.push(spot.versionId);
       return;
     }
@@ -92,6 +115,7 @@ const collectCandidates = (collection, sampleSize) => {
 export const estimateTrainingRefresh = (collection, {
   batchSize = TRAINING_ANSWER_KEY_BATCH_LIMIT,
   sampleSize = DEFAULT_TRAINING_REFRESH_SAMPLE_SIZE,
+  scope = REFRESH_JOB_KINDS.ANSWER_KEYS,
 } = {}) => {
   if (batchSize !== TRAINING_ANSWER_KEY_BATCH_LIMIT) {
     fail('TRAINING_REFRESH_BATCH_SIZE_INVALID', `Partia musi zawierać od 1 do ${TRAINING_ANSWER_KEY_BATCH_LIMIT} spotów.`);
@@ -100,6 +124,7 @@ export const estimateTrainingRefresh = (collection, {
   const { candidates, locallyRejectedSpotVersionIds } = collectCandidates(
     collection,
     normalizedSampleSize,
+    scope,
   );
   const groups = {};
   candidates.forEach((spot) => {
@@ -129,6 +154,7 @@ const findJob = (collection, jobId) => collection.refreshJobs?.find(({ id }) => 
 export const createTrainingRefreshService = ({
   repository,
   analyzeBatch = analyzeTrainingAnswerKeysWithModel,
+  analyzeSupplement = analyzeEquitySupplementsWithModel,
   environment = process.env,
   fetchImpl = globalThis.fetch,
   logger,
@@ -142,6 +168,9 @@ export const createTrainingRefreshService = ({
   }
   if (typeof analyzeBatch !== 'function') {
     fail('TRAINING_REFRESH_ANALYZER_REQUIRED', 'Usługa odświeżania wymaga funkcji analizy AI.');
+  }
+  if (typeof analyzeSupplement !== 'function') {
+    fail('TRAINING_SUPPLEMENT_ANALYZER_REQUIRED', 'Usługa suplementów equity wymaga funkcji analizy AI.');
   }
   estimateTrainingRefresh({ spots: [] }, { batchSize });
 
@@ -262,6 +291,79 @@ export const createTrainingRefreshService = ({
     }
   };
 
+  const runEquityBatch = async ({ job, candidateIds, batchSpotVersionIds, spots }) => {
+    const current = await repository.getSnapshot();
+    const keysById = new Map((current.answerKeys || []).map((key) => [key.id, key]));
+    const spotsById = new Map(spots.map((spot) => [spot.versionId, spot]));
+    const batchSpots = batchSpotVersionIds.map((id) => spotsById.get(id)).filter((spot) => {
+      const key = keysById.get(spot?.currentAnswerKeyId);
+      return spot && isEquitySupplementEligibleSpot(spot, key)
+        && !(current.equitySupplements || []).some((supplement) => supplement.spotVersionId === spot.versionId
+          && supplement.answerKeyId === spot.currentAnswerKeyId && !supplement.staleAt);
+    });
+    if (batchSpots.length === 0) {
+      const skipped = await saveJob({
+        ...job,
+        cursor: job.cursor + candidateIds.length,
+        skippedSpotCount: job.skippedSpotCount + candidateIds.length,
+      });
+      return { job: skipped, done: false };
+    }
+    const input = buildEquitySupplementBatchInput(batchSpots, batchSpots.map((spot) => keysById.get(spot.currentAnswerKeyId)));
+    const startedAt = asIso(clock);
+    const prepared = await saveJob({
+      ...job,
+      attemptedRequests: job.attemptedRequests + 1,
+      inFlight: { spotVersionIds: input.supplements.map(({ spotVersionId }) => spotVersionId), startedAt },
+    });
+    await emitEvent('batch_sent', prepared, { spotCount: input.supplements.length });
+    let analysis;
+    try {
+      analysis = await analyzeSupplement({ modelId: job.modelId, input: { ...input, spots: batchSpots, answerKeys: batchSpots.map((spot) => keysById.get(spot.currentAnswerKeyId)) }, environment, fetchImpl, logger });
+    } catch (error) {
+      const batchError = safeError(error, input.supplements.map(({ spotVersionId }) => spotVersionId));
+      return saveJob({ ...prepared, status: 'failed', cursor: prepared.cursor + candidateIds.length, processedSpotCount: prepared.processedSpotCount + candidateIds.length, skippedSpotCount: prepared.skippedSpotCount + candidateIds.length - batchSpots.length, inFlight: null, errors: [...prepared.errors, batchError], finishedAt: asIso(clock) });
+    }
+    const validated = analysis?.validated || validateEquitySupplementBatch(analysis?.response ?? analysis, input);
+    const supplements = validated.valid.map(({ spotVersionId, opponentRange }) => {
+      const spot = batchSpots.find((candidate) => candidate.versionId === spotVersionId);
+      const key = keysById.get(spot.currentAnswerKeyId);
+      return {
+        id: `equity-supplement:${spotVersionId}:${key.id}`,
+        spotVersionId,
+        answerKeyId: key.id,
+        opponentRange,
+        rangeContractVersion: EQUITY_RANGE_CONTRACT_VERSION,
+        calculatorVersion: input.calculatorVersion,
+        equityResult: calculateEquitySupplement({ heroCards: spot.question.heroCards, board: spot.question.board }, opponentRange),
+        model: analysis?.model || { id: job.modelId, name: job.modelId },
+        createdAt: asIso(clock),
+      };
+    });
+    if (supplements.length && repository.saveEquitySupplementBatch) await repository.saveEquitySupplementBatch(supplements);
+    const latest = (await getStoredJob(job.id)).job;
+    const nextCursor = latest.cursor + candidateIds.length;
+    const next = {
+      ...latest,
+      cursor: nextCursor,
+      processedSpotCount: latest.processedSpotCount + candidateIds.length,
+      skippedSpotCount: latest.skippedSpotCount + candidateIds.length - batchSpots.length,
+      inFlight: null,
+      successfulRequests: latest.successfulRequests + 1,
+      savedKeyCount: latest.savedKeyCount + supplements.length,
+      savedSupplementCount: (latest.savedSupplementCount || 0) + supplements.length,
+      readyKeyCount: latest.readyKeyCount + supplements.length,
+      reviewKeyCount: latest.reviewKeyCount + validated.rejected.length,
+      invalidKeyCount: latest.invalidKeyCount + validated.rejected.length,
+      unknownResultCount: latest.unknownResultCount + validated.rejected.length,
+      status: nextCursor >= latest.candidateSpotVersionIds.length ? 'completed' : 'running',
+    };
+    if (next.status === 'completed') next.finishedAt = asIso(clock);
+    const saved = await saveJob(next);
+    await emitEvent('batch_committed', saved, { spotCount: batchSpotVersionIds.length });
+    return { job: saved, done: true };
+  };
+
   const run = async (jobId) => {
     while (true) {
       const { job: storedJob } = await getStoredJob(jobId);
@@ -289,7 +391,8 @@ export const createTrainingRefreshService = ({
       const spotsById = new Map(spots.map((spot) => [spot.versionId, spot]));
       const batchSpots = batchSpotVersionIds
         .map((id) => spotsById.get(id))
-        .filter((spot) => spot?.sourceStatus === 'current' && isLocallyValid(spot));
+        .filter((spot) => spot?.sourceStatus === 'current'
+          && (job.jobKind === REFRESH_JOB_KINDS.EQUITY_SUPPLEMENT || isLocallyValid(spot)));
       if (batchSpots.length === 0) {
         job.cursor += candidateIds.length;
         job.skippedSpotCount += candidateIds.length;
@@ -297,6 +400,12 @@ export const createTrainingRefreshService = ({
         continue;
       }
 
+      if (job.jobKind === REFRESH_JOB_KINDS.EQUITY_SUPPLEMENT) {
+        const result = await runEquityBatch({ job, candidateIds, batchSpotVersionIds, spots });
+        job = result.job;
+        if (job.status !== 'running') return job;
+        continue;
+      }
       const input = buildTrainingAnswerKeyBatchInput(batchSpots);
       const startedAt = asIso(clock);
       job = await saveJob({
@@ -455,13 +564,14 @@ export const createTrainingRefreshService = ({
     hasActiveRun: () => recoveryInProgress || activeRuns.size > 0,
     estimate: async (options = {}) => {
       const sampleSize = normalizeTrainingRefreshSampleSize(options.sampleSize);
+      const scope = normalizeTrainingRefreshScope(options.scope);
       if (!repository.getRefreshEstimateData) {
-        return estimateTrainingRefresh(await repository.getSnapshot(), { ...options, batchSize });
+        return estimateTrainingRefresh(await repository.getSnapshot(), { ...options, batchSize, scope });
       }
-      const data = await repository.getRefreshEstimateData(sampleSize);
+       const data = await repository.getRefreshEstimateData(sampleSize, scope);
       const estimate = estimateTrainingRefresh(
         { spots: data.spots, auditState: { excludedHands: [] } },
-        { ...options, batchSize, sampleSize },
+        { ...options, batchSize, sampleSize, scope },
       );
       return {
         ...estimate,
@@ -469,8 +579,12 @@ export const createTrainingRefreshService = ({
         locallyRejectedCount: data.locallyRejectedSpotVersionIds.length,
       };
     },
-    startRefresh: async ({ modelId, confirmed = false, sampleSize } = {}) => {
+    startRefresh: async ({ modelId, confirmed = false, sampleSize, scope = REFRESH_JOB_KINDS.ANSWER_KEYS } = {}) => {
       await recoveryPromise;
+      scope = normalizeTrainingRefreshScope(scope);
+      if (scope === REFRESH_JOB_KINDS.EQUITY_SUPPLEMENT && typeof repository.saveEquitySupplementBatch !== 'function') {
+        fail('TRAINING_SUPPLEMENT_REPOSITORY_REQUIRED', 'Repozytorium nie obsługuje zapisu suplementów equity.');
+      }
       const normalizedModelId = asString(modelId);
       if (!normalizedModelId) fail('TRAINING_REFRESH_MODEL_REQUIRED', 'Wybierz model do przygotowania kluczy.');
       const jobs = repository.getRefreshJobs
@@ -486,10 +600,10 @@ export const createTrainingRefreshService = ({
       }
       const estimate = await (repository.getRefreshEstimateData
         ? (async () => {
-          const data = await repository.getRefreshEstimateData(sampleSize);
+           const data = await repository.getRefreshEstimateData(sampleSize, scope);
           const value = estimateTrainingRefresh(
             { spots: data.spots, auditState: { excludedHands: [] } },
-            { batchSize, sampleSize },
+           { batchSize, sampleSize, scope },
           );
           return {
             ...value,
@@ -497,7 +611,7 @@ export const createTrainingRefreshService = ({
             locallyRejectedCount: data.locallyRejectedSpotVersionIds.length,
           };
         })()
-        : estimateTrainingRefresh(await repository.getSnapshot(), { batchSize, sampleSize }));
+        : estimateTrainingRefresh(await repository.getSnapshot(), { batchSize, sampleSize, scope }));
       if (estimate.candidateCount > MAX_TRAINING_REFRESH_SPOTS
         || estimate.estimatedRequests > MAX_TRAINING_REFRESH_REQUESTS) {
         fail('TRAINING_REFRESH_LIMIT_EXCEEDED', 'Zadanie AI przekracza bezpieczny limit 800 spotów lub 40 żądań.');
@@ -515,6 +629,9 @@ export const createTrainingRefreshService = ({
         status: estimate.candidateCount === 0 ? 'completed' : 'running',
         modelId: normalizedModelId,
         contractVersion: TRAINING_ANSWER_KEY_CONTRACT_VERSION,
+        jobKind: scope === REFRESH_JOB_KINDS.EQUITY_SUPPLEMENT
+          ? REFRESH_JOB_KINDS.EQUITY_SUPPLEMENT
+          : scope === REFRESH_JOB_KINDS.MISSING_KEYS ? REFRESH_JOB_KINDS.MISSING_KEYS : REFRESH_JOB_KINDS.ANSWER_KEYS,
         batchSize,
         sampleSize: estimate.sampleSize,
         candidateSpotVersionIds: estimate.candidateSpotVersionIds,
@@ -526,6 +643,7 @@ export const createTrainingRefreshService = ({
         processedSpotCount: 0,
         skippedSpotCount: 0,
         savedKeyCount: 0,
+        savedSupplementCount: 0,
         readyKeyCount: 0,
         reviewKeyCount: 0,
         invalidKeyCount: 0,

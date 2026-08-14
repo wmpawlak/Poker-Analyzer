@@ -77,6 +77,113 @@ const evaluateFiveCards = (cards) => {
   return 'HIGH_CARD';
 };
 
+// The visible-hand evaluator above intentionally returns only a category.  Equity
+// needs the complete showdown ordering as well, including kickers.  Keep that
+// information separate so existing callers continue to receive the same string
+// values from evaluateVisibleHand.
+const evaluateFiveCardsDetailed = (cards) => {
+  const ranks = cards.map((card) => card.rank);
+  const counts = new Map();
+  ranks.forEach((rank) => counts.set(rank, (counts.get(rank) || 0) + 1));
+  const groups = [...counts.entries()]
+    .map(([rank, count]) => ({ rank, count }))
+    .sort((left, right) => right.count - left.count || right.rank - left.rank);
+  const isFlush = cards.every((card) => card.suit === cards[0].suit);
+  const straightHighCard = getStraightHighCard(ranks);
+
+  if (isFlush && straightHighCard !== null) {
+    return { category: 'STRAIGHT_FLUSH', vector: [8, straightHighCard] };
+  }
+  if (groups[0].count === 4) {
+    return {
+      category: 'FOUR_OF_A_KIND',
+      vector: [7, groups[0].rank, groups[1].rank],
+    };
+  }
+  if (groups[0].count === 3 && groups[1]?.count === 2) {
+    return {
+      category: 'FULL_HOUSE',
+      vector: [6, groups[0].rank, groups[1].rank],
+    };
+  }
+  if (isFlush) {
+    return {
+      category: 'FLUSH',
+      vector: [5, ...ranks.sort((left, right) => right - left)],
+    };
+  }
+  if (straightHighCard !== null) {
+    return { category: 'STRAIGHT', vector: [4, straightHighCard] };
+  }
+  if (groups[0].count === 3) {
+    return {
+      category: 'THREE_OF_A_KIND',
+      vector: [3, groups[0].rank, ...groups.slice(1).map(({ rank }) => rank)
+        .sort((left, right) => right - left)],
+    };
+  }
+  if (groups[0].count === 2 && groups[1]?.count === 2) {
+    const pairs = groups.filter(({ count }) => count === 2)
+      .map(({ rank }) => rank)
+      .sort((left, right) => right - left);
+    const kicker = groups.find(({ count }) => count === 1)?.rank;
+    return { category: 'TWO_PAIR', vector: [2, ...pairs, kicker] };
+  }
+  if (groups[0].count === 2) {
+    return {
+      category: 'PAIR',
+      vector: [1, groups[0].rank, ...groups.slice(1).map(({ rank }) => rank)
+        .sort((left, right) => right - left)],
+    };
+  }
+  return {
+    category: 'HIGH_CARD',
+    vector: [0, ...ranks.sort((left, right) => right - left)],
+  };
+};
+
+const compareVectors = (left, right) => {
+  const length = Math.max(left.length, right.length);
+  for (let index = 0; index < length; index += 1) {
+    const leftValue = left[index] ?? 0;
+    const rightValue = right[index] ?? 0;
+    if (leftValue !== rightValue) return leftValue > rightValue ? 1 : -1;
+  }
+  return 0;
+};
+
+const parseHoldemCards = (cards, name) => {
+  if (!Array.isArray(cards)) throw new TypeError(`${name} must be an array`);
+  const parsedCards = cards.map(parseCard);
+  if (parsedCards.some((card) => !card)) {
+    throw new TypeError(`${name} contains an invalid card`);
+  }
+
+  const cardKeys = parsedCards.map(({ rank, suit }) => `${rank}${suit}`);
+  if (new Set(cardKeys).size !== cardKeys.length) {
+    throw new RangeError(`${name} contains duplicate cards`);
+  }
+  return parsedCards;
+};
+
+const parseExactHoldemCards = (cards, name, expectedLength) => {
+  if (!Array.isArray(cards) || cards.length !== expectedLength) {
+    throw new TypeError(`${name} must contain ${expectedLength} cards`);
+  }
+  return parseHoldemCards(cards, name);
+};
+
+const getBestHoldemHandRankFromParsedCards = (cards) => {
+  const fiveCardHands = combinations(cards, 5);
+  if (fiveCardHands.length === 0) return null;
+
+  return fiveCardHands.reduce((bestRank, fiveCardHand) => {
+    const candidate = evaluateFiveCardsDetailed(fiveCardHand);
+    if (!bestRank || compareVectors(candidate.vector, bestRank.vector) > 0) return candidate;
+    return bestRank;
+  }, null);
+};
+
 const getBestFiveCardRank = (cards) => {
   const fiveCardHands = combinations(cards, 5);
   if (fiveCardHands.length === 0) return 'NO_HAND';
@@ -152,6 +259,110 @@ export const evaluateVisibleHand = (heroCardsOrOptions = [], boardCards = [], ga
       ? rank
       : bestRank;
   }, 'NO_HAND');
+};
+
+const normalizeComparisonArguments = (heroCardsOrOptions, villainCards, boardCards, gameVariant) => {
+  if (!Array.isArray(heroCardsOrOptions)
+    && heroCardsOrOptions
+    && typeof heroCardsOrOptions === 'object') {
+    return {
+      heroCards: heroCardsOrOptions.heroCards || [],
+      villainCards: heroCardsOrOptions.villainCards || heroCardsOrOptions.opponentCards || [],
+      boardCards: heroCardsOrOptions.boardCards || [],
+      gameVariant: heroCardsOrOptions.gameVariant || 'NLH',
+    };
+  }
+
+  return {
+    heroCards: heroCardsOrOptions || [],
+    villainCards: villainCards || [],
+    boardCards: boardCards || [],
+    gameVariant: gameVariant || 'NLH',
+  };
+};
+
+/**
+ * Returns the complete NLH showdown rank, including all kickers.
+ *
+ * This API intentionally requires a complete five-card board.  On earlier
+ * streets there is no final winner yet; callers should enumerate/simulate the
+ * remaining board cards and evaluate each resulting showdown instead.
+ */
+export const evaluateHoldemHandRank = (holeCards, boardCards) => {
+  const parsedHoleCards = parseExactHoldemCards(holeCards, 'holeCards', 2);
+  const parsedBoardCards = parseExactHoldemCards(boardCards, 'boardCards', 5);
+
+  const allCards = [...parsedHoleCards, ...parsedBoardCards];
+  if (new Set(allCards.map(({ rank, suit }) => `${rank}${suit}`)).size !== allCards.length) {
+    throw new RangeError('holeCards and boardCards contain duplicate cards');
+  }
+
+  return getBestHoldemHandRankFromParsedCards(allCards);
+};
+
+/**
+ * Compares Hero with Villain at showdown.  The return value is 1 when Hero
+ * wins, 0 for a split pot, and -1 when Villain wins.
+ */
+export const compareHoldemHands = (
+  heroCardsOrOptions,
+  villainCards,
+  boardCards,
+  gameVariant = 'NLH',
+) => {
+  const normalized = normalizeComparisonArguments(
+    heroCardsOrOptions,
+    villainCards,
+    boardCards,
+    gameVariant,
+  );
+  if (!HOLDEM_VARIANTS.has(normalized.gameVariant)) {
+    throw new RangeError(`Unsupported game variant: ${normalized.gameVariant}`);
+  }
+
+  const heroHoleCards = parseExactHoldemCards(normalized.heroCards, 'heroCards', 2);
+  const opponentHoleCards = parseExactHoldemCards(normalized.villainCards, 'villainCards', 2);
+  const showdownBoard = parseExactHoldemCards(normalized.boardCards, 'boardCards', 5);
+
+  const allCards = [...heroHoleCards, ...opponentHoleCards, ...showdownBoard];
+  if (new Set(allCards.map(({ rank, suit }) => `${rank}${suit}`)).size !== allCards.length) {
+    throw new RangeError('heroCards, villainCards and boardCards contain duplicate cards');
+  }
+
+  const heroRank = getBestHoldemHandRankFromParsedCards([...heroHoleCards, ...showdownBoard]);
+  const villainRank = getBestHoldemHandRankFromParsedCards([...opponentHoleCards, ...showdownBoard]);
+  return compareVectors(heroRank.vector, villainRank.vector);
+};
+
+/**
+ * Detailed counterpart used by equity calculations and feedback.  It returns
+ * both complete rank vectors while keeping compareHoldemHands convenient for
+ * callers that only need win/tie/loss.
+ */
+export const compareHoldemHandsDetailed = (
+  heroCardsOrOptions,
+  villainCards,
+  boardCards,
+  gameVariant = 'NLH',
+) => {
+  const normalized = normalizeComparisonArguments(
+    heroCardsOrOptions,
+    villainCards,
+    boardCards,
+    gameVariant,
+  );
+  const comparison = compareHoldemHands(normalized);
+  const heroCards = parseExactHoldemCards(normalized.heroCards, 'heroCards', 2);
+  const opponentCards = parseExactHoldemCards(normalized.villainCards, 'villainCards', 2);
+  const board = parseExactHoldemCards(normalized.boardCards, 'boardCards', 5);
+  const heroRank = getBestHoldemHandRankFromParsedCards([...heroCards, ...board]);
+  const villainRank = getBestHoldemHandRankFromParsedCards([...opponentCards, ...board]);
+  return {
+    comparison,
+    result: comparison === 1 ? 'win' : comparison === -1 ? 'loss' : 'tie',
+    hero: heroRank,
+    villain: villainRank,
+  };
 };
 
 export const evaluateHoldemHand = evaluateVisibleHand;

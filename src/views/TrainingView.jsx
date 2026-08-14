@@ -11,15 +11,18 @@ import {
   Clock3,
   Dumbbell,
   Eye,
+  Grid,
   History,
   Info,
   RotateCcw,
   Target,
   Trophy,
+  X,
   XCircle,
 } from 'lucide-react';
 import { CardIcon } from '../components/CardIcon.jsx';
-import { EXERCISE_TYPES } from '../training/trainingTypes.js';
+import { EQUITY_MODES, EXERCISE_TYPES } from '../training/trainingTypes.js';
+import { EQUITY_BUCKETS } from '../parser/equityCalculator.js';
 import * as defaultTrainingApi from '../training/trainingApi.js';
 
 export const ACTIVE_TRAINING_SESSION_KEY = 'poker_active_training_session_v1';
@@ -49,6 +52,12 @@ const EXERCISE_CATALOG = [
     description: 'Rozpoznawaj value, bluff, bluff-catcher, check i fold.',
     target: 100,
   },
+  {
+    id: EXERCISE_TYPES.EQUITY_POT_ODDS,
+    title: 'Equity i pot odds',
+    description: 'Wybierz poziom: znana ręka, zakres, terminalne pot odds albo mixed.',
+    target: 100,
+  },
 ];
 
 const GAME_OPTIONS = [
@@ -57,6 +66,12 @@ const GAME_OPTIONS = [
   { id: 'tournament', label: 'Turnieje' },
 ];
 const SESSION_SIZES = [10, 20, 50, 100, 'all'];
+const EQUITY_MODE_OPTIONS = [
+  [EQUITY_MODES.KNOWN_HAND, 'Znana ręka'],
+  [EQUITY_MODES.RANGE, 'Zakres'],
+  [EQUITY_MODES.POT_ODDS, 'Pot odds'],
+  [EQUITY_MODES.MIXED, 'Mixed'],
+];
 
 const ACTION_LABELS = {
   fold: 'Fold',
@@ -73,6 +88,7 @@ const ACTION_LABELS = {
   preflop_vs_reraise: 'Przeciw ponownemu podbiciu',
   cbet_barrels: 'C-bet i baryłki',
   turn_river: 'Turn / river',
+  equity_pot_odds: 'Equity i pot odds',
   open_vs_3bet: 'Open przeciw 3-betowi',
   raise_vs_reshove: 'Raise przeciw reshove’owi',
   small_blind: 'wpłaca SB',
@@ -99,13 +115,92 @@ const HISTORICAL_DECISION_META = {
 const asNumber = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
 const formatAmount = (value) => asNumber(value).toLocaleString('pl-PL', { maximumFractionDigits: 2 });
 const formatPercent = (value) => `${(asNumber(value) * 100).toLocaleString('pl-PL', { maximumFractionDigits: 1 })}%`;
+const formatRangeHandClass = (value) => {
+  const notation = String(value || '').trim();
+  const match = notation.match(/^([2-9TJQKA])([2-9TJQKA])([so]?)$/i);
+  if (!match) return notation;
+  return `${match[1].toUpperCase()}${match[2].toUpperCase()}${match[3].toLowerCase()}`;
+};
+const RANGE_MATRIX_RANKS = Object.freeze(['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2']);
+const RANGE_MATRIX_GRID_TEMPLATE = `repeat(${RANGE_MATRIX_RANKS.length}, minmax(0, 1fr))`;
+const getRangeMatrixHandClass = (rowRank, columnRank, row, column) => {
+  if (row === column) return `${rowRank}${columnRank}`;
+  return row < column ? `${rowRank}${columnRank}s` : `${columnRank}${rowRank}o`;
+};
+const getRangeMatrixCells = (modelRange) => {
+  const weightsByHandClass = new Map();
+  modelRange.forEach(({ handClass, weight }) => {
+    const normalizedHandClass = formatRangeHandClass(handClass);
+    const normalizedWeight = Math.max(0, Math.min(1, asNumber(weight)));
+    weightsByHandClass.set(
+      normalizedHandClass,
+      Math.max(weightsByHandClass.get(normalizedHandClass) || 0, normalizedWeight),
+    );
+  });
+  return RANGE_MATRIX_RANKS.flatMap((rowRank, row) => RANGE_MATRIX_RANKS.map((columnRank, column) => {
+    const handClass = getRangeMatrixHandClass(rowRank, columnRank, row, column);
+    return { handClass, row, column, weight: weightsByHandClass.get(handClass) || 0 };
+  }));
+};
+const rangeMatrixCellClasses = (weight) => {
+  if (weight >= 0.9) return 'border-emerald-600 bg-emerald-600 text-white';
+  if (weight >= 0.65) return 'border-emerald-400 bg-emerald-300 text-emerald-950';
+  if (weight >= 0.4) return 'border-emerald-300 bg-emerald-100 text-emerald-900';
+  if (weight > 0) return 'border-emerald-200 bg-emerald-50 text-emerald-800';
+  return 'border-slate-200 bg-slate-50 text-slate-400';
+};
 const actionLabel = (value) => ACTION_LABELS[value] || String(value || '—').replaceAll('_', ' ');
+const LEGACY_EQUITY_BUCKET_LABELS = Object.freeze({
+  equity_0_10: '0–10%', equity_10_20: '10–20%', equity_20_30: '20–30%', equity_30_40: '30–40%',
+  equity_40_50: '40–50%', equity_50_60: '50–60%', equity_60_70: '60–70%', equity_70_80: '70–80%',
+  equity_80_90: '80–90%', equity_90_100: '90–100%',
+});
+const equityBucketLabel = (value) => EQUITY_BUCKETS.find(({ id }) => id === value)?.label
+  || LEGACY_EQUITY_BUCKET_LABELS[value]
+  || actionLabel(value);
 
-const getPoolCount = (status, exerciseType, gameType) => {
+const getEquityCoverageMessage = (question) => {
+  if (!question || question.exerciseType === EXERCISE_TYPES.EQUITY_POT_ODDS
+    || question.equityMode || question.question?.equityMode) return null;
+  const state = question.question || {};
+  const opponentsInHand = Number(state.context?.opponentsInHand);
+  const hasCall = asNumber(state.toCall) > 0
+    && (!Array.isArray(state.legalActions) || state.legalActions.includes('call'));
+  if (opponentsInHand === 1 && hasCall) {
+    return question.equitySupplementAvailable === true
+      ? null
+      : 'Analiza equity względem zakresu nie jest jeszcze dostępna. Możesz normalnie rozwiązać to pytanie.';
+  }
+  return 'Osobna ocena equity nie dotyczy tego typu pytania.';
+};
+
+const getPoolCount = (status, exerciseType, gameType, equityMode = null) => {
   const pools = status?.pools?.[exerciseType];
   if (!pools) return 0;
-  if (gameType === 'both') return (pools.cash?.active || 0) + (pools.tournament?.active || 0);
-  return pools[gameType]?.active || 0;
+  const count = (pool) => equityMode && pool?.modeCounts
+    ? equityMode === EQUITY_MODES.MIXED
+      ? Object.values(pool.modeCounts).reduce((sum, value) => sum + (Number(value) || 0), 0)
+      : pool.modeCounts[equityMode] || 0
+    : pool?.active || 0;
+  if (gameType === 'both') return count(pools.cash) + count(pools.tournament);
+  return count(pools[gameType]);
+};
+
+const getEquityActivationCount = (status, gameType, equityMode) => {
+  const pools = status?.equityActivation?.pools || {};
+  const count = (pool) => equityMode === EQUITY_MODES.MIXED
+    ? Object.values(pool?.candidateModeCounts || {}).reduce((sum, value) => sum + asNumber(value), 0)
+    : asNumber(pool?.candidateModeCounts?.[equityMode]);
+  if (gameType === 'both') return count(pools.cash) + count(pools.tournament);
+  return count(pools[gameType]);
+};
+
+const getEquityModeUnavailableReason = (status, gameType, equityMode) => {
+  const activation = status?.equityActivation || {};
+  if (activation.needsActivation && getEquityActivationCount(status, gameType, equityMode) > 0) {
+    return 'Analizy dla tego poziomu są gotowe, ale wymagają lokalnej aktywacji ćwiczeń equity.';
+  }
+  return 'Brak aktywnych spotów tego poziomu dla wybranego formatu.';
 };
 
 const getStorage = () => globalThis.localStorage || {
@@ -215,17 +310,117 @@ const PlayerStacks = ({ players, bigBlind }) => (
   </div>
 );
 
+const ModelRangeMatrixModal = ({ isOpen, cells, onClose }) => {
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+  const inRangeCount = cells.filter(({ weight }) => weight > 0).length;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
+      onClick={(event) => { if (event.currentTarget === event.target) onClose(); }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="equity-range-matrix-title"
+        data-testid="equity-range-matrix-modal"
+        className="flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+      >
+        <header className="flex items-start justify-between gap-4 border-b border-slate-200 p-4">
+          <div>
+            <h3 id="equity-range-matrix-title" className="font-black text-slate-900">Założony zakres modelu</h3>
+            <p className="mt-1 text-xs text-slate-600">{inRangeCount} klas rąk. Im ciemniejsza zieleń, tym większa część klasy należy do zakresu.</p>
+          </div>
+          <button
+            type="button"
+            data-testid="close-equity-range-matrix"
+            aria-label="Zamknij macierz zakresu modelu"
+            title="Zamknij"
+            onClick={onClose}
+            className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800"
+          >
+            <X size={20} aria-hidden="true"/>
+          </button>
+        </header>
+        <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-4 py-2 text-xs text-slate-600">
+          <span className="size-3 rounded-sm border border-emerald-600 bg-emerald-600" aria-hidden="true"/>
+          <span>Ręka w zakresie</span>
+          <span className="ml-3 size-3 rounded-sm border border-slate-200 bg-white" aria-hidden="true"/>
+          <span>Poza zakresem</span>
+        </div>
+        <div className="min-h-0 flex-1 overflow-auto p-3">
+          <div
+            role="grid"
+            aria-label="Macierz zakresu modelu"
+            data-testid="equity-range-matrix"
+            className="mx-auto grid w-full max-w-xl gap-1"
+            style={{ gridTemplateColumns: RANGE_MATRIX_GRID_TEMPLATE }}
+          >
+            {cells.map(({ handClass, row, column, weight }) => {
+              const weightPercent = Math.round(weight * 100);
+              const included = weight > 0;
+              return (
+                <div
+                  key={handClass}
+                  role="gridcell"
+                  data-testid="equity-range-matrix-cell"
+                  data-hand-class={handClass}
+                  data-row={row}
+                  data-column={column}
+                  data-range-weight={weightPercent}
+                  aria-label={included ? `${handClass}: ${weightPercent}% zakresu modelu` : `${handClass}: poza zakresem modelu`}
+                  title={included ? `${handClass} · ${weightPercent}%` : `${handClass} · poza zakresem`}
+                  className={`flex aspect-square flex-col items-center justify-center rounded-md border p-1 text-center leading-none ${rangeMatrixCellClasses(weight)}`}
+                >
+                  <span className="text-xs font-black">{handClass}</span>
+                  {included && <span className="mt-0.5 text-[10px] font-bold opacity-80">{weightPercent}%</span>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+};
+
 export const TrainingQuestion = ({
   question,
   selectedAnswer,
+  selectedEquityBucket = '',
+  onSelectEquityBucket = () => {},
+  equityStep = 2,
+  onAdvanceEquity = () => {},
+  onBackEquity = () => {},
   onSelectAnswer,
   onSubmit,
   submitting = false,
   feedback = null,
   readOnly = false,
 }) => {
+  const [rangeMatrixSpotVersionId, setRangeMatrixSpotVersionId] = useState(null);
   const state = question.question || {};
   const bigBlind = asNumber(state.blinds?.bigBlind);
+  const equityCoverageMessage = getEquityCoverageMessage(question);
+  const equityMode = question.equityMode || state.equityMode;
+  const equityAnswerOptions = question.equityAnswerOptions || [];
+  const hasTwoStepEquity = [EQUITY_MODES.RANGE, EQUITY_MODES.POT_ODDS].includes(equityMode)
+    && equityAnswerOptions.length > 0;
+  const actionOptions = question.actionAnswerOptions?.length
+    ? question.actionAnswerOptions
+    : question.answerOptions;
+  const modelRange = question.opponentRange || question.equitySupplement?.range || [];
+  const rangeMatrixCells = getRangeMatrixCells(modelRange);
+  const isRangeMatrixOpen = rangeMatrixSpotVersionId === question.spotVersionId;
+
   return (
     <section data-testid="training-question" data-spot-version-id={question.spotVersionId} className="space-y-5">
       {question.usesHistoricalLine && (
@@ -233,6 +428,41 @@ export const TrainingQuestion = ({
           {question.continuationNotice || 'Ten etap jest kontynuacją historycznej linii, a nie symulacją poprzedniej odpowiedzi.'}
         </div>
       )}
+
+      {state.equityMode === 'known_hand' && state.knownOpponentCards?.length === 2 && (
+        <div role="note" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <div className="font-black">Znana ręka rywala — tylko do ćwiczenia equity</div>
+          <div className="mt-2"><Cards cards={state.knownOpponentCards}/></div>
+          <p className="mt-2 text-xs font-semibold">{state.equityWarning || 'Karty rywala zostały ujawnione później w showdownie i nie były dostępne w momencie decyzji.'}</p>
+        </div>
+      )}
+
+      {hasTwoStepEquity && (
+        <div data-testid="equity-range-assumption" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-950">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h4 className="font-black">Założony zakres modelu</h4>
+              <p className="mt-1 text-xs text-emerald-800">To jawne założenie trenera, używane wyłącznie do dodatkowej oceny equity.</p>
+            </div>
+            {modelRange.length > 0 && <button
+              type="button"
+              data-testid="open-equity-range-matrix"
+              aria-haspopup="dialog"
+              aria-label="Otwórz zakres modelu jako macierz rąk startowych"
+              onClick={() => setRangeMatrixSpotVersionId(question.spotVersionId)}
+              className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-white px-4 py-2.5 text-xs font-black text-emerald-900 shadow-sm transition-colors hover:border-emerald-400 hover:bg-emerald-100"
+            >
+              <Grid size={16} aria-hidden="true"/> Macierz zakresu
+            </button>}
+          </div>
+          {modelRange.length === 0 && <p className="mt-3 text-xs text-emerald-800">Brak danych zakresu.</p>}
+        </div>
+      )}
+      <ModelRangeMatrixModal
+        isOpen={isRangeMatrixOpen}
+        cells={rangeMatrixCells}
+        onClose={() => setRangeMatrixSpotVersionId(null)}
+      />
 
       <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
         <div className="rounded-2xl border border-slate-200 bg-slate-900 p-5 text-white shadow-sm">
@@ -278,14 +508,39 @@ export const TrainingQuestion = ({
         </div>
       </div>
 
-      <fieldset className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-5">
+      {equityCoverageMessage && (
+        <div data-testid="equity-coverage-message" role="note" className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-700">
+          <Info size={17} className="mt-0.5 shrink-0 text-indigo-500" aria-hidden="true"/>
+          <span>{equityCoverageMessage}</span>
+        </div>
+      )}
+
+      {hasTwoStepEquity && equityStep === 1 && !readOnly && (
+        <fieldset data-testid="equity-bucket-step" className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-5">
+          <legend className="px-2 text-base font-black text-slate-800">Jakie jest equity?</legend>
+          <p className="mb-4 text-xs text-slate-500">Najpierw zablokuj ocenę equity, a dopiero potem wybierz decyzję strategiczną.</p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {equityAnswerOptions.map((option) => {
+              const selected = selectedEquityBucket === option.id;
+              return <button type="button" key={option.id} data-equity-bucket-id={option.id} onClick={() => onSelectEquityBucket(option.id)} className={`rounded-xl border px-4 py-4 text-left transition-all ${selected ? 'border-emerald-600 bg-emerald-700 text-white shadow-md' : 'border-emerald-200 bg-white text-slate-700 hover:border-emerald-400 hover:bg-emerald-50'}`}>
+                <span className="block text-sm font-black">{option.label || equityBucketLabel(option.id)}</span>
+              </button>;
+            })}
+          </div>
+          <button type="button" data-testid="advance-equity-answer" onClick={onAdvanceEquity} disabled={!selectedEquityBucket} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40">
+            Dalej <ArrowRight size={16}/>
+          </button>
+        </fieldset>
+      )}
+      {(!hasTwoStepEquity || equityStep === 2 || readOnly) && <fieldset className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-5">
         <legend className="px-2 text-base font-black text-slate-800">{readOnly ? 'Zapisana decyzja' : 'Jaka jest najlepsza decyzja?'}</legend>
         <p className="mb-4 text-xs text-slate-500">Wybierz jedną odpowiedź. Uzasadnienie i zakresy zobaczysz dopiero po zapisaniu decyzji.</p>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {(question.answerOptions || []).map((option) => {
+          {(hasTwoStepEquity ? actionOptions : question.answerOptions || []).map((option) => {
             const selected = selectedAnswer === option.id;
-            const preferred = feedback?.answerKey?.preferredAnswer === option.id;
-            const acceptable = feedback?.answerKey?.acceptableAlternatives?.includes(option.id);
+            const displayedKey = feedback?.actionAnswerKey || feedback?.answerKey;
+            const preferred = displayedKey?.preferredAnswer === option.id;
+            const acceptable = displayedKey?.acceptableAlternatives?.includes(option.id);
             return (
               <button
                 type="button"
@@ -300,7 +555,7 @@ export const TrainingQuestion = ({
                         : 'border-slate-200 bg-white text-slate-700 hover:border-indigo-300 hover:bg-indigo-50'
                 }`}
               >
-                <span className="block text-sm font-black">{actionLabel(option.id)}</span>
+                <span className="block text-sm font-black">{option.label || actionLabel(option.id)}</span>
                 {option.category && <span className="mt-1 block text-[10px] font-bold uppercase opacity-70">Akcja: {actionLabel(option.action)}</span>}
               </button>
             );
@@ -317,7 +572,10 @@ export const TrainingQuestion = ({
             {submitting ? <><RotateCcw size={16} className="animate-spin"/> Zapisywanie odpowiedzi…</> : <><CheckCircle2 size={16}/> Zatwierdź odpowiedź</>}
           </button>
         )}
-      </fieldset>
+        {hasTwoStepEquity && !readOnly && <button type="button" data-testid="back-equity-answer" onClick={onBackEquity} className="mt-4 ml-2 inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-black text-slate-700">
+          <ArrowLeft size={16}/> Zmień equity
+        </button>}
+      </fieldset>}
     </section>
   );
 };
@@ -328,7 +586,8 @@ export const TrainingFeedback = ({
   const meta = GRADE_META[feedback.grade] || GRADE_META.incorrect;
   const GradeIcon = meta.icon;
   const key = feedback.answerKey || {};
-  const sizing = key.suggestedSizing;
+  const actionKey = feedback.actionAnswerKey || key;
+  const sizing = actionKey.suggestedSizing;
   const [resultVisible, setResultVisible] = useState(false);
   const historicalResult = feedback.historicalResult;
   const historicalDecision = feedback.historicalDecision;
@@ -344,16 +603,30 @@ export const TrainingFeedback = ({
     <section data-testid="training-feedback" aria-live="polite" className="mt-5 space-y-4">
       <div className={`flex items-center gap-3 rounded-2xl border p-4 ${meta.classes}`}>
         <GradeIcon size={26}/>
-        <div><div className="text-lg font-black">{meta.label}</div><div className="text-xs font-semibold">Preferowana odpowiedź: {actionLabel(key.preferredAnswer)}</div></div>
+        <div><div className="text-lg font-black">{meta.label}</div><div className="text-xs font-semibold">{feedback.actionGrade ? 'Ocena akcji' : feedback.equity ? 'Wynik referencyjny' : 'Preferowana odpowiedź'}: {feedback.actionGrade ? actionLabel(actionKey.preferredAnswer) : feedback.equity ? equityBucketLabel(feedback.correctEquityBucket) : actionLabel(actionKey.preferredAnswer)}</div></div>
       </div>
+      {feedback.equity && <div data-testid="equity-feedback" className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 text-sm text-indigo-950">
+        <h4 className="font-black">Wynik lokalnego kalkulatora equity</h4>
+        {feedback.equityGrade && <p className="mt-1 text-xs font-black">Ocena equity: {GRADE_META[feedback.equityGrade]?.label || feedback.equityGrade}</p>}
+        <p className="mt-2 text-2xl font-black">{formatPercent(feedback.equity.equity)} <span className="text-sm font-bold">({equityBucketLabel(feedback.correctEquityBucket)})</span></p>
+        <div className="mt-3 grid gap-2 text-xs font-semibold sm:grid-cols-2 lg:grid-cols-4">
+          <div>Wygrane: <strong>{feedback.equity.wins}</strong></div>
+          <div>Remisy: <strong>{feedback.equity.ties}</strong></div>
+          <div>Przegrane: <strong>{feedback.equity.losses}</strong></div>
+          <div>Twoja odpowiedź: <strong>{equityBucketLabel(feedback.equityBucket)}</strong></div>
+        </div>
+        <p className="mt-3 text-xs">Metoda: <strong>{feedback.equity.method === 'enumeration' ? 'pełna enumeracja' : 'symulacja'}</strong>. Dokładność: <strong>{feedback.equity.method === 'enumeration' ? `${feedback.equity.samples.toLocaleString('pl-PL')} układów` : `${feedback.equity.samples.toLocaleString('pl-PL')} prób, ±${formatPercent(feedback.equity.marginOfError)}`}</strong>.</p>
+        {feedback.requiredEquity !== undefined && <p data-testid="equity-threshold-feedback" className="mt-2 text-xs">Wymagany próg pot odds: <strong>{formatPercent(feedback.requiredEquity)}</strong>. Różnica: <strong>{formatPercent(feedback.equityDifference)}</strong>.</p>}
+        {feedback.actionGrade && <p className="mt-2 text-xs">Ocena akcji: <strong>{GRADE_META[feedback.actionGrade]?.label || feedback.actionGrade}</strong>. Rekomendacja strategiczna: <strong>{actionLabel(actionKey.preferredAnswer)}</strong>.</p>}
+      </div>}
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <h4 className="flex items-center gap-2 font-black text-slate-800"><Brain size={18} className="text-indigo-600"/> Uzasadnienie trenera</h4>
-          <p className="mt-3 text-sm leading-relaxed text-slate-600">{key.rationale}</p>
+          <p className="mt-3 text-sm leading-relaxed text-slate-600">{actionKey.rationale || key.rationale}</p>
           <dl className="mt-4 space-y-3 text-sm">
-            <div><dt className="text-xs font-black uppercase text-slate-400">Blockery i equity</dt><dd className="mt-1 text-slate-700">{key.blockersEquity}</dd></div>
-            <div><dt className="text-xs font-black uppercase text-slate-400">Przewidywany zakres rywala</dt><dd className="mt-1 text-slate-700">{key.opponentRange}</dd></div>
-            <div><dt className="text-xs font-black uppercase text-slate-400">Dopuszczalne alternatywy</dt><dd className="mt-1 font-bold text-slate-700">{key.acceptableAlternatives?.length ? key.acceptableAlternatives.map(actionLabel).join(', ') : 'Brak'}</dd></div>
+            <div><dt className="text-xs font-black uppercase text-slate-400">Blockery i equity</dt><dd className="mt-1 text-slate-700">{actionKey.blockersEquity || key.blockersEquity}</dd></div>
+            <div><dt className="text-xs font-black uppercase text-slate-400">Przewidywany zakres rywala</dt><dd className="mt-1 text-slate-700">{actionKey.opponentRange || key.opponentRange}</dd></div>
+            <div><dt className="text-xs font-black uppercase text-slate-400">Dopuszczalne alternatywy</dt><dd className="mt-1 font-bold text-slate-700">{actionKey.acceptableAlternatives?.length ? actionKey.acceptableAlternatives.map(actionLabel).join(', ') : 'Brak'}</dd></div>
             {sizing && <div><dt className="text-xs font-black uppercase text-slate-400">Sugerowany sizing</dt><dd className="mt-1 font-bold text-slate-700">{actionLabel(sizing.action)}{sizing.potRatio > 0 ? ` · ${formatPercent(sizing.potRatio)} puli` : ''}{sizing.raiseToBb > 0 ? ` · do ${formatAmount(sizing.raiseToBb)} BB` : ''}</dd></div>}
           </dl>
         </div>
@@ -433,19 +706,31 @@ export const TrainingSetup = ({
   exerciseType,
   gameType,
   sessionSize,
+  equityMode,
   onExerciseTypeChange,
   onGameTypeChange,
   onSessionSizeChange,
+  onEquityModeChange,
   onStart,
+  onActivateEquity,
   loading = false,
 }) => {
-  const available = getPoolCount(status, exerciseType, gameType);
+  const isEquityExercise = exerciseType === EXERCISE_TYPES.EQUITY_POT_ODDS;
+  const available = getPoolCount(status, exerciseType, gameType, isEquityExercise ? equityMode : null);
+  const equityActivation = status?.equityActivation || {};
+  const hasEquityActivationCandidates = asNumber(equityActivation.candidateCount) > 0;
+  const needsEquityActivation = hasEquityActivationCandidates && equityActivation.needsActivation === true;
+  const noActiveEquitySpots = asNumber(equityActivation.activeCount) === 0;
+  const showEquityActivation = isEquityExercise && needsEquityActivation;
+  const selectedModeUnavailableReason = isEquityExercise && available === 0
+    ? getEquityModeUnavailableReason(status, gameType, equityMode)
+    : null;
   return (
     <section data-testid="training-setup" className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {EXERCISE_CATALOG.map((exercise) => {
           const selected = exerciseType === exercise.id;
-          const count = getPoolCount(status, exercise.id, gameType);
+          const count = getPoolCount(status, exercise.id, gameType, exercise.id === EXERCISE_TYPES.EQUITY_POT_ODDS ? equityMode : null);
           return (
             <button type="button" key={exercise.id} onClick={() => onExerciseTypeChange(exercise.id)} className={`rounded-2xl border p-5 text-left transition-all ${selected ? 'border-indigo-500 bg-indigo-600 text-white shadow-lg' : 'border-slate-200 bg-white text-slate-700 hover:border-indigo-300'}`}>
               <div className="flex items-start justify-between gap-3"><Target size={21}/><span className={`rounded-full px-2 py-1 text-[10px] font-black ${selected ? 'bg-white/20' : 'bg-slate-100'}`}>{count} gotowych</span></div>
@@ -472,11 +757,13 @@ export const TrainingSetup = ({
         </fieldset>
       </div>
 
+      {isEquityExercise && <fieldset className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5"><legend className="mb-3 text-sm font-black text-emerald-950">Poziom equity</legend><div className="flex flex-wrap gap-2">{EQUITY_MODE_OPTIONS.map(([mode, label]) => { const modeAvailable = getPoolCount(status, EXERCISE_TYPES.EQUITY_POT_ODDS, gameType, mode) > 0; const disabled = !modeAvailable; return <button type="button" key={mode} disabled={disabled} title={disabled ? getEquityModeUnavailableReason(status, gameType, mode) : undefined} onClick={() => onEquityModeChange(mode)} className={`rounded-xl px-4 py-2.5 text-xs font-black disabled:cursor-not-allowed ${equityMode === mode ? 'bg-emerald-700 text-white disabled:opacity-60' : disabled ? 'border border-emerald-200 bg-emerald-50 text-emerald-800 disabled:opacity-50' : 'border border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-100'}`}>{label}</button>; })}</div><p className="mt-2 text-xs text-emerald-800">Zakres i pot odds korzystają wyłącznie z aktualnie dostępnych suplementów equity. Mixed łączy wszystkie aktywne poziomy.</p>{selectedModeUnavailableReason && !showEquityActivation && <p data-testid="equity-mode-unavailable" className="mt-3 text-xs font-bold text-emerald-900">{selectedModeUnavailableReason}</p>}</fieldset>}
+
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-5">
-        <div><div className="text-sm font-black text-indigo-900">Dostępna pula: {available} spotów</div><div className="mt-1 text-xs text-indigo-700">Sesja użyje maksymalnie wybranej liczby dostępnych pytań.</div></div>
-        <button type="button" data-testid="start-training-session" disabled={available === 0 || loading} onClick={onStart} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-black text-white shadow-md hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40">
+        {showEquityActivation ? <div data-testid="equity-activation-required" className="max-w-2xl"><div className="text-sm font-black text-indigo-900">{noActiveEquitySpots ? 'Analizy equity są gotowe — aktywuj ćwiczenia' : 'Są nowe analizy equity — zaktualizuj pulę ćwiczeń'}</div><div className="mt-1 text-xs text-indigo-700">To lokalna i bezpłatna operacja: nie wywoła AI oraz nie zmieni starszych ćwiczeń.</div></div> : <div><div className="text-sm font-black text-indigo-900">Dostępna pula: {available} spotów</div><div className="mt-1 text-xs text-indigo-700">Sesja użyje maksymalnie wybranej liczby dostępnych pytań.</div></div>}
+        {showEquityActivation ? <button type="button" data-testid="activate-equity-training-from-setup" disabled={loading || typeof onActivateEquity !== 'function'} onClick={onActivateEquity} className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-black text-white shadow-md hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-40">{loading ? <><RotateCcw size={17} className="animate-spin"/> Aktywowanie…</> : <><Dumbbell size={17}/> Aktywuj ćwiczenia equity</>}</button> : <button type="button" data-testid="start-training-session" disabled={available === 0 || loading} onClick={onStart} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-black text-white shadow-md hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40">
           {loading ? <><RotateCcw size={17} className="animate-spin"/> Tworzenie sesji…</> : <><Dumbbell size={17}/> Rozpocznij ćwiczenie</>}
-        </button>
+        </button>}
       </div>
     </section>
   );
@@ -496,6 +783,8 @@ const StatsGroups = ({ stats }) => {
     ['Pozycja', stats?.byPosition],
     ['Stack', stats?.byStack],
     ['Tryb', stats?.byExerciseType],
+    ...(stats?.equity?.total ? [['Equity', { equity: stats.equity }]] : []),
+    ...(stats?.action?.total ? [['Akcja w trybie equity', { action: stats.action }]] : []),
   ];
   return (
     <div className="grid gap-4 lg:grid-cols-3">
@@ -566,9 +855,12 @@ export const TrainingView = ({ api = defaultTrainingApi }) => {
   const [question, setQuestion] = useState(null);
   const [feedback, setFeedback] = useState(null);
   const [selectedAnswer, setSelectedAnswer] = useState('');
+  const [selectedEquityBucket, setSelectedEquityBucket] = useState('');
+  const [equityStep, setEquityStep] = useState(2);
   const [exerciseType, setExerciseType] = useState(EXERCISE_TYPES.PREFLOP_SELECTION);
   const [gameType, setGameType] = useState('both');
   const [sessionSize, setSessionSize] = useState(20);
+  const [equityMode, setEquityMode] = useState(EQUITY_MODES.KNOWN_HAND);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [answeredQuestions, setAnsweredQuestions] = useState([]);
@@ -632,6 +924,7 @@ export const TrainingView = ({ api = defaultTrainingApi }) => {
   const displayedQuestion = reviewedQuestion?.question || question;
   const displayedFeedback = reviewedQuestion?.feedback || feedback;
   const displayedAnswer = reviewedQuestion?.answer || selectedAnswer;
+  const displayedEquityBucket = reviewedQuestion?.equityBucket || selectedEquityBucket;
   const previousReviewIndex = feedback ? answeredQuestions.length - 2 : answeredQuestions.length - 1;
 
   const refreshHistory = async () => {
@@ -660,6 +953,8 @@ export const TrainingView = ({ api = defaultTrainingApi }) => {
     setQuestion(next.question);
     setFeedback(null);
     setSelectedAnswer('');
+    setSelectedEquityBucket('');
+    setEquityStep(next.question?.equityAnswerOptions?.length ? 1 : 2);
     setReviewIndex(null);
     if (!next.question) setScreen('summary');
     if (next.question && scrollToTop) {
@@ -674,7 +969,7 @@ export const TrainingView = ({ api = defaultTrainingApi }) => {
     setAnsweredQuestions([]);
     setReviewIndex(null);
     try {
-      const created = await api.createTrainingSession({ exerciseType, gameType, size: sessionSize });
+      const created = await api.createTrainingSession({ exerciseType, gameType, size: sessionSize, ...(exerciseType === EXERCISE_TYPES.EQUITY_POT_ODDS ? { equityMode } : {}) });
       setSession(created.session);
       getStorage().setItem(ACTIVE_TRAINING_SESSION_KEY, created.session.id);
       setScreen('session');
@@ -686,17 +981,35 @@ export const TrainingView = ({ api = defaultTrainingApi }) => {
     }
   };
 
+  const activateEquityTraining = async () => {
+    if (loading) return;
+    setLoading(true);
+    setError('');
+    try {
+      await api.activateEquityTraining();
+      setStatus(await api.getTrainingStatus());
+    } catch (activationError) {
+      setError(activationError.message || 'Nie udało się aktywować ćwiczeń equity.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const submitAnswer = async () => {
-    if (!selectedAnswer || !question || !session) return;
+    const isTwoStep = question?.equityAnswerOptions?.length > 0
+      && [EQUITY_MODES.RANGE, EQUITY_MODES.POT_ODDS].includes(question.equityMode || question.question?.equityMode);
+    if (!selectedAnswer || !question || !session || (isTwoStep && !selectedEquityBucket)) return;
     setLoading(true);
     setError('');
     try {
       const result = await api.submitTrainingAnswer(session.id, {
         spotVersionId: question.spotVersionId,
         answer: selectedAnswer,
+        ...(isTwoStep ? { equityBucket: selectedEquityBucket } : {}),
       });
       setSession(result.session);
       setFeedback(result.feedback);
+      setEquityStep(2);
       setAnsweredQuestions((current) => [
         ...current.filter(({ spotVersionId }) => spotVersionId !== question.spotVersionId),
         {
@@ -770,6 +1083,14 @@ export const TrainingView = ({ api = defaultTrainingApi }) => {
     void continueSession();
   };
 
+  const advanceEquity = () => {
+    if (selectedEquityBucket) setEquityStep(2);
+  };
+
+  const backEquity = () => {
+    if (!feedback && !isReview) setEquityStep(1);
+  };
+
   const abandonSession = async () => {
     if (!session || session.status !== 'active') return;
     const accepted = typeof globalThis.confirm !== 'function'
@@ -785,6 +1106,8 @@ export const TrainingView = ({ api = defaultTrainingApi }) => {
       setQuestion(null);
       setFeedback(null);
       setSelectedAnswer('');
+      setSelectedEquityBucket('');
+      setEquityStep(2);
       setAnsweredQuestions([]);
       setReviewIndex(null);
       setScreen('setup');
@@ -814,6 +1137,8 @@ export const TrainingView = ({ api = defaultTrainingApi }) => {
     setQuestion(null);
     setFeedback(null);
     setSelectedAnswer('');
+    setSelectedEquityBucket('');
+    setEquityStep(2);
     setAnsweredQuestions([]);
     setReviewIndex(null);
     setScreen('setup');
@@ -837,14 +1162,14 @@ export const TrainingView = ({ api = defaultTrainingApi }) => {
       {status?.queue?.reanalysis > 0 && <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><AlertTriangle size={18}/><strong>Ponowna analiza:</strong> {status.queue.reanalysis} spotów nie jest automatycznie ocenianych.</div>}
       {error && <div role="alert" className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800"><AlertTriangle size={18} className="mt-0.5 shrink-0"/>{error}</div>}
 
-      {screen === 'setup' && <TrainingSetup status={status} exerciseType={exerciseType} gameType={gameType} sessionSize={sessionSize} onExerciseTypeChange={setExerciseType} onGameTypeChange={setGameType} onSessionSizeChange={setSessionSize} onStart={startSession} loading={loading}/>} 
+      {screen === 'setup' && <TrainingSetup status={status} exerciseType={exerciseType} gameType={gameType} sessionSize={sessionSize} equityMode={equityMode} onExerciseTypeChange={setExerciseType} onGameTypeChange={setGameType} onSessionSizeChange={setSessionSize} onEquityModeChange={setEquityMode} onStart={startSession} onActivateEquity={activateEquityTraining} loading={loading}/>}
       {screen === 'session' && session && displayedQuestion && (
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:p-7">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
              <div><div className="text-xs font-black uppercase tracking-wider text-indigo-600">{EXERCISE_CATALOG.find(({ id }) => id === session.exerciseType)?.title}</div><div className="mt-1 text-sm text-slate-500">Pytanie {displayedQuestionNumber} z {session.targetSize}</div></div>
              <div className="flex flex-wrap items-center gap-2"><div className="flex items-center gap-2 text-xs font-bold text-slate-500"><Clock3 size={15}/> Sesja jest zapisywana po każdej odpowiedzi</div><button type="button" data-testid="abandon-training-session" disabled={loading} onClick={abandonSession} className="rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-black text-rose-700 disabled:opacity-40">Przerwij sesję</button></div>
            </div>
-           <TrainingQuestion question={displayedQuestion} selectedAnswer={displayedAnswer} onSelectAnswer={setSelectedAnswer} onSubmit={submitAnswer} submitting={loading} feedback={displayedFeedback} readOnly={isReview}/>
+           <TrainingQuestion question={displayedQuestion} selectedAnswer={displayedAnswer} selectedEquityBucket={displayedEquityBucket} onSelectEquityBucket={setSelectedEquityBucket} equityStep={isReview ? 2 : equityStep} onAdvanceEquity={advanceEquity} onBackEquity={backEquity} onSelectAnswer={setSelectedAnswer} onSubmit={submitAnswer} submitting={loading} feedback={displayedFeedback} readOnly={isReview}/>
            {displayedFeedback && <TrainingFeedback feedback={displayedFeedback}/>}
            <TrainingNavigation
              canGoPrevious={canGoPrevious}

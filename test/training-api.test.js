@@ -23,6 +23,28 @@ Hero: folds
 *** SUMMARY ***
 Seat 1: Hero folded before Flop`;
 
+const makeTerminalShowdownHand = (id, minute = 0) => `CoinPoker Hand #${id}: NLH (0.50/1) 2026/08/01 12:${String(minute).padStart(2, '0')}:00 UTC
+Table 'training-api' 2-max Seat #1 is the button
+Seat 1: Hero (100 in chips)
+Seat 2: Villain (100 in chips)
+Hero: posts small blind 0.50
+Villain: posts big blind 1
+*** HOLE CARDS ***
+Dealt to Hero [Ah Kd]
+Hero: calls 0.50
+Villain: checks
+*** FLOP *** [2c 7d Ts]
+Villain: bets 1
+Hero: calls 1
+*** TURN *** [2c 7d Ts] [Qh]
+Villain: ALLIN 98
+Hero: calls 98
+*** SHOWDOWN ***
+Hero: shows [Ah Kd]
+Villain: shows [Qs Qd]
+*** SUMMARY ***
+Seat 1: Hero showed [Ah Kd] and lost (100) with High Card`;
+
 const postJson = (url, body) => fetch(url, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
@@ -59,15 +81,49 @@ const makeAiKey = (spot) => {
   };
 };
 
+const makeStoredReadyKey = (spot, id) => ({
+  id,
+  spotVersionId: spot.versionId,
+  status: 'ready',
+  confidence: 'high',
+  localFactsValid: true,
+  decisionCardFacts: spot.decisionCardFacts,
+  factsValidationVersion: CARD_FACTS_VALIDATION_VERSION,
+  preferredAnswer: spot.answerOptions[0].id,
+});
+
+const makeStoredEquitySupplement = (spot, answerKeyId) => ({
+  id: `supplement-${spot.versionId}`,
+  spotVersionId: spot.versionId,
+  answerKeyId,
+  rangeContractVersion: 1,
+  calculatorVersion: 'equity-v1',
+  opponentRange: [{ handClass: 'AKs', weight: 1 }],
+  equityResult: {
+    calculatorVersion: 'equity-v1',
+    method: 'enumeration',
+    samples: 1,
+    wins: 1,
+    ties: 0,
+    losses: 1,
+    equity: 0.5,
+    equityPercent: 50,
+  },
+  model: { id: 'test-model', name: 'Test model' },
+  createdAt: '2026-08-02T10:00:00.000Z',
+  staleAt: null,
+});
+
 const startTrainingApi = async (t, {
   handCount = 3,
+  handFactory = makeTrainingHand,
   analyzeBatch,
 } = {}) => {
   const dataDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'poker-training-api-'));
   t.after(() => fs.rm(dataDirectory, { recursive: true, force: true }));
   await createDataImportService({ dataDirectory }).importText({
     filename: 'training.txt',
-    content: Array.from({ length: handCount }, (_, index) => makeTrainingHand(91000 + index, index)).join('\n\n'),
+    content: Array.from({ length: handCount }, (_, index) => handFactory(91000 + index, index)).join('\n\n'),
   });
   const repository = createTrainingRepository({ dataDirectory });
   let id = 0;
@@ -198,6 +254,153 @@ test('API skanuje dataset, wymaga potwierdzenia kosztu i przygotowuje bezpieczn�
     'created', 'batch_sent', 'batch_committed', 'completed',
   ]);
   assert.ok(events.events.every(({ instanceId, jobId }) => instanceId && jobId === started.job.id));
+});
+
+test('API aktywuje gotowe spoty equity lokalnie i blokuje zapis podczas refreshu', async (t) => {
+  let providerCalls = 0;
+  const { baseUrl, dataset, repository } = await startTrainingApi(t, {
+    analyzeBatch: async () => {
+      providerCalls += 1;
+      throw new Error('Aktywacja equity nie powinna wywoływać AI.');
+    },
+  });
+  await postJson(`${baseUrl}/api/training/refresh/scan`, {
+    datasetRevision: dataset.datasetRevision,
+  });
+  const sourceSpot = (await repository.getSnapshot()).spots[0];
+  const key = makeStoredReadyKey(sourceSpot, 'equity-source-key');
+  await repository.saveAnswerKeys([key]);
+  await repository.saveEquitySupplement(makeStoredEquitySupplement(sourceSpot, key.id));
+  const scanStateBeforeActivation = (await repository.getSnapshot()).scanState;
+
+  const before = await fetch(`${baseUrl}/api/training/status`).then((response) => response.json());
+  assert.equal(before.equityActivation.candidateCount, 1);
+  assert.equal(before.equityActivation.activeCount, 0);
+  assert.equal(before.equityActivation.needsActivation, true);
+
+  const activatedResponse = await postJson(`${baseUrl}/api/training/equity/activate`, { sampleSize: 100 });
+  assert.equal(activatedResponse.status, 200);
+  const activated = await activatedResponse.json();
+  assert.equal(activated.activation.changed, true);
+  assert.equal(activated.activation.selectedSpotVersionIds.length, 1);
+  assert.equal(activated.status.equityActivation.activeCount, 1);
+  assert.equal(activated.status.equityActivation.needsActivation, false);
+  assert.equal(providerCalls, 0);
+  assert.deepEqual((await repository.getSnapshot()).scanState, scanStateBeforeActivation);
+
+  const repeated = await postJson(`${baseUrl}/api/training/equity/activate`, { sampleSize: 100 }).then((response) => response.json());
+  assert.equal(repeated.activation.changed, false);
+  assert.deepEqual(repeated.activation.selectedSpotVersionIds, activated.activation.selectedSpotVersionIds);
+
+  await repository.saveRefreshJob({
+    id: 'running-refresh',
+    status: 'running',
+    modelId: 'gpt-5.6-terra',
+    contractVersion: TRAINING_ANSWER_KEY_CONTRACT_VERSION,
+    jobKind: 'equity_supplement',
+    batchSize: 20,
+    sampleSize: 100,
+    candidateSpotVersionIds: [sourceSpot.versionId],
+    candidateCount: 1,
+    createdAt: '2026-08-03T10:00:00.000Z',
+  });
+  const blocked = await postJson(`${baseUrl}/api/training/equity/activate`, { sampleSize: 100 });
+  assert.equal(blocked.status, 409);
+  assert.equal((await blocked.json()).code, 'TRAINING_EQUITY_ACTIVATION_BLOCKED');
+});
+
+test('API uruchamia wszystkie dostepne tryby equity lokalnie i wznawia zwykla sesje', async (t) => {
+  let providerCalls = 0;
+  const { baseUrl, dataset, repository } = await startTrainingApi(t, {
+    handCount: 1,
+    handFactory: makeTerminalShowdownHand,
+    analyzeBatch: async () => {
+      providerCalls += 1;
+      throw new Error('Aktywacja lokalnych spotow nie powinna wywolywac AI.');
+    },
+  });
+  const scanResponse = await postJson(`${baseUrl}/api/training/refresh/scan`, {
+    datasetRevision: dataset.datasetRevision,
+    equitySimulationSamples: 2,
+  });
+  assert.equal(scanResponse.status, 200);
+  const sourceSpot = (await repository.getSnapshot()).spots.find((spot) => (
+    spot.exerciseType === 'turn_river' && Number(spot.question?.toCall) > 0
+  ));
+  assert.ok(sourceSpot);
+  const sourceKey = makeStoredReadyKey(sourceSpot, 'terminal-equity-source-key');
+  await repository.saveAnswerKeys([sourceKey]);
+
+  const ordinaryCreatedResponse = await postJson(`${baseUrl}/api/training/sessions`, {
+    exerciseType: EXERCISE_TYPES.TURN_RIVER,
+    gameType: 'cash',
+    size: 10,
+  });
+  assert.equal(ordinaryCreatedResponse.status, 201);
+  const ordinaryCreated = await ordinaryCreatedResponse.json();
+  const beforeSupplement = await repository.getSnapshot();
+  const ordinarySelectedIds = beforeSupplement.selectionState.selectedSpotVersionIds.filter((versionId) => (
+    beforeSupplement.spots.find((spot) => spot.versionId === versionId)?.exerciseType === EXERCISE_TYPES.TURN_RIVER
+  ));
+  const ordinaryActive = Object.fromEntries(beforeSupplement.spots
+    .filter((spot) => spot.exerciseType === EXERCISE_TYPES.TURN_RIVER)
+    .map((spot) => [spot.versionId, spot.active]));
+
+  await repository.saveEquitySupplement(makeStoredEquitySupplement(sourceSpot, sourceKey.id));
+  const scanStateBeforeActivation = structuredClone((await repository.getSnapshot()).scanState);
+  const before = await fetch(`${baseUrl}/api/training/status`).then((response) => response.json());
+  assert.equal(before.equityActivation.pools.cash.candidateModeCounts.known_hand > 0, true);
+  assert.equal(before.equityActivation.pools.cash.candidateModeCounts.range, 1);
+  assert.equal(before.equityActivation.pools.cash.candidateModeCounts.pot_odds, 1);
+
+  const activationResponse = await postJson(`${baseUrl}/api/training/equity/activate`, { sampleSize: 100 });
+  assert.equal(activationResponse.status, 200);
+  const activation = await activationResponse.json();
+  assert.equal(activation.status.equityActivation.needsActivation, false);
+  assert.equal(providerCalls, 0);
+  const afterActivation = await repository.getSnapshot();
+  assert.deepEqual(afterActivation.scanState, scanStateBeforeActivation);
+  assert.deepEqual(
+    afterActivation.selectionState.selectedSpotVersionIds.filter((versionId) => (
+      afterActivation.spots.find((spot) => spot.versionId === versionId)?.exerciseType === EXERCISE_TYPES.TURN_RIVER
+    )),
+    ordinarySelectedIds,
+  );
+  assert.deepEqual(
+    Object.fromEntries(afterActivation.spots
+      .filter((spot) => spot.exerciseType === EXERCISE_TYPES.TURN_RIVER)
+      .map((spot) => [spot.versionId, spot.active])),
+    ordinaryActive,
+  );
+
+  const resumed = await postJson(`${baseUrl}/api/training/sessions`, {
+    resumeSessionId: ordinaryCreated.session.id,
+  });
+  assert.equal(resumed.status, 200);
+  assert.equal((await resumed.json()).resumed, true);
+
+  for (const equityMode of ['known_hand', 'range', 'pot_odds']) {
+    const createdResponse = await postJson(`${baseUrl}/api/training/sessions`, {
+      exerciseType: EXERCISE_TYPES.EQUITY_POT_ODDS,
+      equityMode,
+      gameType: 'cash',
+      size: 10,
+    });
+    assert.equal(createdResponse.status, 201);
+    const created = await createdResponse.json();
+    const next = await fetch(`${baseUrl}/api/training/sessions/${created.session.id}/next`).then((response) => response.json());
+    assert.equal(next.question.equityMode, equityMode);
+  }
+
+  const mixedResponse = await postJson(`${baseUrl}/api/training/sessions`, {
+    exerciseType: EXERCISE_TYPES.EQUITY_POT_ODDS,
+    equityMode: 'mixed',
+    gameType: 'cash',
+    size: 10,
+  });
+  assert.equal(mixedResponse.status, 201);
+  const mixed = await mixedResponse.json();
+  assert.equal(mixed.session.targetSize >= 3, true);
 });
 
 test('kolejny skan ocenia wyłącznie nowe rozdania i zachowuje metadane starych kluczy', async (t) => {

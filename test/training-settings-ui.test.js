@@ -65,6 +65,26 @@ const runningJob = {
   progress: 1, errors: [],
 };
 
+const pendingEquityActivation = {
+  needsActivation: true,
+  candidateCount: 5,
+  activeCount: 0,
+  desiredCount: 5,
+  limit: 100,
+  pools: {
+    cash: {
+      candidateCount: 3, activeCount: 0, desiredCount: 3,
+      candidateModeCounts: { known_hand: 1, range: 2, pot_odds: 0 },
+      activeModeCounts: { known_hand: 0, range: 0, pot_odds: 0 },
+    },
+    tournament: {
+      candidateCount: 2, activeCount: 0, desiredCount: 2,
+      candidateModeCounts: { known_hand: 0, range: 1, pot_odds: 1 },
+      activeModeCounts: { known_hand: 0, range: 0, pot_odds: 0 },
+    },
+  },
+};
+
 test('panel pokazuje rewizję, pule 100+100, kolejki i możliwość wznowienia zadania', () => {
   const html = renderToStaticMarkup(createElement(TrainingCollectionSettings, {
     status: { ...status, refreshJob: { ...runningJob, status: 'stopped', processedSpotCount: 2, progress: 0.4 } },
@@ -148,6 +168,63 @@ test('Ustawienia wykonują skan przed pokazaniem potwierdzenia i dopiero potem u
     }]);
     assert.ok(document.querySelector('[data-testid="training-refresh-job"]'));
     assert.ok(document.querySelector('[data-testid="stop-training-refresh"]'));
+  } finally {
+    await act(() => root.unmount());
+  }
+});
+
+test('ustawienia pokazują gotowe analizy equity i odświeżają liczniki po lokalnej aktywacji', async () => {
+  document.body.innerHTML = '<div id="root"></div>';
+  const calls = [];
+  const initialStatus = { ...status, equityActivation: pendingEquityActivation };
+  const activatedStatus = {
+    ...initialStatus,
+    equityActivation: {
+      ...pendingEquityActivation,
+      needsActivation: false,
+      activeCount: 5,
+      pools: {
+        cash: {
+          ...pendingEquityActivation.pools.cash,
+          activeCount: 3,
+          activeModeCounts: { known_hand: 1, range: 2, pot_odds: 0 },
+        },
+        tournament: {
+          ...pendingEquityActivation.pools.tournament,
+          activeCount: 2,
+          activeModeCounts: { known_hand: 0, range: 1, pot_odds: 1 },
+        },
+      },
+    },
+  };
+  const trainingApi = {
+    getTrainingStatus: async () => initialStatus,
+    activateEquityTraining: async (payload) => {
+      calls.push(['activate', payload]);
+      return { status: activatedStatus };
+    },
+  };
+  const store = configureStore({ reducer: { poker: pokerReducer } });
+  const root = createRoot(document.getElementById('root'));
+  await act(async () => {
+    root.render(createElement(Provider, { store }, createElement(SettingsView, { trainingApi })));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+  try {
+    assert.match(document.body.textContent, /Analizy gotowe — aktywuj ćwiczenia/);
+    assert.match(document.body.textContent, /lokalna operacja bez kosztu AI/i);
+    assert.ok(document.querySelector('[data-testid="activate-equity-training"]'));
+
+    await act(async () => {
+      document.querySelector('[data-testid="activate-equity-training"]')
+        .dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    assert.deepEqual(calls, [['activate', { sampleSize: 100 }]]);
+    assert.match(document.body.textContent, /Aktywne ćwiczenia equity: 5 spotów/);
+    assert.match(document.body.textContent, /Cash/);
+    assert.match(document.body.textContent, /1 aktywne · 1 gotowe/);
+    assert.match(document.body.textContent, /2 aktywne · 2 gotowe/);
   } finally {
     await act(() => root.unmount());
   }

@@ -14,6 +14,7 @@
     "preview": "vite preview",
     "start": "node server/index.js --production",
     "data:migrate": "node server/dataMigrateCli.js",
+    "training:migrate": "node server/trainingMigrateCli.js",
     "data:replace-hand": "node server/dataReplaceHandCli.js",
     "perf:data": "node server/dataPerfCli.js"
   },

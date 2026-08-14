@@ -2,7 +2,10 @@ import { createHash, randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { normalizeRawHandText, parseSingleRawHand } from '../../src/parser/pokerParser.js';
+import { EQUITY_BUCKETS, getEquityAnswerOptions, getEquityBucket, gradeEquityBucket } from '../../src/parser/equityCalculator.js';
 import { classifyTrainingSpots, EXERCISE_TYPES } from './exerciseClassifier.js';
+import { EQUITY_MODES } from '../../src/training/trainingTypes.js';
+import { EQUITY_RANGE_CONTRACT_VERSION, isEquitySupplementEligibleSpot } from './equitySupplementContract.js';
 import {
   TRAINING_ANSWER_KEY_CONTRACT_VERSION,
   validateHeroCardDescription,
@@ -99,6 +102,7 @@ export const createEmptyTrainingCollection = () => ({
   updatedAt: null,
   spots: [],
   answerKeys: [],
+  equitySupplements: [],
   refreshJobs: [],
   sessions: [],
   attempts: [],
@@ -182,6 +186,16 @@ export const normalizeTrainingCollection = (value) => {
           ? key.contractVersion
           : TRAINING_ANSWER_KEY_CONTRACT_VERSION,
       })),
+    equitySupplements: normalizeUniqueRecords(value.equitySupplements || [], 'equitySupplements', (supplement) => supplement.id)
+      .map((supplement) => ({
+        ...supplement,
+        spotVersionId: asString(supplement.spotVersionId),
+        answerKeyId: asString(supplement.answerKeyId),
+        rangeContractVersion: Number(supplement.rangeContractVersion) || EQUITY_RANGE_CONTRACT_VERSION,
+        opponentRange: Array.isArray(supplement.opponentRange) ? clone(supplement.opponentRange) : [],
+        createdAt: supplement.createdAt || null,
+        staleAt: supplement.staleAt || null,
+      })),
     refreshJobs: normalizeUniqueRecords(value.refreshJobs || [], 'refreshJobs', (job) => job.id),
     sessions: normalizeUniqueRecords(value.sessions, 'sessions', (session) => session.id),
     attempts: normalizeUniqueRecords(value.attempts, 'attempts', (attempt) => attempt.id),
@@ -203,6 +217,7 @@ export const normalizeTrainingCollection = (value) => {
       lastResult: value.scanState.lastResult ? clone(value.scanState.lastResult) : null,
     },
   };
+  markStaleEquitySupplements(normalized, normalized.updatedAt || new Date().toISOString());
   assertNoRawHistory(normalized);
   return normalized;
 };
@@ -335,6 +350,10 @@ const getLocalValidationFingerprint = (spot) => createHash('sha256').update(JSON
   usesHistoricalLine: spot?.usesHistoricalLine,
   continuationNotice: spot?.continuationNotice,
   actionByCategory: spot?.actionByCategory,
+  equityMode: spot?.equityMode,
+  equityCalculatorVersion: spot?.equityCalculatorVersion,
+  equityCorrectBucket: spot?.equityCorrectBucket,
+  equityResult: spot?.equityResult,
   question: spot?.question,
   answerOptions: spot?.answerOptions,
 })).digest('hex');
@@ -384,6 +403,188 @@ const normalizeSource = (source) => {
 
 const makeVersionId = (spotId, fingerprint) => `${spotId}@${fingerprint}`;
 
+const createEquityAnswerKey = (spot, now, mode = spot?.equityMode || EQUITY_MODES.KNOWN_HAND) => {
+  if (spot?.exerciseType !== EXERCISE_TYPES.EQUITY_POT_ODDS
+    || !spot.equityResult?.calculatorVersion
+    || !spot.equityCorrectBucket) return null;
+  const acceptableAlternatives = EQUITY_BUCKETS
+    .map(({ id }) => id)
+    .filter((id) => gradeEquityBucket(id, spot.equityResult).grade === 'acceptable');
+  return {
+    id: mode === EQUITY_MODES.KNOWN_HAND
+      ? `local-equity:${spot.versionId}`
+      : `local-equity:${mode}:${spot.versionId}`,
+    spotVersionId: spot.versionId,
+    exerciseType: EXERCISE_TYPES.EQUITY_POT_ODDS,
+    equityMode: mode,
+    status: 'ready',
+    confidence: 'high',
+    localFactsValid: true,
+    contractVersion: TRAINING_ANSWER_KEY_CONTRACT_VERSION,
+    heroHand: classifyHeroHand(spot.question?.heroCards),
+    decisionCardFacts: clone(spot.decisionCardFacts || spot.question?.decisionCardFacts),
+    factsValidationVersion: CARD_FACTS_VALIDATION_VERSION,
+    preferredAnswer: spot.equityCorrectBucket,
+    acceptableAlternatives,
+    rationale: 'To ćwiczenie ocenia wyłącznie oszacowanie przedziału equity względem ujawnionej ręki rywala.',
+    blockersEquity: 'Wynik został policzony lokalnie z pełnej ręki Hero, ręki rywala i boardu widocznego przed decyzją.',
+    opponentRange: 'Znana ręka rywala z późniejszego showdownu — informacja dostępna wyłącznie w tym ćwiczeniu.',
+    suggestedSizing: { action: 'none', potRatio: 0, raiseToBb: 0 },
+    model: { id: 'local-equity-calculator', name: spot.equityResult.calculatorVersion },
+    equityResult: clone(spot.equityResult),
+    equityCorrectBucket: spot.equityCorrectBucket,
+    createdAt: now,
+  };
+};
+
+const createKnownHandEquityAnswerKey = (spot, now) => createEquityAnswerKey(
+  spot,
+  now,
+  EQUITY_MODES.KNOWN_HAND,
+);
+
+const ensureKnownHandEquityKeys = (collection, now) => {
+  const keyIds = new Set(collection.answerKeys.map(({ id }) => id));
+  let added = false;
+  collection.spots.forEach((spot) => {
+    if (spot.exerciseType !== EXERCISE_TYPES.EQUITY_POT_ODDS || spot.sourceSpotVersionId) return;
+    const key = createKnownHandEquityAnswerKey(spot, now);
+    if (!key || keyIds.has(key.id)) return;
+    collection.answerKeys.push(key);
+    keyIds.add(key.id);
+    added = true;
+  });
+  return added;
+};
+
+const questionNumber = (spot, name) => Number(spot?.question?.[name] ?? spot?.[name]);
+
+const isTerminalPotOddsSpot = (spot) => {
+  if (spot?.context?.opponentsInHand !== 1
+    && spot?.question?.opponentsInHand !== 1
+    && spot?.question?.context?.opponentsInHand !== 1) return false;
+  const toCall = questionNumber(spot, 'toCall');
+  if (!(toCall > 0)) return false;
+  const effectiveStack = questionNumber(spot, 'effectiveStack');
+  if (effectiveStack > 0 && effectiveStack <= toCall + Number.EPSILON) return true;
+  return (spot?.question?.players || []).some((player) => (
+    player?.playerId !== 'Hero' && player?.allIn === true && player?.folded !== true
+  ));
+};
+
+const createDerivedEquitySpot = (sourceSpot, supplement, mode, now) => {
+  const equityResult = clone(supplement.equityResult);
+  const equityCorrectBucket = getEquityBucket(equityResult?.equityPercent)?.id || null;
+  if (!equityResult?.calculatorVersion || !equityCorrectBucket) return null;
+  const equityAnswerOptions = getEquityAnswerOptions();
+  const versionId = `equity:${mode}:${sourceSpot.versionId}:${supplement.answerKeyId}`;
+  const question = clone(sourceSpot.question || {});
+  delete question.historicalAction;
+  delete question.knownOpponentCards;
+  question.equityMode = mode;
+  question.equityPrompt = mode === EQUITY_MODES.POT_ODDS
+    ? 'OceĹ„ swoje equity wzglÄ™dem zakresu rywala i porĂłwnaj je z wymaganym progiem pot odds.'
+    : 'OceĹ„ swoje equity wzglÄ™dem jawnego, waĹĽonego zakresem rywala.';
+  return {
+    ...clone(sourceSpot),
+    id: versionId,
+    versionId,
+    exerciseType: EXERCISE_TYPES.EQUITY_POT_ODDS,
+    sourceDecisionId: sourceSpot.sourceDecisionId || sourceSpot.id,
+    sourceSpotVersionId: sourceSpot.versionId,
+    sourceAnswerKeyId: supplement.answerKeyId,
+    equitySupplementId: supplement.id,
+    equityMode: mode,
+    question,
+    answerOptions: clone(sourceSpot.answerOptions || []),
+    equityAnswerOptions,
+    actionAnswerOptions: clone(sourceSpot.answerOptions || []),
+    actionAnswerKeyId: supplement.answerKeyId,
+    historicalAnswer: null,
+    historicalResult: null,
+    knownOpponentCards: null,
+    equityCalculatorVersion: equityResult.calculatorVersion,
+    equityResult,
+    equityCorrectBucket,
+    opponentRange: clone(supplement.opponentRange || []),
+    localValid: true,
+    localValidationError: null,
+    sourceStatus: 'current',
+    readiness: 'pending_key',
+    active: false,
+    currentAnswerKeyId: null,
+    createdAt: sourceSpot.createdAt || now,
+    updatedAt: now,
+    lastSeenAt: now,
+  };
+};
+
+const syncEquityDerivedSpots = (collection, now) => {
+  const sourceSpots = collection.spots.filter((spot) => (
+    spot.sourceStatus === 'current'
+      && spot.exerciseType !== EXERCISE_TYPES.EQUITY_POT_ODDS
+      && spot.question?.heroCards?.length
+  ));
+  const spotsById = new Map(collection.spots.map((spot) => [spot.versionId, spot]));
+  const currentKeys = latestKeysBySpotVersion(collection.answerKeys);
+  const currentSupplements = (collection.equitySupplements || []).filter((supplement) => {
+    const source = spotsById.get(supplement.spotVersionId);
+    const key = currentKeys.get(supplement.spotVersionId);
+    return source && sourceSpots.includes(source)
+      && isCurrentEquitySupplement(supplement, source, key) && !supplement.staleAt;
+  });
+  const expected = new Map();
+  currentSupplements.forEach((supplement) => {
+    const source = spotsById.get(supplement.spotVersionId);
+    const rangeSpot = createDerivedEquitySpot(source, supplement, EQUITY_MODES.RANGE, now);
+    if (rangeSpot) expected.set(rangeSpot.versionId, rangeSpot);
+    if (isTerminalPotOddsSpot(source)) {
+      const potSpot = createDerivedEquitySpot(source, supplement, EQUITY_MODES.POT_ODDS, now);
+      if (potSpot) expected.set(potSpot.versionId, potSpot);
+    }
+  });
+  let changed = false;
+  // Uzupełnienie equity jest suplementem do istniejącej kolekcji. Nie może
+  // przy okazji przeliczać aktywnej selekcji zwykłych ćwiczeń ani wyrzucać
+  // wcześniej wybranych pochodnych spotów z aktywnej sesji.
+  const activeBeforeSync = new Map(collection.spots.map((spot) => [spot.versionId, spot.active === true]));
+  expected.forEach((candidate, versionId) => {
+    const existing = spotsById.get(versionId);
+    if (existing) {
+      Object.assign(existing, candidate, { createdAt: existing.createdAt || candidate.createdAt });
+      if (activeBeforeSync.has(versionId)) existing.active = activeBeforeSync.get(versionId);
+      changed = true;
+      return;
+    }
+    collection.spots.push(candidate);
+    const key = createEquityAnswerKey(candidate, now, candidate.equityMode);
+    if (key) collection.answerKeys.push(key);
+    changed = true;
+  });
+  collection.spots.forEach((spot) => {
+    if (!spot.sourceSpotVersionId || !spot.equityMode || spot.equityMode === EQUITY_MODES.KNOWN_HAND) return;
+    if (!expected.has(spot.versionId) && spot.sourceStatus === 'current') {
+      spot.sourceStatus = 'changed';
+      spot.active = false;
+      spot.readiness = 'review';
+      spot.archiveReason = 'equity_supplement_stale';
+      changed = true;
+    }
+  });
+  if (changed) {
+    recomputeActivePools(collection);
+    // recomputeActivePools odświeża gotowość i bieżący klucz, ale zapis
+    // suplementu nie jest przebudową puli. Zachowujemy więc poprzedni stan
+    // aktywności istniejących spotów; nowo utworzone spoty pozostają nieaktywne
+    // do jawnej przebudowy selekcji.
+    collection.spots.forEach((spot) => {
+      if (!activeBeforeSync.has(spot.versionId)) return;
+      if (spot.sourceStatus === 'current') spot.active = activeBeforeSync.get(spot.versionId);
+    });
+  }
+  return changed;
+};
+
 const markHandVersionsInactive = (collection, handId, sourceStatus, now) => {
   const archivedVersionIds = new Set();
   collection.spots.forEach((spot) => {
@@ -425,7 +626,38 @@ const isAnswerKeyEligible = (key, spot) => key?.status === 'ready'
   && key?.confidence === 'high'
   && key?.localFactsValid === true
   && key?.factsValidationVersion === CARD_FACTS_VALIDATION_VERSION
-  && sameDecisionCardFacts(key?.decisionCardFacts, spot?.decisionCardFacts);
+  && sameDecisionCardFacts(key?.decisionCardFacts, spot?.decisionCardFacts)
+  && (spot?.exerciseType !== EXERCISE_TYPES.EQUITY_POT_ODDS
+    || ([EQUITY_MODES.KNOWN_HAND, EQUITY_MODES.RANGE, EQUITY_MODES.POT_ODDS].includes(key?.equityMode)
+      && key?.equityResult?.calculatorVersion
+      && key.equityResult.calculatorVersion === spot?.equityCalculatorVersion
+      && key?.preferredAnswer === spot?.equityCorrectBucket));
+
+export const isCurrentEquitySupplement = (supplement, spot, answerKey) => Boolean(
+  supplement?.spotVersionId === spot?.versionId
+  && supplement?.answerKeyId
+  && supplement.answerKeyId === answerKey?.id
+  && supplement?.rangeContractVersion === EQUITY_RANGE_CONTRACT_VERSION
+  && isAnswerKeyEligible(answerKey, spot)
+  && Array.isArray(supplement.opponentRange)
+  && supplement.opponentRange.length > 0,
+);
+
+const markStaleEquitySupplements = (collection, now) => {
+  let changed = false;
+  const keysById = new Map(collection.answerKeys.map((key) => [key.id, key]));
+  const spotsById = new Map(collection.spots.map((spot) => [spot.versionId, spot]));
+  collection.equitySupplements.forEach((supplement) => {
+    const spot = spotsById.get(supplement.spotVersionId);
+    const key = keysById.get(spot?.currentAnswerKeyId);
+    if (isCurrentEquitySupplement(supplement, spot, key)) {
+      if (supplement.staleAt) { supplement.staleAt = null; changed = true; }
+      return;
+    }
+    if (!supplement.staleAt) { supplement.staleAt = now; changed = true; }
+  });
+  return changed;
+};
 
 const latestKeysBySpotVersion = (answerKeys) => {
   const keys = new Map();
@@ -448,6 +680,185 @@ const createPoolStats = (spots) => ({
   locallyRejected: spots.filter((spot) => spot.localValid === false
     || (spot.localValid !== true && getTrainingSpotAiEligibilityError(spot))).length,
 });
+
+const selectEquityModeBalanced = (existing, candidates, limit) => {
+  const selected = [];
+  const counts = new Map([EQUITY_MODES.KNOWN_HAND, EQUITY_MODES.RANGE, EQUITY_MODES.POT_ODDS].map((mode) => [mode, 0]));
+  existing.forEach((spot) => { if (counts.has(spot.equityMode)) counts.set(spot.equityMode, counts.get(spot.equityMode) + 1); });
+  const remaining = [...candidates];
+  while (selected.length < limit && remaining.length > 0) {
+    const availableModes = [...counts.entries()]
+      .filter(([mode]) => remaining.some((spot) => spot.equityMode === mode))
+      .sort((left, right) => left[1] - right[1]);
+    const mode = availableModes[0]?.[0];
+    const pool = remaining.filter((spot) => spot.equityMode === mode);
+    const picked = selectDiverseRecentSpots(pool, { limit: 1 })[0];
+    if (!picked) break;
+    selected.push(picked);
+    counts.set(picked.equityMode, (counts.get(picked.equityMode) || 0) + 1);
+    const index = remaining.findIndex(({ versionId }) => versionId === picked.versionId);
+    if (index >= 0) remaining.splice(index, 1);
+  }
+  return selected;
+};
+
+const EQUITY_SELECTION_MODES = Object.freeze([
+  EQUITY_MODES.KNOWN_HAND,
+  EQUITY_MODES.RANGE,
+  EQUITY_MODES.POT_ODDS,
+]);
+const EQUITY_SELECTION_GAME_TYPES = Object.freeze(['cash', 'tournament']);
+
+const sameIdSet = (left, right) => left.size === right.size
+  && [...left].every((id) => right.has(id));
+
+const resolveEquitySelectionLimit = (collection, selectionLimit) => {
+  const candidate = Number.isInteger(selectionLimit)
+    ? selectionLimit
+    : Number(collection?.selectionState?.limit) || DEFAULT_SELECTION_LIMIT;
+  return Math.min(DEFAULT_ACTIVE_POOL_LIMIT, Math.max(1, candidate));
+};
+
+const isCurrentReadyEquityCandidate = (spot, keysBySpotVersion) => {
+  if (spot?.sourceStatus !== 'current'
+    || spot?.exerciseType !== EXERCISE_TYPES.EQUITY_POT_ODDS
+    || !EQUITY_SELECTION_MODES.includes(spot?.equityMode)) return false;
+  const key = keysBySpotVersion.get(spot.versionId);
+  return key?.id === spot.currentAnswerKeyId
+    && isAnswerKeyEligible(key, spot)
+    && isTrainingSpotAiEligible(spot);
+};
+
+const buildEquityActivationPlan = (collection, { selectionLimit } = {}) => {
+  const limit = resolveEquitySelectionLimit(collection, selectionLimit);
+  const keysBySpotVersion = latestKeysBySpotVersion(collection?.answerKeys || []);
+  const candidatesByGameType = Object.fromEntries(EQUITY_SELECTION_GAME_TYPES.map((gameType) => [
+    gameType,
+    (collection?.spots || []).filter((spot) => (
+      spot.gameType === gameType && isCurrentReadyEquityCandidate(spot, keysBySpotVersion)
+    )),
+  ]));
+  const selectedByGameType = Object.fromEntries(EQUITY_SELECTION_GAME_TYPES.map((gameType) => [
+    gameType,
+    selectEquityModeBalanced([], candidatesByGameType[gameType], limit),
+  ]));
+  return {
+    limit,
+    candidatesByGameType,
+    selectedByGameType,
+    selectedSpotVersionIds: EQUITY_SELECTION_GAME_TYPES.flatMap((gameType) => (
+      selectedByGameType[gameType].map(({ versionId }) => versionId)
+    )),
+  };
+};
+
+const emptyEquityActivationPool = () => ({
+  candidateCount: 0,
+  activeCount: 0,
+  desiredCount: 0,
+  candidateModeCounts: Object.fromEntries(EQUITY_SELECTION_MODES.map((mode) => [mode, 0])),
+  activeModeCounts: Object.fromEntries(EQUITY_SELECTION_MODES.map((mode) => [mode, 0])),
+  desiredModeCounts: Object.fromEntries(EQUITY_SELECTION_MODES.map((mode) => [mode, 0])),
+});
+
+/**
+ * Status is derived from the same selection plan used by activateEquitySpots.
+ * It therefore does not need persisted activation metadata and cannot drift
+ * from the set that the local activation will write.
+ */
+export const buildEquityActivationStatus = (collection, { selectionLimit } = {}) => {
+  const plan = buildEquityActivationPlan(collection, { selectionLimit });
+  const pools = Object.fromEntries(EQUITY_SELECTION_GAME_TYPES.map((gameType) => [
+    gameType,
+    emptyEquityActivationPool(),
+  ]));
+  const candidateIds = new Set();
+  const desiredIds = new Set(plan.selectedSpotVersionIds);
+  plan.candidatesByGameType && EQUITY_SELECTION_GAME_TYPES.forEach((gameType) => {
+    const pool = pools[gameType];
+    plan.candidatesByGameType[gameType].forEach((spot) => {
+      candidateIds.add(spot.versionId);
+      pool.candidateCount += 1;
+      pool.candidateModeCounts[spot.equityMode] += 1;
+    });
+    plan.selectedByGameType[gameType].forEach((spot) => {
+      pool.desiredCount += 1;
+      pool.desiredModeCounts[spot.equityMode] += 1;
+    });
+  });
+  const activeIds = new Set();
+  (collection?.spots || []).forEach((spot) => {
+    if (!spot.active || !candidateIds.has(spot.versionId)) return;
+    activeIds.add(spot.versionId);
+    const pool = pools[spot.gameType];
+    if (!pool) return;
+    pool.activeCount += 1;
+    pool.activeModeCounts[spot.equityMode] += 1;
+  });
+  return {
+    needsActivation: !sameIdSet(activeIds, desiredIds),
+    candidateCount: candidateIds.size,
+    activeCount: activeIds.size,
+    desiredCount: desiredIds.size,
+    limit: plan.limit,
+    pools,
+  };
+};
+
+const activateEquitySpots = (collection, now, { selectionLimit } = {}) => {
+  if ((collection.refreshJobs || []).some(({ status }) => (
+    status === 'running' || status === 'stop_requested'
+  ))) {
+    fail('TRAINING_EQUITY_ACTIVATION_BLOCKED', 'Poczekaj na zakończenie działającego zadania AI przed aktywacją ćwiczeń equity.');
+  }
+  const preservedNonEquityActive = new Map((collection.spots || [])
+    .filter((spot) => spot.exerciseType !== EXERCISE_TYPES.EQUITY_POT_ODDS)
+    .map((spot) => [spot.versionId, spot.active === true]));
+  syncEquityDerivedSpots(collection, now);
+  recomputeActivePools(collection);
+  const plan = buildEquityActivationPlan(collection, { selectionLimit });
+  const spotsByVersionId = new Map(collection.spots.map((spot) => [spot.versionId, spot]));
+  const previousSelection = collection.selectionState || {};
+  const retainedIds = (previousSelection.selectedSpotVersionIds || []).filter((id) => (
+    spotsByVersionId.get(id)?.exerciseType !== EXERCISE_TYPES.EQUITY_POT_ODDS
+  ));
+  const selectedSpotVersionIds = [...retainedIds, ...plan.selectedSpotVersionIds];
+  const previousIds = new Set(previousSelection.selectedSpotVersionIds || []);
+  const nextIds = new Set(selectedSpotVersionIds);
+  const changed = !sameIdSet(previousIds, nextIds);
+  const poolStats = { ...(previousSelection.poolStats || {}) };
+  EQUITY_SELECTION_GAME_TYPES.forEach((gameType) => {
+    const poolKeyValue = `${EXERCISE_TYPES.EQUITY_POT_ODDS}:${gameType}`;
+    const matching = collection.spots.filter((spot) => (
+      spot.sourceStatus === 'current'
+        && spot.exerciseType === EXERCISE_TYPES.EQUITY_POT_ODDS
+        && spot.gameType === gameType
+    ));
+    poolStats[poolKeyValue] = {
+      ...createPoolStats(matching),
+      selected: plan.selectedByGameType[gameType].length,
+    };
+  });
+  collection.selectionState = {
+    ...previousSelection,
+    strategy: TRAINING_SELECTION_STRATEGY,
+    strategyVersion: TRAINING_SELECTION_STRATEGY,
+    selectedAt: changed ? now : previousSelection.selectedAt,
+    limit: plan.limit,
+    selectedSpotVersionIds,
+    poolStats,
+  };
+  recomputeActivePools(collection);
+  collection.spots.forEach((spot) => {
+    if (!preservedNonEquityActive.has(spot.versionId)) return;
+    spot.active = preservedNonEquityActive.get(spot.versionId);
+  });
+  return {
+    changed,
+    selectedSpotVersionIds: [...plan.selectedSpotVersionIds],
+    activation: buildEquityActivationStatus(collection, { selectionLimit: plan.limit }),
+  };
+};
 
 const selectCollectionSpots = (collection, now, {
   rebuildSelection = false,
@@ -491,20 +902,28 @@ const selectCollectionSpots = (collection, now, {
         && (episode.length === 1 || (stages.has('flop') && stages.has('turn')));
     });
     const existingHands = new Set(existing.map((spot) => (
-      spot.exerciseType === EXERCISE_TYPES.CBET_BARRELS ? `episode:${spot.episodeId}` : `hand:${spot.handId}`
+      spot.exerciseType === EXERCISE_TYPES.CBET_BARRELS ? `episode:${spot.episodeId}`
+        : spot.exerciseType === EXERCISE_TYPES.EQUITY_POT_ODDS
+          ? `equity:${spot.equityMode || EQUITY_MODES.KNOWN_HAND}:${spot.sourceSpotVersionId || spot.versionId}`
+          : `hand:${spot.handId}`
     )));
     const vacancies = Math.max(0, selectionLimit - existing.length);
     const candidates = spots.filter((spot) => {
       if (existing.some(({ versionId }) => versionId === spot.versionId)) return false;
       const unit = spot.exerciseType === EXERCISE_TYPES.CBET_BARRELS
-        ? `episode:${spot.episodeId}` : `hand:${spot.handId}`;
+        ? `episode:${spot.episodeId}`
+        : spot.exerciseType === EXERCISE_TYPES.EQUITY_POT_ODDS
+          ? `equity:${spot.equityMode || EQUITY_MODES.KNOWN_HAND}:${spot.sourceSpotVersionId || spot.versionId}`
+          : `hand:${spot.handId}`;
       return !existingHands.has(unit);
     });
     const eligibleAdditions = replenishmentDisabled
       ? candidates.filter((spot) => reintroducedHandIds.has(spot.handId))
       : candidates;
     const additions = vacancies > 0
-      ? selectDiverseRecentSpots(eligibleAdditions, { limit: vacancies })
+      ? (spots[0]?.exerciseType === EXERCISE_TYPES.EQUITY_POT_ODDS
+        ? selectEquityModeBalanced(existing, eligibleAdditions, vacancies)
+        : selectDiverseRecentSpots(eligibleAdditions, { limit: vacancies }))
       : [];
     selectedIds.push(...existing.map(({ versionId }) => versionId), ...additions.map(({ versionId }) => versionId));
     poolStats[key].selected = existing.length + additions.length;
@@ -830,6 +1249,10 @@ const createStoredSpot = (candidate, source, now) => {
   });
   return {
     ...clone(candidate),
+    decisionCardFacts: clone(candidate.decisionCardFacts || computeDecisionCardFacts({
+      heroCards: candidate.question?.heroCards,
+      board: candidate.question?.board,
+    })),
     versionId,
     sourceFingerprint: source.fingerprint,
     playedAt: source.playedAt,
@@ -857,7 +1280,7 @@ const createStoredSpot = (candidate, source, now) => {
 };
 
 const scanCollection = (collection, sources, {
-  datasetRevision, now, selectionLimit, rebuildSelection = false,
+  datasetRevision, now, selectionLimit, rebuildSelection = false, equitySimulationSamples,
 }) => {
   if (rebuildSelection && collection.refreshJobs.some(resumableJob)) {
     fail('TRAINING_SELECTION_REBUILD_BLOCKED', 'Nie można przebudować zestawu podczas zadania AI możliwego do wznowienia.');
@@ -884,6 +1307,14 @@ const scanCollection = (collection, sources, {
   };
   const previousSources = collection.scanState.sources;
   const reintroducedHandIds = new Set();
+  const spotsBySourceKey = new Map();
+  const sourceKey = (handId, fingerprint) => `${handId}\u0000${fingerprint}`;
+  collection.spots.forEach((spot) => {
+    const key = sourceKey(spot.handId, spot.sourceFingerprint);
+    const spots = spotsBySourceKey.get(key);
+    if (spots) spots.push(spot);
+    else spotsBySourceKey.set(key, [spot]);
+  });
 
   Object.entries(previousSources).forEach(([handId, previous]) => {
     if (uniqueSources.has(handId) || previous.status === 'removed' || previous.status === 'excluded') return;
@@ -918,9 +1349,7 @@ const scanCollection = (collection, sources, {
       reintroducedHandIds.add(source.handId);
     }
     const unchanged = previous && previous.status !== 'removed' && previous.fingerprint === source.fingerprint;
-    const existingSourceSpots = collection.spots.filter((spot) => (
-      spot.handId === source.handId && spot.sourceFingerprint === source.fingerprint
-    ));
+    const existingSourceSpots = spotsBySourceKey.get(sourceKey(source.handId, source.fingerprint)) || [];
     if (unchanged) {
       existingSourceSpots.forEach((spot) => {
         spot.sourceStatus = 'current';
@@ -971,12 +1400,23 @@ const scanCollection = (collection, sources, {
         counts.rejected += 1;
         continue;
       }
-      const candidates = Object.values(classifyTrainingSpots(extraction.spots)).flat();
+      const candidates = Object.values(classifyTrainingSpots(extraction.spots, {
+        equitySimulationSamples,
+      })).flat();
       const existingVersionIds = new Set(existingSourceSpots.map(({ versionId }) => versionId));
       const storedSpots = candidates
         .filter((candidate) => !existingVersionIds.has(makeVersionId(candidate.id, source.fingerprint)))
         .map((candidate) => createStoredSpot(candidate, sourceForExtraction, now));
+      collection.answerKeys.push(
+        ...storedSpots.map((spot) => createKnownHandEquityAnswerKey(spot, now)).filter(Boolean),
+      );
       collection.spots.push(...storedSpots);
+      if (storedSpots.length > 0) {
+        spotsBySourceKey.set(sourceKey(source.handId, source.fingerprint), [
+          ...existingSourceSpots,
+          ...storedSpots,
+        ]);
+      }
       previousSources[source.handId] = {
         ...previous,
         fingerprint: source.fingerprint,
@@ -1042,15 +1482,22 @@ const scanCollection = (collection, sources, {
       continue;
     }
 
-    const pools = classifyTrainingSpots(extraction.spots);
+    const pools = classifyTrainingSpots(extraction.spots, { equitySimulationSamples });
     const candidates = Object.values(pools).flat();
-    const existingVersionIds = new Set(collection.spots
-      .filter((spot) => spot.handId === source.handId && spot.sourceFingerprint === source.fingerprint)
-      .map(({ versionId }) => versionId));
+    const existingVersionIds = new Set(existingSourceSpots.map(({ versionId }) => versionId));
     const storedSpots = candidates
       .filter((candidate) => !existingVersionIds.has(makeVersionId(candidate.id, source.fingerprint)))
       .map((candidate) => createStoredSpot(candidate, sourceForExtraction, now));
+    collection.answerKeys.push(
+      ...storedSpots.map((spot) => createKnownHandEquityAnswerKey(spot, now)).filter(Boolean),
+    );
     collection.spots.push(...storedSpots);
+    if (storedSpots.length > 0) {
+      spotsBySourceKey.set(sourceKey(source.handId, source.fingerprint), [
+        ...existingSourceSpots,
+        ...storedSpots,
+      ]);
+    }
     previousSources[source.handId] = {
       fingerprint: source.fingerprint,
       gameType: source.gameType,
@@ -1069,6 +1516,7 @@ const scanCollection = (collection, sources, {
     counts.spotsAdded += storedSpots.length;
   }
 
+  syncEquityDerivedSpots(collection, now);
   selectCollectionSpots(collection, now, {
     rebuildSelection,
     selectionLimit,
@@ -1119,6 +1567,8 @@ const saveKeys = (collection, keys, now) => {
     added += 1;
   });
   recomputeActivePools(collection);
+  markStaleEquitySupplements(collection, now);
+  syncEquityDerivedSpots(collection, now);
   return { added, total: collection.answerKeys.length };
 };
 
@@ -1133,7 +1583,18 @@ const upsertById = (records, candidate, label, now) => {
   return clone(index < 0 ? records.at(-1) : records[index]);
 };
 
+const upsertEquitySupplement = (collection, supplement, now) => {
+  const duplicateIndex = collection.equitySupplements.findIndex((candidate) => (
+    candidate.spotVersionId === supplement.spotVersionId
+      && candidate.answerKeyId === supplement.answerKeyId
+      && candidate.id !== supplement.id
+  ));
+  if (duplicateIndex >= 0) collection.equitySupplements.splice(duplicateIndex, 1);
+  return upsertById(collection.equitySupplements, supplement, 'Equity supplement', now);
+};
+
 const markRefreshJobSpotsAsAiSent = (collection, job, now) => {
+  if (job?.jobKind === 'equity_supplement') return;
   const spotsByVersionId = new Map(collection.spots.map((spot) => [spot.versionId, spot]));
   (job.inFlight?.spotVersionIds || []).forEach((spotVersionId) => {
     const spot = spotsByVersionId.get(spotVersionId);
@@ -1171,6 +1632,7 @@ export const createLegacyTrainingRepository = ({
       let changed = migrateAiFirstSentMarkers(migrated, timestamp);
       changed = migrateTrainingAudit(migrated, timestamp, auditExclusions) || changed;
       changed = migrateAnswerKeyContract(migrated, timestamp) || changed;
+      changed = ensureKnownHandEquityKeys(migrated, timestamp) || changed;
       const previousPoolState = JSON.stringify(migrated.spots.map((spot) => ({
         versionId: spot.versionId,
         active: spot.active,
@@ -1250,6 +1712,7 @@ export const createLegacyTrainingRepository = ({
         now: timestamp,
         selectionLimit: activePoolLimit,
         rebuildSelection: Boolean(options.rebuildSelection),
+        equitySimulationSamples: options.equitySimulationSamples,
       })
     )),
     saveAnswerKeys: (keys) => commit((collection, timestamp) => (
@@ -1263,6 +1726,22 @@ export const createLegacyTrainingRepository = ({
       keys: saveKeys(collection, keys, timestamp),
       job: upsertById(collection.refreshJobs, job, 'Zadanie odświeżania', timestamp),
     })),
+    getEquitySupplements: () => withLock(async () => clone((await load()).equitySupplements)),
+    saveEquitySupplement: (supplement) => commit((collection, timestamp) => {
+      const saved = upsertEquitySupplement(collection, supplement, timestamp);
+      syncEquityDerivedSpots(collection, timestamp);
+      return saved;
+    }),
+    saveEquitySupplementBatch: (supplements) => commit((collection, timestamp) => {
+      const saved = (Array.isArray(supplements) ? supplements : []).map((supplement) => (
+        upsertEquitySupplement(collection, supplement, timestamp)
+      ));
+      syncEquityDerivedSpots(collection, timestamp);
+      return { supplements: saved };
+    }),
+    activateEquitySpots: () => commit((collection, timestamp) => (
+      activateEquitySpots(collection, timestamp, { selectionLimit: activePoolLimit })
+    )),
     saveSession: (session) => commit((collection, timestamp) => (
       upsertById(collection.sessions, session, 'Sesja', timestamp)
     )),
@@ -1310,6 +1789,8 @@ const rowToTrainingSpot = (row) => {
     versionId: row.version_id,
     handId: row.hand_id,
     sourceFingerprint: row.source_fingerprint,
+    sourceSpotVersionId: row.source_spot_version_id || payload.sourceSpotVersionId || null,
+    equityMode: row.equity_mode || payload.equityMode || null,
     exerciseType: row.exercise_type,
     gameType: row.game_type,
     street: row.street,
@@ -1386,11 +1867,29 @@ const rowToAnswerKey = (row) => {
   return value;
 };
 
+const rowToEquitySupplement = (row) => {
+  const payload = parseStoredJson(row.payload_json, {});
+  return {
+    ...payload,
+    id: row.id,
+    spotVersionId: row.spot_version_id,
+    answerKeyId: row.answer_key_id,
+    rangeContractVersion: row.range_contract_version,
+    calculatorVersion: row.calculator_version,
+    opponentRange: parseStoredJson(row.opponent_range_json, []),
+    equityResult: parseStoredJson(row.equity_result_json, null),
+    model: parseStoredJson(row.model_json, null),
+    createdAt: row.created_at,
+    staleAt: row.stale_at,
+  };
+};
+
 const rowToRefreshJob = (row, candidateSpotVersionIds) => {
   const payload = parseStoredJson(row.payload_json, {});
   return {
     ...payload,
     id: row.id,
+    jobKind: row.job_kind || payload.jobKind || 'answer_keys',
     status: row.status,
     modelId: row.model_id,
     contractVersion: row.contract_version,
@@ -1447,6 +1946,7 @@ const rowToTrainingSession = (row, availableSpotVersionIds = [], answeredSpotVer
     id: row.id,
     exerciseType: row.exercise_type,
     gameType: row.game_type,
+    equityMode: row.equity_mode || payload.equityMode || null,
     requestedSize: row.requested_size === 'all' ? 'all' : Number(row.requested_size),
     targetSize: row.target_size,
     status: row.status,
@@ -1474,7 +1974,10 @@ const rowToTrainingAttempt = (row) => ({
   spotVersionId: row.spot_version_id,
   answerKeyId: row.answer_key_id,
   answer: row.answer,
+  ...(row.equity_bucket !== undefined && row.equity_bucket !== null ? { equityBucket: row.equity_bucket } : {}),
   grade: row.grade,
+  ...(row.equity_grade !== undefined && row.equity_grade !== null ? { equityGrade: row.equity_grade } : {}),
+  ...(row.action_grade !== undefined && row.action_grade !== null ? { actionGrade: row.action_grade } : {}),
   ...(row.feedback_json ? { feedback: parseStoredJson(row.feedback_json, null) } : {}),
   answeredAt: row.answered_at,
   createdAt: row.created_at,
@@ -1511,6 +2014,28 @@ const getMetadataRow = (database) => database.prepare(
   'SELECT * FROM collection_metadata WHERE id = 1',
 ).get();
 
+const requiresTrainingAuditRepair = (database, auditExclusions) => {
+  const exclusions = Array.isArray(auditExclusions) ? auditExclusions : [];
+  const missingRelevantExclusion = exclusions.some(({ handId, fingerprint }) => {
+    const parameters = [asString(handId), asString(fingerprint)];
+    const stored = database.prepare(
+      'SELECT 1 FROM audit_exclusions WHERE hand_id = ? AND fingerprint = ? LIMIT 1',
+    ).get(...parameters);
+    if (stored) return false;
+    return Boolean(database.prepare(
+      'SELECT 1 FROM sources WHERE hand_id = ? AND fingerprint = ? LIMIT 1',
+    ).get(...parameters));
+  });
+  if (missingRelevantExclusion) return true;
+  return Boolean(database.prepare(`
+    SELECT 1
+    FROM audit_exclusions a
+    INNER JOIN sources s ON s.hand_id = a.hand_id AND s.fingerprint = a.fingerprint
+    WHERE s.status <> 'excluded'
+    LIMIT 1
+  `).get());
+};
+
 const getFullTrainingSnapshot = (database) => {
   const metadata = getMetadataRow(database);
   if (!metadata) return createEmptyTrainingCollection();
@@ -1529,6 +2054,7 @@ const getFullTrainingSnapshot = (database) => {
     rowToSource(row, spotIdsBySource.get(`${row.hand_id}\u0000${row.fingerprint}`) || []),
   ]));
   const answerKeys = database.prepare('SELECT * FROM answer_keys ORDER BY rowid').all().map(rowToAnswerKey);
+  const equitySupplements = database.prepare('SELECT * FROM equity_supplements ORDER BY rowid').all().map(rowToEquitySupplement);
   const jobSpotRows = database.prepare(
     'SELECT job_id, spot_version_id FROM refresh_job_spots ORDER BY job_id, position',
   ).all();
@@ -1582,6 +2108,7 @@ const getFullTrainingSnapshot = (database) => {
     updatedAt: metadata.updated_at,
     spots,
     answerKeys,
+    equitySupplements,
     refreshJobs,
     sessions,
     attempts,
@@ -1651,6 +2178,23 @@ const getRefreshJobEventRows = (database, { jobId = null, limit = MAX_REFRESH_JO
   return rows.reverse().map(rowToRefreshJobEvent);
 };
 
+const getEquitySupplementedSpotIds = (database, versionIds = null) => {
+  const ids = Array.isArray(versionIds)
+    ? [...new Set(versionIds.map(asString).filter(Boolean))]
+    : null;
+  const scope = ids ? `AND e.spot_version_id IN (${ids.map(() => '?').join(', ')})` : '';
+  const rows = database.prepare(`
+    SELECT e.spot_version_id
+    FROM equity_supplements e
+    INNER JOIN spots s ON s.version_id = e.spot_version_id
+    WHERE e.stale_at IS NULL
+      AND e.range_contract_version = ?
+      AND e.answer_key_id = s.current_answer_key_id
+      ${scope}
+  `).all(EQUITY_RANGE_CONTRACT_VERSION, ...(ids || []));
+  return new Set(rows.map(({ spot_version_id: spotVersionId }) => spotVersionId));
+};
+
 const getSpotsByVersionIds = (database, versionIds) => {
   const ids = [...new Set((Array.isArray(versionIds) ? versionIds : []).map(asString).filter(Boolean))];
   if (ids.length === 0) return [];
@@ -1659,11 +2203,61 @@ const getSpotsByVersionIds = (database, versionIds) => {
     `SELECT * FROM spots WHERE version_id IN (${placeholders})`,
   ).all(...ids);
   const byId = new Map(rows.map((row) => [row.version_id, rowToTrainingSpot(row)]));
-  return ids.map((id) => byId.get(id)).filter(Boolean);
+  const derived = [...byId.values()].filter((spot) => spot.sourceSpotVersionId);
+  const sourceIds = [...new Set(derived.map((spot) => spot.sourceSpotVersionId).filter(Boolean))];
+  if (sourceIds.length > 0) {
+    const sourcePlaceholders = sourceIds.map(() => '?').join(', ');
+    const sources = database.prepare(
+      `SELECT * FROM spots WHERE version_id IN (${sourcePlaceholders})`,
+    ).all(...sourceIds).map(rowToTrainingSpot);
+    const sourceById = new Map(sources.map((spot) => [spot.versionId, spot]));
+    derived.forEach((spot) => {
+      const source = sourceById.get(spot.sourceSpotVersionId);
+      if (!source) return;
+      const looksLikeLegacyEquityOptions = Array.isArray(spot.answerOptions)
+        && spot.answerOptions.length === EQUITY_BUCKETS.length
+        && spot.answerOptions.every(({ action }) => action === 'equity_bucket');
+      spot.equityAnswerOptions = spot.equityAnswerOptions?.length
+        ? spot.equityAnswerOptions
+        : looksLikeLegacyEquityOptions ? clone(spot.answerOptions) : clone(EQUITY_BUCKETS);
+      spot.actionAnswerOptions = spot.actionAnswerOptions?.length
+        ? spot.actionAnswerOptions
+        : clone(source.answerOptions || []);
+      if (looksLikeLegacyEquityOptions || !spot.answerOptions?.length) spot.answerOptions = clone(source.answerOptions || []);
+    });
+  }
+  const supplementedIds = getEquitySupplementedSpotIds(database, ids);
+  return ids.map((id) => {
+    const spot = byId.get(id);
+    return spot
+      ? { ...spot, equitySupplementAvailable: supplementedIds.has(id) }
+      : null;
+  }).filter(Boolean);
 };
 
-const getRefreshEstimateData = (database, sampleSize) => {
+const getRefreshEstimateData = (database, sampleSize, scope = 'answer_keys') => {
   const normalizedSampleSize = Number.isInteger(sampleSize) ? sampleSize : DEFAULT_SELECTION_LIMIT;
+  if (scope === 'equity_supplement') {
+    const rows = database.prepare(`
+      SELECT s.* FROM spots s
+      INNER JOIN selected_spots ss ON ss.spot_version_id = s.version_id AND ss.active = 1
+      WHERE s.source_status = 'current' AND s.active = 1
+      ORDER BY s.played_at DESC, s.rowid
+    `).all();
+    const keys = database.prepare('SELECT * FROM answer_keys ORDER BY rowid').all().map(rowToAnswerKey);
+    const supplements = database.prepare('SELECT * FROM equity_supplements WHERE stale_at IS NULL').all().map(rowToEquitySupplement);
+    const keyById = new Map(keys.map((key) => [key.id, key]));
+    const spots = selectDiverseRecentSpots(rows.map(rowToTrainingSpot).map((spot) => ({
+      ...spot,
+      currentAnswerKey: keyById.get(spot.currentAnswerKeyId) || null,
+      currentSupplement: supplements.find((supplement) => supplement.spotVersionId === spot.versionId && supplement.answerKeyId === spot.currentAnswerKeyId && !supplement.staleAt) || null,
+    })).filter((spot) => {
+      const key = keyById.get(spot.currentAnswerKeyId);
+      return isEquitySupplementEligibleSpot(spot, key)
+        && !supplements.some((supplement) => supplement.spotVersionId === spot.versionId && supplement.answerKeyId === spot.currentAnswerKeyId);
+    }), { limit: normalizedSampleSize });
+    return { spots, locallyRejectedSpotVersionIds: [] };
+  }
   const eligibleRows = database.prepare(`
     SELECT s.*
     FROM spots s
@@ -1742,6 +2336,33 @@ const getTrainingStatusData = (database, sampleSize) => {
     sessions: sessionCount,
     attempts: database.prepare('SELECT COUNT(*) AS count FROM attempts').get().count,
   };
+  const equitySpotRows = database.prepare(`
+    SELECT s.* FROM spots s
+    INNER JOIN selected_spots ss ON ss.spot_version_id = s.version_id AND ss.active = 1
+    WHERE s.source_status = 'current' AND s.active = 1
+  `).all();
+  const equitySpots = equitySpotRows.map(rowToTrainingSpot);
+  const currentKeyIds = [...new Set(equitySpots.map((spot) => spot.currentAnswerKeyId).filter(Boolean))];
+  const equityKeys = currentKeyIds.length === 0 ? [] : database.prepare(
+    `SELECT * FROM answer_keys WHERE id IN (${currentKeyIds.map(() => '?').join(', ')})`,
+  ).all(...currentKeyIds).map(rowToAnswerKey);
+  const equitySpotIds = equitySpots.map((spot) => spot.versionId);
+  const equitySupplements = equitySpotIds.length === 0 ? [] : database.prepare(
+    `SELECT * FROM equity_supplements WHERE spot_version_id IN (${equitySpotIds.map(() => '?').join(', ')})`,
+  ).all(...equitySpotIds).map(rowToEquitySupplement);
+  // Status potrzebuje wyłącznie liczności gotowych kandydatów i aktywnych spotów.
+  // Nie odczytujemy tu tysięcy payloadów JSON z derived equity spots, bo blokowało
+  // to całe API przy samym wejściu do modułu ćwiczeń.
+  const equityActivationRows = database.prepare(`
+    SELECT s.game_type, s.equity_mode,
+      COUNT(*) AS candidate_count,
+      SUM(CASE WHEN s.active = 1 THEN 1 ELSE 0 END) AS active_count
+    FROM spots s
+    WHERE s.source_status = 'current'
+      AND s.exercise_type = ?
+      AND s.readiness = 'ready'
+    GROUP BY s.game_type, s.equity_mode
+  `).all(EXERCISE_TYPES.EQUITY_POT_ODDS);
   return {
     metadata,
     poolRows,
@@ -1755,6 +2376,12 @@ const getTrainingStatusData = (database, sampleSize) => {
     counts,
     refreshJobs: getRefreshJobRows(database),
     estimateData,
+    equityData: {
+      spots: equitySpots,
+      answerKeys: equityKeys,
+      equitySupplements,
+    },
+    equityActivationRows,
   };
 };
 
@@ -1783,6 +2410,13 @@ const getTrainingSessionContext = (database, sessionId) => {
   const answerKeys = spotIds.length === 0 ? [] : database.prepare(
     `SELECT * FROM answer_keys WHERE spot_version_id IN (${placeholders}) ORDER BY rowid`,
   ).all(...spotIds).map(rowToAnswerKey);
+  const sourceKeyIds = [...new Set(spots.flatMap((spot) => [spot.sourceAnswerKeyId, spot.actionAnswerKeyId]).filter(Boolean))];
+  if (sourceKeyIds.length > 0) {
+    const sourcePlaceholders = sourceKeyIds.map(() => '?').join(', ');
+    answerKeys.push(...database.prepare(
+      `SELECT * FROM answer_keys WHERE id IN (${sourcePlaceholders})`,
+    ).all(...sourceKeyIds).map(rowToAnswerKey));
+  }
   return {
     session: rowToTrainingSession(row, availableIds, [...new Set([...answeredIds, ...attemptedIds])]),
     spots,
@@ -1830,8 +2464,17 @@ const getTrainingQuestionContext = (database, sessionId, timestamp = new Date().
     if (currentSpot && currentKey) {
       return {
         session: getTrainingSessionSummary(database, sessionId),
-        spot: rowToTrainingSpot(currentSpot),
+        spot: {
+          ...rowToTrainingSpot(currentSpot),
+          equitySupplementAvailable: getEquitySupplementedSpotIds(database, [currentSpot.version_id]).has(currentSpot.version_id),
+        },
         key: rowToAnswerKey(currentKey),
+        sourceKey: currentSpot.sourceAnswerKeyId
+          ? (() => {
+            const source = database.prepare('SELECT * FROM answer_keys WHERE id = ?').get(currentSpot.sourceAnswerKeyId);
+            return source ? rowToAnswerKey(source) : null;
+          })()
+          : null,
       };
     }
   }
@@ -1906,10 +2549,19 @@ const getTrainingQuestionContext = (database, sessionId, timestamp = new Date().
     }
     database.exec('COMMIT;');
     const session = getTrainingSessionSummary(database, sessionId);
+    const spot = spotRow
+      ? getSpotsByVersionIds(database, [spotRow.version_id])[0] || null
+      : null;
     return {
       session,
-      spot: spotRow ? rowToTrainingSpot(spotRow) : null,
+      spot,
       key: keyRow ? rowToAnswerKey(keyRow) : null,
+      sourceKey: spot?.sourceAnswerKeyId
+        ? (() => {
+          const source = database.prepare('SELECT * FROM answer_keys WHERE id = ?').get(spot.sourceAnswerKeyId);
+          return source ? rowToAnswerKey(source) : null;
+        })()
+        : null,
     };
   } catch (error) {
     try { database.exec('ROLLBACK;'); } catch { /* preserve original error */ }
@@ -1931,10 +2583,15 @@ const getTrainingAnswerContext = (database, sessionId, spotVersionId) => {
     ? database.prepare('SELECT * FROM answer_keys WHERE id = ? AND spot_version_id = ?')
       .get(relation.current_answer_key_id, relation.version_id)
     : null;
+  const spot = getSpotsByVersionIds(database, [relation.version_id])[0] || rowToTrainingSpot(relation);
+  const source = spot?.sourceAnswerKeyId
+    ? database.prepare('SELECT * FROM answer_keys WHERE id = ?').get(spot.sourceAnswerKeyId)
+    : null;
   return {
     session,
-    spot: rowToTrainingSpot(relation),
+    spot,
     key: key ? rowToAnswerKey(key) : null,
+    sourceKey: source ? rowToAnswerKey(source) : null,
     relation: { status: relation.status },
   };
 };
@@ -1945,13 +2602,14 @@ const saveTrainingSessionRow = (database, session, now) => {
   const currentPosition = available.indexOf(session.currentSpotVersionId);
   database.prepare(`
     INSERT INTO sessions (
-      id, exercise_type, game_type, requested_size, target_size, status, current_position,
+      id, exercise_type, game_type, equity_mode, requested_size, target_size, status, current_position,
       current_spot_version_id, last_spot_version_id, score_correct, score_acceptable,
       score_incorrect, metadata_json, created_at, updated_at, completed_at, abandoned_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       exercise_type = excluded.exercise_type,
       game_type = excluded.game_type,
+      equity_mode = excluded.equity_mode,
       requested_size = excluded.requested_size,
       target_size = excluded.target_size,
       status = excluded.status,
@@ -1969,6 +2627,7 @@ const saveTrainingSessionRow = (database, session, now) => {
     session.id,
     session.exerciseType || 'unknown',
     session.gameType || 'both',
+    nullableString(session.equityMode),
     String(session.requestedSize ?? '20'),
     Number(session.targetSize) || 0,
     session.status || 'active',
@@ -2001,12 +2660,15 @@ const saveTrainingAttemptRow = (database, attempt) => {
   const timestamp = attempt.answeredAt || attempt.createdAt || new Date().toISOString();
   database.prepare(`
     INSERT INTO attempts (
-      id, session_id, spot_version_id, answer_key_id, answer, grade, feedback_json,
-      answered_at, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      id, session_id, spot_version_id, answer_key_id, answer, equity_bucket, grade,
+      equity_grade, action_grade, feedback_json, answered_at, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       answer = excluded.answer,
+      equity_bucket = excluded.equity_bucket,
       grade = excluded.grade,
+      equity_grade = excluded.equity_grade,
+      action_grade = excluded.action_grade,
       feedback_json = excluded.feedback_json,
       answered_at = excluded.answered_at,
       updated_at = excluded.updated_at
@@ -2016,7 +2678,10 @@ const saveTrainingAttemptRow = (database, attempt) => {
     nullableString(attempt.spotVersionId),
     nullableString(attempt.answerKeyId),
     nullableString(attempt.answer),
+    nullableString(attempt.equityBucket),
     nullableString(attempt.grade),
+    nullableString(attempt.equityGrade),
+    nullableString(attempt.actionGrade),
     attempt.feedback ? jsonText(attempt.feedback) : null,
     timestamp,
     attempt.createdAt || timestamp,
@@ -2156,7 +2821,7 @@ const getTrainingHistoryData = (database, filters, limit) => {
 const getTrainingStatsRows = (database, filters) => {
   const { clause, params } = filterSql(filters);
   return database.prepare(`
-    SELECT a.grade, s.exercise_type, s.game_type,
+    SELECT a.grade, a.equity_grade, a.action_grade, a.equity_bucket, s.exercise_type, s.game_type,
       json_extract(s.question_json, '$.heroPosition') AS hero_position,
       json_extract(s.question_json, '$.effectiveStackBb') AS effective_stack_bb
     FROM attempts a
@@ -2293,15 +2958,15 @@ const upsertRefreshJobRow = (database, job, now) => {
     .filter((id) => spotIds.has(id) || database.prepare('SELECT 1 FROM spots WHERE version_id = ?').get(id));
   database.prepare(`
     INSERT INTO refresh_jobs (
-      id, status, model_id, contract_version, batch_size, sample_size, candidate_count,
+      id, job_kind, status, model_id, contract_version, batch_size, sample_size, candidate_count,
       estimated_requests, cursor, attempted_requests, successful_requests, recovery_count, last_recovered_at,
       processed_spot_count,
       skipped_spot_count, saved_key_count, ready_key_count, review_key_count, invalid_key_count,
       unknown_result_count, stop_requested, in_flight_json, errors_json, payload_json,
       created_at, updated_at, started_at, resumed_at, stopped_at, finished_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
-      status = excluded.status, model_id = excluded.model_id, contract_version = excluded.contract_version,
+      job_kind = excluded.job_kind, status = excluded.status, model_id = excluded.model_id, contract_version = excluded.contract_version,
       batch_size = excluded.batch_size, sample_size = excluded.sample_size, candidate_count = excluded.candidate_count,
       estimated_requests = excluded.estimated_requests, cursor = excluded.cursor,
       attempted_requests = excluded.attempted_requests, successful_requests = excluded.successful_requests,
@@ -2314,7 +2979,7 @@ const upsertRefreshJobRow = (database, job, now) => {
       updated_at = excluded.updated_at, started_at = excluded.started_at, resumed_at = excluded.resumed_at,
       stopped_at = excluded.stopped_at, finished_at = excluded.finished_at
   `).run(
-    job.id, job.status || 'completed', nullableString(job.modelId), nullableNumber(job.contractVersion),
+    job.id, job.jobKind || 'answer_keys', job.status || 'completed', nullableString(job.modelId), nullableNumber(job.contractVersion),
     nullableNumber(job.batchSize), nullableNumber(job.sampleSize), candidateIds.length,
     Number(job.estimatedRequests) || 0, Number(job.cursor) || 0, Number(job.attemptedRequests) || 0,
     Number(job.successfulRequests) || 0, Number(job.recoveryCount) || 0, nullableString(job.lastRecoveredAt),
@@ -2384,6 +3049,7 @@ const clearTrainingRows = (database) => {
     DELETE FROM session_spots;
     DELETE FROM sessions;
     DELETE FROM answer_keys;
+    DELETE FROM equity_supplements;
     DELETE FROM refresh_job_spots;
     DELETE FROM refresh_jobs;
     DELETE FROM selected_spots;
@@ -2455,14 +3121,14 @@ const insertCollectionRows = (database, collection, now) => {
   });
   const spotInsert = database.prepare(`
     INSERT INTO spots (
-      version_id, spot_id, hand_id, source_fingerprint, exercise_type, game_type, street,
+      version_id, spot_id, hand_id, source_fingerprint, source_spot_version_id, equity_mode, exercise_type, game_type, street,
       stage, scenario, episode_id, sequence_index, sequence_length, uses_historical_line,
       continuation_notice, source_status, readiness, active, current_answer_key_id,
       local_validation_version, local_valid, local_validation_error,
       ai_first_sent_at, ai_first_sent_job_id, question_json, answer_options_json,
       decision_card_facts_json, historical_answer_json, historical_result_json, payload_json,
       played_at, created_at, updated_at, last_seen_at, archived_at, archive_reason
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   collection.spots.forEach((spot) => {
     const source = sourceMap.get(spot.handId);
@@ -2475,6 +3141,8 @@ const insertCollectionRows = (database, collection, now) => {
       storedSpotId(spot),
       spot.handId,
       sourceFingerprint,
+      nullableString(spot.sourceSpotVersionId),
+      nullableString(spot.equityMode),
       spot.exerciseType,
       spot.gameType === 'tournament' ? 'tournament' : 'cash',
       nullableString(spot.street),
@@ -2510,12 +3178,12 @@ const insertCollectionRows = (database, collection, now) => {
   });
   const jobInsert = database.prepare(`
     INSERT INTO refresh_jobs (
-      id, status, model_id, contract_version, batch_size, sample_size, candidate_count,
+      id, job_kind, status, model_id, contract_version, batch_size, sample_size, candidate_count,
       estimated_requests, cursor, attempted_requests, successful_requests, processed_spot_count,
       skipped_spot_count, saved_key_count, ready_key_count, review_key_count, invalid_key_count,
       unknown_result_count, stop_requested, in_flight_json, errors_json, payload_json,
       created_at, updated_at, started_at, resumed_at, stopped_at, finished_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const jobSpotInsert = database.prepare(
     'INSERT INTO refresh_job_spots (job_id, position, spot_version_id, created_at) VALUES (?, ?, ?, ?)',
@@ -2526,6 +3194,7 @@ const insertCollectionRows = (database, collection, now) => {
       .filter((id) => spotIds.has(id));
     jobInsert.run(
       job.id,
+      job.jobKind || 'answer_keys',
       job.status || 'completed',
       nullableString(job.modelId),
       nullableNumber(job.contractVersion),
@@ -2594,6 +3263,29 @@ const insertCollectionRows = (database, collection, now) => {
       nullableString(key.archiveReason),
     );
   });
+  const supplementInsert = database.prepare(`
+    INSERT INTO equity_supplements (
+      id, spot_version_id, answer_key_id, range_contract_version, calculator_version,
+      opponent_range_json, equity_result_json, model_json, created_at, stale_at, payload_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const answerKeyIds = new Set(collection.answerKeys.map((key) => key.id));
+  collection.equitySupplements.forEach((supplement) => {
+    if (!spotIds.has(supplement.spotVersionId) || !answerKeyIds.has(supplement.answerKeyId)) return;
+    supplementInsert.run(
+      supplement.id,
+      supplement.spotVersionId,
+      supplement.answerKeyId,
+      Number(supplement.rangeContractVersion) || EQUITY_RANGE_CONTRACT_VERSION,
+      asString(supplement.calculatorVersion),
+      jsonText(supplement.opponentRange || []),
+      jsonText(supplement.equityResult || {}),
+      supplement.model ? jsonText(supplement.model) : null,
+      supplement.createdAt || now,
+      nullableString(supplement.staleAt),
+      jsonText(supplement),
+    );
+  });
   const currentKeyUpdate = database.prepare(
     'UPDATE spots SET current_answer_key_id = ? WHERE version_id = ?',
   );
@@ -2618,10 +3310,10 @@ const insertCollectionRows = (database, collection, now) => {
   });
   const sessionInsert = database.prepare(`
     INSERT INTO sessions (
-      id, exercise_type, game_type, requested_size, target_size, status, current_position,
+      id, exercise_type, game_type, equity_mode, requested_size, target_size, status, current_position,
       current_spot_version_id, last_spot_version_id, score_correct, score_acceptable,
       score_incorrect, metadata_json, created_at, updated_at, completed_at, abandoned_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   collection.sessions.forEach((session) => {
     const available = [...new Set((session.availableSpotVersionIds || []).filter((id) => spotIds.has(id)))];
@@ -2632,6 +3324,7 @@ const insertCollectionRows = (database, collection, now) => {
       session.id,
       session.exerciseType || 'unknown',
       session.gameType || 'both',
+      nullableString(session.equityMode),
       String(session.requestedSize ?? '20'),
       Number(session.targetSize) || 0,
       session.status || 'active',
@@ -2652,9 +3345,9 @@ const insertCollectionRows = (database, collection, now) => {
   });
   const attemptInsert = database.prepare(`
     INSERT INTO attempts (
-      id, session_id, spot_version_id, answer_key_id, answer, grade, feedback_json,
-      answered_at, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      id, session_id, spot_version_id, answer_key_id, answer, equity_bucket, grade,
+      equity_grade, action_grade, feedback_json, answered_at, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   collection.attempts.forEach((attempt) => {
     attemptInsert.run(
@@ -2663,7 +3356,10 @@ const insertCollectionRows = (database, collection, now) => {
       spotIds.has(attempt.spotVersionId) ? attempt.spotVersionId : null,
       collection.answerKeys.some(({ id }) => id === attempt.answerKeyId) ? attempt.answerKeyId : null,
       nullableString(attempt.answer),
+      nullableString(attempt.equityBucket),
       nullableString(attempt.grade),
+      nullableString(attempt.equityGrade),
+      nullableString(attempt.actionGrade),
       attempt.feedback ? jsonText(attempt.feedback) : null,
       attempt.answeredAt || attempt.createdAt || now,
       attempt.createdAt || now,
@@ -2798,6 +3494,8 @@ const prepareLegacyCollectionForMigration = (collection, {
   let changed = migrateAiFirstSentMarkers(migrated, now);
   changed = migrateTrainingAudit(migrated, now, auditExclusions) || changed;
   changed = migrateAnswerKeyContract(migrated, now) || changed;
+  changed = ensureKnownHandEquityKeys(migrated, now) || changed;
+  changed = syncEquityDerivedSpots(migrated, now) || changed;
   recomputeActivePools(migrated);
   if (migrated.spots.length > 0 && migrated.selectionState.selectedAt === null) {
     migrated.refreshJobs.forEach((job) => {
@@ -2957,13 +3655,17 @@ export const createTrainingRepository = ({
     auditExclusions,
     activePoolLimit,
   }).then(() => {
+    if (!requiresTrainingAuditRepair(database, auditExclusions)) return;
     const current = getFullTrainingSnapshot(database);
     const next = clone(current);
-    const changed = migrateTrainingAudit(next, now(), auditExclusions);
-    if (!changed) return;
+    if (!migrateTrainingAudit(next, now(), auditExclusions)) return;
     next.revision = current.revision + 1;
     next.updatedAt = now();
     persistFullCollection(database, next, next.updatedAt);
+  // prepareLegacyCollectionForMigration wykonuje wszystkie naprawy semantyczne
+  // podczas jednorazowej migracji JSON -> SQLite. Ponowne wczytywanie i klonowanie
+  // całej gotowej bazy przy każdym starcie blokowało event loop na dużych pulach,
+  // zanim endpoint statusu ćwiczeń mógł odpowiedzieć.
   }).finally(closeDatabase);
   const withLock = (task) => {
     const next = operation.then(task, task);
@@ -2995,7 +3697,7 @@ export const createTrainingRepository = ({
   return {
     getSnapshot: () => run(async () => clone(getFullTrainingSnapshot(database))),
     getScanState: () => run(async () => clone(getScanStateData(database))),
-    getRefreshEstimateData: (sampleSize) => run(async () => clone(getRefreshEstimateData(database, sampleSize))),
+    getRefreshEstimateData: (sampleSize, scope) => run(async () => clone(getRefreshEstimateData(database, sampleSize, scope))),
     getTrainingStatusData: (sampleSize) => run(async () => clone(getTrainingStatusData(database, sampleSize))),
     getTrainingSessionSummary: (sessionId) => run(async () => clone(
       getTrainingSessionSummary(database, asString(sessionId)),
@@ -3082,19 +3784,36 @@ export const createTrainingRepository = ({
       }
     }),
     getSpotsByVersionIds: (versionIds) => run(async () => clone(getSpotsByVersionIds(database, versionIds))),
+    getEquitySupplements: () => run(async () => database.prepare('SELECT * FROM equity_supplements ORDER BY rowid').all().map(rowToEquitySupplement)),
+    saveEquitySupplement: (supplement) => transact((collection, timestamp) => {
+      const saved = upsertEquitySupplement(collection, supplement, timestamp);
+      syncEquityDerivedSpots(collection, timestamp);
+      return saved;
+    }),
+    saveEquitySupplementBatch: (supplements) => transact((collection, timestamp) => {
+      const saved = (Array.isArray(supplements) ? supplements : []).map((supplement) => (
+        upsertEquitySupplement(collection, supplement, timestamp)
+      ));
+      syncEquityDerivedSpots(collection, timestamp);
+      return { supplements: saved };
+    }),
+    activateEquitySpots: () => transact((collection, timestamp) => (
+      activateEquitySpots(collection, timestamp, { selectionLimit: activePoolLimit })
+    )),
     transact,
     scanCanonicalHands: (sources, options = {}) => transact((collection, timestamp) => scanCollection(collection, Array.isArray(sources) ? sources : [], {
       datasetRevision: options.datasetRevision,
       now: timestamp,
       selectionLimit: activePoolLimit,
       rebuildSelection: Boolean(options.rebuildSelection),
+      equitySimulationSamples: options.equitySimulationSamples,
     })),
     saveAnswerKeys: (keys) => transact((collection, timestamp) => saveKeys(collection, keys, timestamp)),
     saveRefreshJob: (job) => run(async () => {
       database.exec('BEGIN IMMEDIATE;');
       try {
         const timestamp = now();
-        (job.inFlight?.spotVersionIds || []).forEach((spotVersionId) => {
+        (job.jobKind === 'equity_supplement' ? [] : (job.inFlight?.spotVersionIds || [])).forEach((spotVersionId) => {
           database.prepare(`
             UPDATE spots SET ai_first_sent_at = COALESCE(ai_first_sent_at, ?),
               ai_first_sent_job_id = COALESCE(ai_first_sent_job_id, ?), updated_at = ?
@@ -3122,6 +3841,15 @@ export const createTrainingRepository = ({
             WHERE version_id = ?
           `).run(key.createdAt || timestamp, key.refreshJobId || job?.id || null, timestamp, key.spotVersionId);
           recomputeStoredSpot(database, key.spotVersionId);
+          database.prepare(`
+            UPDATE equity_supplements SET stale_at = COALESCE(stale_at, ?)
+            WHERE spot_version_id = ? AND answer_key_id <> ?
+          `).run(timestamp, key.spotVersionId, key.id);
+          database.prepare(`
+            UPDATE spots SET source_status = 'changed', readiness = 'review', active = 0,
+              archive_reason = 'equity_supplement_stale', updated_at = ?
+            WHERE source_spot_version_id = ? AND source_status = 'current'
+          `).run(timestamp, key.spotVersionId);
         });
         const savedJob = job ? upsertRefreshJobRow(database, job, timestamp) : null;
         bumpTrainingRevision(database, timestamp);

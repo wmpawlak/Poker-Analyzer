@@ -38,6 +38,11 @@ import {
   buildTrainingAnswerKeyPrompt,
   trainingAnswerKeyResponseSchema,
 } from '../training/answerKeyContract.js';
+import {
+  buildEquitySupplementBatchInput,
+  equitySupplementResponseSchema,
+  validateEquitySupplementBatch,
+} from '../training/equitySupplementContract.js';
 
 const providerAdapters = {
   gemini: analyzeWithGemini,
@@ -277,6 +282,62 @@ export const analyzeTrainingAnswerKeysWithModel = async ({
     model: getPublicAiModel(definition),
     response,
   };
+};
+
+export const analyzeEquitySupplementsWithModel = async ({
+  modelId,
+  input,
+  environment,
+  fetchImpl = globalThis.fetch,
+  logger,
+}) => {
+  const definition = getAiModelDefinition(modelId);
+  if (!definition) throw new AiServiceError(`Nieznany model AI: ${modelId || 'brak'}.`, { status: 400, code: 'AI_UNKNOWN_MODEL' });
+  let validatedInput;
+  try {
+    validatedInput = input?.contractVersion === 1 && Array.isArray(input?.supplements) && !input?.spots
+      ? input
+      : input?.spots
+      ? buildEquitySupplementBatchInput(input.spots, input.answerKeys)
+      : buildEquitySupplementBatchInput(input?.supplements?.map((supplement) => ({
+        ...supplement,
+        currentAnswerKeyId: supplement.answerKeyId,
+        currentAnswerKey: { id: supplement.answerKeyId, status: 'ready', confidence: 'high', contractVersion: 3, spotVersionId: supplement.spotVersionId },
+        sourceStatus: 'current', active: true, exerciseType: 'turn_river',
+        question: {
+          ...supplement,
+          heroCards: supplement.heroCards,
+          board: supplement.board,
+          context: { opponentsInHand: 1 },
+          toCall: supplement.toCall,
+          effectiveStack: supplement.effectiveStack,
+          legalActions: ['call'],
+        },
+      })), input?.answerKeys);
+  } catch (error) {
+    throw new AiServiceError(error.message, { status: 400, code: error.code || 'AI_INVALID_EQUITY_SUPPLEMENT_BATCH', cause: error });
+  }
+  if (!isModelConfigured(definition, environment)) {
+    throw new AiServiceError(`Model ${definition.name} nie jest skonfigurowany na serwerze.`, { status: 503, code: 'AI_MODEL_NOT_CONFIGURED' });
+  }
+  const prompt = `Jesteś trenerem NLH. Uzupełnij wyłącznie zakres rywala dla gotowych spotów. Nie generuj akcji, sizingu, rationale ani liczbowego equity. Zwróć dokładnie jeden zakres dla każdego spotVersionId. Zakres ma używać kanonicznych klas 169 rąk (np. AKs, QJo, 77) i wag 0.25, 0.5, 0.75 albo 1. Card removal uwzględnij logicznie. Istniejący opponentRangeHint jest tylko podpowiedzią. Zwróć wyłącznie JSON zgodny ze schematem.\nDane:\n${JSON.stringify(validatedInput)}`;
+  const adapter = providerAdapters[definition.provider];
+  const response = await adapter({
+    modelId: definition.id,
+    apiKey: environment[definition.environmentKey],
+    prompt,
+    schema: equitySupplementResponseSchema,
+    schemaName: 'poker_equity_supplements',
+    maxOutputTokens: 16_000,
+    reasoningEffort: 'high',
+    fetchImpl,
+    logger,
+  });
+  let validated;
+  try { validated = validateEquitySupplementBatch(response, validatedInput); } catch (error) {
+    throw new AiServiceError(error.message, { status: 422, code: 'AI_INVALID_EQUITY_SUPPLEMENT_RESPONSE', cause: error });
+  }
+  return { model: getPublicAiModel(definition), response, validated, contractVersion: validatedInput.contractVersion };
 };
 
 export const analyzePlayerWithModel = async ({

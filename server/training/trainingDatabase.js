@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 
-export const TRAINING_SCHEMA_VERSION = 2;
+export const TRAINING_SCHEMA_VERSION = 5;
 export const TRAINING_COLLECTION_VERSION = 2;
 export const TRAINING_DATABASE_FILENAME = 'poker-training-v2.sqlite';
 export const TRAINING_MIGRATION_BACKUP_PATTERN = 'poker-training-v1.json.migrated-*';
@@ -19,7 +19,7 @@ INSERT OR IGNORE INTO collection_metadata (
   selection_strategy_version,
   selection_limit,
   migration_status
-) VALUES (1, 1, ${TRAINING_COLLECTION_VERSION}, 0, 'diverse_recent_v1', 'diverse_recent_v1', 100, 'not_started');
+) VALUES (1, ${TRAINING_SCHEMA_VERSION}, ${TRAINING_COLLECTION_VERSION}, 0, 'diverse_recent_v1', 'diverse_recent_v1', 100, 'not_started');
 `;
 
 const INITIAL_SCHEMA_STATEMENTS = [
@@ -89,6 +89,8 @@ CREATE TABLE IF NOT EXISTS spots (
   spot_id TEXT NOT NULL,
   hand_id TEXT NOT NULL,
   source_fingerprint TEXT NOT NULL,
+  source_spot_version_id TEXT,
+  equity_mode TEXT,
   exercise_type TEXT NOT NULL,
   game_type TEXT NOT NULL CHECK (game_type IN ('cash', 'tournament')),
   street TEXT,
@@ -127,6 +129,7 @@ CREATE TABLE IF NOT EXISTS spots (
   `
 CREATE TABLE IF NOT EXISTS refresh_jobs (
   id TEXT PRIMARY KEY,
+  job_kind TEXT NOT NULL DEFAULT 'answer_keys',
   status TEXT NOT NULL,
   model_id TEXT,
   contract_version INTEGER,
@@ -218,6 +221,24 @@ CREATE TABLE IF NOT EXISTS answer_keys (
 );
 `,
   `
+CREATE TABLE IF NOT EXISTS equity_supplements (
+  id TEXT PRIMARY KEY,
+  spot_version_id TEXT NOT NULL,
+  answer_key_id TEXT NOT NULL,
+  range_contract_version INTEGER NOT NULL,
+  calculator_version TEXT NOT NULL,
+  opponent_range_json TEXT NOT NULL CHECK (json_valid(opponent_range_json)),
+  equity_result_json TEXT NOT NULL CHECK (json_valid(equity_result_json)),
+  model_json TEXT CHECK (model_json IS NULL OR json_valid(model_json)),
+  created_at TEXT NOT NULL,
+  stale_at TEXT,
+  payload_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(payload_json)),
+  FOREIGN KEY (spot_version_id) REFERENCES spots (version_id) ON DELETE CASCADE,
+  FOREIGN KEY (answer_key_id) REFERENCES answer_keys (id) ON DELETE CASCADE,
+  UNIQUE (spot_version_id, answer_key_id)
+);
+`,
+  `
 CREATE TABLE IF NOT EXISTS selected_spots (
   exercise_type TEXT NOT NULL,
   game_type TEXT NOT NULL CHECK (game_type IN ('cash', 'tournament')),
@@ -235,6 +256,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   id TEXT PRIMARY KEY,
   exercise_type TEXT NOT NULL,
   game_type TEXT NOT NULL,
+  equity_mode TEXT,
   requested_size TEXT NOT NULL,
   target_size INTEGER NOT NULL DEFAULT 0 CHECK (target_size >= 0),
   status TEXT NOT NULL,
@@ -273,7 +295,10 @@ CREATE TABLE IF NOT EXISTS attempts (
   spot_version_id TEXT,
   answer_key_id TEXT,
   answer TEXT,
+  equity_bucket TEXT,
   grade TEXT CHECK (grade IS NULL OR grade IN ('correct', 'acceptable', 'incorrect')),
+  equity_grade TEXT CHECK (equity_grade IS NULL OR equity_grade IN ('correct', 'acceptable', 'incorrect')),
+  action_grade TEXT CHECK (action_grade IS NULL OR action_grade IN ('correct', 'acceptable', 'incorrect')),
   feedback_json TEXT CHECK (feedback_json IS NULL OR json_valid(feedback_json)),
   answered_at TEXT NOT NULL,
   created_at TEXT NOT NULL,
@@ -312,6 +337,7 @@ CREATE INDEX IF NOT EXISTS idx_answer_keys_spot_version_created
   ON answer_keys (spot_version_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_answer_keys_status ON answer_keys (status);
 CREATE INDEX IF NOT EXISTS idx_answer_keys_refresh_job ON answer_keys (refresh_job_id);
+CREATE INDEX IF NOT EXISTS idx_equity_supplements_spot ON equity_supplements (spot_version_id, stale_at);
 
 CREATE INDEX IF NOT EXISTS idx_sources_status ON sources (status);
 CREATE INDEX IF NOT EXISTS idx_sources_fingerprint ON sources (fingerprint);
@@ -495,15 +521,56 @@ export const configureTrainingDatabase = (database, {
   };
 };
 
-const getStoredSchemaVersion = (database) => {
-  const table = database.prepare(
-    "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'",
-  ).get();
-  if (!table) return 0;
-  return Number(database.prepare('SELECT COALESCE(MAX(version), 0) AS version FROM schema_migrations').get()?.version) || 0;
+const getTableColumns = (database, tableName) => database.prepare(`PRAGMA table_info(${tableName})`).all()
+  .map(({ name }) => name);
+
+const ensureColumn = (database, tableName, columnName, definition) => {
+  if (!getTableColumns(database, tableName).includes(columnName)) {
+    database.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition};`);
+  }
 };
 
+const getSchemaVersionSources = (database) => {
+  const migrationTable = database.prepare(
+    "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'",
+  ).get();
+  const migrationVersion = migrationTable
+    ? Number(database.prepare('SELECT COALESCE(MAX(version), 0) AS version FROM schema_migrations').get()?.version) || 0
+    : 0;
+  const pragmaVersion = Number(database.prepare('PRAGMA user_version').get()?.user_version) || 0;
+  const metadataTable = database.prepare(
+    "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'collection_metadata'",
+  ).get();
+  const metadataVersion = metadataTable
+    ? Number(database.prepare('SELECT schema_version FROM collection_metadata WHERE id = 1').get()?.schema_version) || 0
+    : 0;
+  return {
+    migrationVersion,
+    pragmaVersion,
+    metadataVersion,
+  };
+};
+
+const getStoredSchemaVersion = (database) => getSchemaVersionSources(database).migrationVersion;
+
 export const getTrainingSchemaVersion = (database) => getStoredSchemaVersion(database);
+
+const ensureFinalSchema = (database) => {
+  database.exec(INITIAL_SCHEMA_STATEMENTS.join('\n'));
+
+  // These columns were introduced by intermediate migrations. Check each one
+  // independently so a database that skipped an intermediate version still
+  // reaches the complete current shape.
+  ensureColumn(database, 'refresh_jobs', 'recovery_count', 'INTEGER NOT NULL DEFAULT 0 CHECK (recovery_count >= 0)');
+  ensureColumn(database, 'refresh_jobs', 'last_recovered_at', 'TEXT');
+  ensureColumn(database, 'refresh_jobs', 'job_kind', "TEXT NOT NULL DEFAULT 'answer_keys'");
+  ensureColumn(database, 'spots', 'source_spot_version_id', 'TEXT');
+  ensureColumn(database, 'spots', 'equity_mode', 'TEXT');
+  ensureColumn(database, 'sessions', 'equity_mode', 'TEXT');
+  ensureColumn(database, 'attempts', 'equity_bucket', 'TEXT');
+  ensureColumn(database, 'attempts', 'equity_grade', "TEXT CHECK (equity_grade IS NULL OR equity_grade IN ('correct', 'acceptable', 'incorrect'))");
+  ensureColumn(database, 'attempts', 'action_grade', "TEXT CHECK (action_grade IS NULL OR action_grade IN ('correct', 'acceptable', 'incorrect'))");
+};
 
 export const migrateTrainingSchema = (database, { now = () => new Date().toISOString() } = {}) => {
   if (!database || typeof database.exec !== 'function' || typeof database.prepare !== 'function') {
@@ -521,30 +588,27 @@ export const migrateTrainingSchema = (database, { now = () => new Date().toISOSt
         applied_at TEXT NOT NULL
       );
     `);
-    const currentVersion = getStoredSchemaVersion(database);
+    const versions = getSchemaVersionSources(database);
+    const currentVersion = Math.max(
+      versions.migrationVersion,
+      versions.pragmaVersion,
+      versions.metadataVersion,
+    );
     if (currentVersion > TRAINING_SCHEMA_VERSION) {
       throw new TrainingDatabaseError(
         'TRAINING_SCHEMA_VERSION_UNSUPPORTED',
         `Baza ćwiczeń używa nowszego schematu (${currentVersion}). Obsługiwany jest ${TRAINING_SCHEMA_VERSION}.`,
       );
     }
-    if (currentVersion < TRAINING_SCHEMA_VERSION) {
-      if (currentVersion >= 1) {
-        const refreshJobColumns = database.prepare('PRAGMA table_info(refresh_jobs)').all()
-          .map(({ name }) => name);
-        if (!refreshJobColumns.includes('recovery_count')) {
-          database.exec('ALTER TABLE refresh_jobs ADD COLUMN recovery_count INTEGER NOT NULL DEFAULT 0 CHECK (recovery_count >= 0);');
-        }
-        if (!refreshJobColumns.includes('last_recovered_at')) {
-          database.exec('ALTER TABLE refresh_jobs ADD COLUMN last_recovered_at TEXT;');
-        }
-      }
-      database.exec(INITIAL_SCHEMA_STATEMENTS.join('\n'));
+    ensureFinalSchema(database);
+    if (versions.migrationVersion < TRAINING_SCHEMA_VERSION) {
       database.prepare(
-        'INSERT INTO schema_migrations (version, description, applied_at) VALUES (?, ?, ?)',
-      ).run(TRAINING_SCHEMA_VERSION, 'Persistent training refresh diagnostics and recovery metadata', now());
-      database.exec(`PRAGMA user_version = ${TRAINING_SCHEMA_VERSION};`);
+        'INSERT OR IGNORE INTO schema_migrations (version, description, applied_at) VALUES (?, ?, ?)',
+      ).run(TRAINING_SCHEMA_VERSION, 'Equity answer buckets and separate action/equity grades', now());
     }
+    database.prepare('UPDATE collection_metadata SET schema_version = ? WHERE id = 1')
+      .run(TRAINING_SCHEMA_VERSION);
+    database.exec(`PRAGMA user_version = ${TRAINING_SCHEMA_VERSION};`);
     database.exec('COMMIT;');
     return getStoredSchemaVersion(database);
   } catch (error) {

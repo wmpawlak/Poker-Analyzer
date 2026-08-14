@@ -56,6 +56,11 @@ Hero: checks
 *** SUMMARY ***
 Board [ Ts 8d 2c 3h Ac ]`;
 
+const cbetShowdownHand = cbetHand.replace(
+  '*** SUMMARY ***',
+  '*** SHOWDOWN ***\nVillain: shows [Qc Qd]\nHero: shows [Qs Js]\n*** SUMMARY ***',
+);
+
 test('pierwsza decyzja trafia do selekcji, a późniejsza odpowiedź na 3-bet do osobnego trybu', () => {
   const spots = extract(threeBetHand);
   const pools = classifyTrainingSpots(spots);
@@ -71,6 +76,22 @@ test('pierwsza decyzja trafia do selekcji, a późniejsza odpowiedź na 3-bet do
   assert.equal(pools.preflop_vs_reraise[0].scenario, 'open_vs_3bet');
   assert.equal(pools.preflop_vs_reraise[0].effectiveStackBb, spots[1].effectiveStackBb);
   assert.equal(pools.preflop_vs_reraise[0].potOdds, spots[1].potOdds);
+});
+
+test('znana reka nie tworzy equity spotu dla decyzji multiway', () => {
+  const showdown = threeBetHand.replace(
+    '*** SUMMARY ***',
+    '*** SHOWDOWN ***\nSmall: shows [Qc Qd]\nHero: shows [Ah Kd]\n*** SUMMARY ***',
+  );
+  const spots = extract(showdown);
+  const pools = classifyTrainingSpots(spots);
+
+  assert.equal(pools.equity_pot_odds.length, 2);
+  assert.deepEqual(
+    pools.equity_pot_odds.map(({ sourceDecisionId }) => sourceDecisionId),
+    [spots[1].id, spots[2].id],
+  );
+  assert.equal(pools.equity_pot_odds.every(({ question }) => question.context.opponentsInHand === 1), true);
 });
 
 test('rozpoznaje reshove po raise Hero, ale nie klasyfikuje limp–raise jako 3-betu', () => {
@@ -96,6 +117,7 @@ test('tworzy dwuetapowy epizod c-bet, stosuje próg 40% i oznacza historyczną l
   const [flop, turn] = pools.cbet_barrels;
 
   assert.equal(pools.cbet_barrels.length, 2);
+  assert.equal(pools.equity_pot_odds.length, 0);
   assert.equal(flop.episodeId, turn.episodeId);
   assert.equal(flop.stage, 'flop');
   assert.equal(turn.stage, 'turn');
@@ -137,6 +159,27 @@ test('check flop kończy epizod c-bet, a donk bet nie tworzy fałszywej okazji',
     .replace('Villain: checks\nHero: bets 6\nVillain: calls 6', 'Villain: checks\nHero: checks');
   const donkPools = classifyTrainingSpots(extract(donk));
   assert.equal(donkPools.cbet_barrels.length, 0);
+});
+
+test('tryb equity znanej reki korzysta z showdownu tylko dla heads-up i nie przecieka do zwyklych pytan', () => {
+  const pools = classifyTrainingSpots(extract(cbetShowdownHand));
+  const summaryOnly = cbetHand.replace(
+    '*** SUMMARY ***\nBoard',
+    '*** SUMMARY ***\nSeat 2: Villain showed [Qc Qd] and won (20)\nSeat 1: Hero showed [Qs Js] and lost\nBoard',
+  );
+  const summaryPools = classifyTrainingSpots(extract(summaryOnly));
+
+  assert.equal(pools.equity_pot_odds.length, 4);
+  assert.equal(summaryPools.equity_pot_odds.length, 4);
+  const flop = pools.equity_pot_odds.find(({ street }) => street === 'FLOP');
+  const turn = pools.equity_pot_odds.find(({ street }) => street === 'TURN');
+  assert.equal(flop.equityMode, 'known_hand');
+  assert.deepEqual(flop.question.knownOpponentCards, ['Qc', 'Qd']);
+  assert.equal(flop.question.equityMode, 'known_hand');
+  assert.deepEqual(flop.question.board, ['Ts', '8d', '2c']);
+  assert.deepEqual(turn.question.board, ['Ts', '8d', '2c', '3h']);
+  assert.equal(flop.question.board.includes('Ac'), false);
+  assert.equal('knownOpponentCards' in pools.cbet_barrels[0].question, false);
 });
 
 test('turn/river mapuje kategorie strategiczne na legalne akcje', () => {

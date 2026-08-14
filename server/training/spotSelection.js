@@ -4,6 +4,14 @@ export const TRAINING_SELECTION_STRATEGY = 'diverse_recent_v1';
 export const DEFAULT_SELECTION_LIMIT = 100;
 
 const asString = (value) => String(value ?? '').trim();
+const EQUITY_EXERCISE_TYPE = 'equity_pot_odds';
+
+const isLocallyReadyEquitySpot = (spot) => (
+  spot?.exerciseType === EQUITY_EXERCISE_TYPE
+  && (Array.isArray(spot.equityAnswerOptions) ? spot.equityAnswerOptions.length === 10 : Array.isArray(spot.answerOptions) && spot.answerOptions.length === 10)
+  && spot.equityResult?.calculatorVersion
+  && spot.equityCorrectBucket
+);
 
 const newestFirst = (left, right) => {
   const playedAt = (Date.parse(right.playedAt || '') || 0) - (Date.parse(left.playedAt || '') || 0);
@@ -39,10 +47,12 @@ const groupKey = (spot) => [
   stackBucket(spot.question?.effectiveStackBb ?? spot.effectiveStackBb),
   `opponents:${Number(spot.question?.context?.opponentsInHand) || 0}`,
   exerciseFeature(spot),
+  ...(spot.exerciseType === EQUITY_EXERCISE_TYPE ? [`mode:${asString(spot.equityMode) || 'unknown'}`] : []),
 ].join('|');
 
 const isAiEligible = (spot) => {
   if (!spot?.versionId || spot?.sourceStatus !== 'current') return false;
+  if (spot.exerciseType === EQUITY_EXERCISE_TYPE) return isLocallyReadyEquitySpot(spot);
   if (spot.localValid === false) return false;
   if (spot.localValid === true) return true;
   const options = Array.isArray(spot.answerOptions) ? spot.answerOptions : [];
@@ -61,7 +71,9 @@ const makeUnits = (spots, { requireAiEligible = true } = {}) => {
     const scope = `${asString(spot.exerciseType) || 'unknown'}:${asString(spot.gameType) || 'unknown'}`;
     const unitId = spot.exerciseType === 'cbet_barrels'
       ? `${scope}:episode:${asString(spot.episodeId) || spot.handId}`
-      : `${scope}:hand:${asString(spot.handId)}`;
+      : spot.exerciseType === EQUITY_EXERCISE_TYPE
+        ? `${scope}:mode:${asString(spot.equityMode) || 'unknown'}:source:${asString(spot.sourceSpotVersionId) || spot.versionId}`
+        : `${scope}:hand:${asString(spot.handId)}`;
     const current = units.get(unitId) || { id: unitId, spots: [] };
     current.spots.push(spot);
     units.set(unitId, current);
@@ -109,13 +121,18 @@ const weightedGrade = (grade) => (
   grade === 'incorrect' ? 4 : grade === 'acceptable' ? 2 : 1
 );
 
+const worstAttemptGrade = (attempt) => {
+  const grades = [attempt?.grade, attempt?.equityGrade, attempt?.actionGrade].filter(Boolean);
+  return grades.sort((left, right) => weightedGrade(right) - weightedGrade(left))[0] || null;
+};
+
 const pickWeightedUnit = (units, attemptsBySpot, random) => {
   const unseen = units.filter((unit) => unit.spots.every((spot) => !attemptsBySpot.has(spot.versionId)));
   const pool = unseen.length > 0
     ? unseen.map((unit) => ({ unit, weight: 1 }))
     : units.map((unit) => {
       const grades = unit.spots
-        .map((spot) => attemptsBySpot.get(spot.versionId)?.grade)
+        .map((spot) => worstAttemptGrade(attemptsBySpot.get(spot.versionId)))
         .filter(Boolean);
       const weight = Math.max(...grades.map(weightedGrade), 1);
       return { unit, weight };
@@ -218,6 +235,11 @@ export const isTrainingSpotAiEligible = isAiEligible;
 
 export const getTrainingSpotAiEligibilityError = (spot) => {
   if (!spot?.versionId || spot?.sourceStatus !== 'current') return 'Spot nie pochodzi z aktualnego źródła.';
+  if (spot?.exerciseType === EQUITY_EXERCISE_TYPE) {
+    return isLocallyReadyEquitySpot(spot)
+      ? null
+      : 'Spot equity nie ma kompletnego lokalnego wyniku kalkulatora.';
+  }
   if (spot.localValid === false) {
     return spot.localValidationError || 'Spot nie spełnia lokalnego kontraktu AI.';
   }

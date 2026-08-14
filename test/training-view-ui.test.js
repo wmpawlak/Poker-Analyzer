@@ -42,6 +42,59 @@ const status = {
   queue: { pending: 3, reanalysis: 2 },
 };
 
+const pendingEquityStatus = {
+  ...status,
+  pools: {
+    ...status.pools,
+    equity_pot_odds: {
+      cash: { active: 0, modeCounts: { known_hand: 0, range: 0, pot_odds: 0 } },
+      tournament: { active: 0, modeCounts: { known_hand: 0, range: 0, pot_odds: 0 } },
+    },
+  },
+  equityActivation: {
+    needsActivation: true,
+    candidateCount: 2,
+    activeCount: 0,
+    pools: {
+      cash: {
+        candidateModeCounts: { known_hand: 1, range: 1, pot_odds: 0 },
+        activeModeCounts: { known_hand: 0, range: 0, pot_odds: 0 },
+      },
+      tournament: {
+        candidateModeCounts: { known_hand: 0, range: 0, pot_odds: 0 },
+        activeModeCounts: { known_hand: 0, range: 0, pot_odds: 0 },
+      },
+    },
+  },
+};
+
+const activeEquityStatus = {
+  ...pendingEquityStatus,
+  pools: {
+    ...pendingEquityStatus.pools,
+    equity_pot_odds: {
+      cash: { active: 2, modeCounts: { known_hand: 1, range: 1, pot_odds: 0 } },
+      tournament: { active: 0, modeCounts: { known_hand: 0, range: 0, pot_odds: 0 } },
+    },
+  },
+  equityActivation: {
+    ...pendingEquityStatus.equityActivation,
+    needsActivation: false,
+    activeCount: 2,
+    pools: {
+      cash: {
+        ...pendingEquityStatus.equityActivation.pools.cash,
+        activeCount: 2,
+        activeModeCounts: { known_hand: 1, range: 1, pot_odds: 0 },
+      },
+      tournament: {
+        ...pendingEquityStatus.equityActivation.pools.tournament,
+        activeCount: 0,
+      },
+    },
+  },
+};
+
 const question = {
   spotVersionId: 'spot-1',
   exerciseType: 'cbet_barrels',
@@ -120,6 +173,60 @@ test('konfiguracja pokazuje cztery tryby, formaty i rozmiary sesji', () => {
   assert.match(html, /data-testid="start-training-session"/);
 });
 
+test('setup ćwiczeń aktywuje equity lokalnie i odblokowuje tylko dostępne poziomy', async () => {
+  globalThis.localStorage.clear();
+  document.body.innerHTML = '<div id="root"></div>';
+  const calls = [];
+  let statusRequestCount = 0;
+  const api = {
+    getTrainingStatus: async () => {
+      statusRequestCount += 1;
+      return statusRequestCount === 1 ? pendingEquityStatus : activeEquityStatus;
+    },
+    getTrainingHistory: async () => ({ attempts: [], sessions: [] }),
+    getTrainingStats: async () => stats,
+    activateEquityTraining: async () => {
+      calls.push('activate');
+      return { status: activeEquityStatus };
+    },
+  };
+  const root = createRoot(document.getElementById('root'));
+  await act(async () => {
+    root.render(createElement(TrainingView, { api }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+  try {
+    const equityExercise = [...document.querySelectorAll('button')]
+      .find((button) => button.textContent.includes('Equity i pot odds'));
+    await act(() => equityExercise.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })));
+    assert.match(document.body.textContent, /Analizy equity są gotowe — aktywuj ćwiczenia/);
+    assert.match(document.body.textContent, /lokalna i bezpłatna operacja/i);
+    assert.ok(document.querySelector('[data-testid="activate-equity-training-from-setup"]'));
+    assert.equal(document.querySelector('[data-testid="start-training-session"]'), null);
+
+    await act(async () => {
+      document.querySelector('[data-testid="activate-equity-training-from-setup"]')
+        .dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    assert.deepEqual(calls, ['activate']);
+    assert.equal(statusRequestCount, 2);
+    assert.equal(document.querySelector('[data-testid="start-training-session"]')?.disabled, false);
+
+    const potOdds = [...document.querySelectorAll('button')]
+      .find((button) => button.textContent.trim() === 'Pot odds');
+    assert.equal(potOdds.disabled, true);
+    assert.match(potOdds.title, /Brak aktywnych spotów/);
+    const mixed = [...document.querySelectorAll('button')]
+      .find((button) => button.textContent.trim() === 'Mixed');
+    assert.equal(mixed.disabled, false);
+    await act(() => mixed.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })));
+    assert.match(document.body.textContent, /Dostępna pula: 2 spotów/);
+  } finally {
+    await act(() => root.unmount());
+  }
+});
+
 test('pytanie pokazuje wyłącznie stan przed decyzją i oznacza historyczny etap turn', () => {
   const html = renderToStaticMarkup(createElement(TrainingQuestion, {
     question,
@@ -134,6 +241,169 @@ test('pytanie pokazuje wyłącznie stan przed decyzją i oznacza historyczny eta
   assert.match(html, /Mały bet \(do 40% puli\)/);
   assert.doesNotMatch(html, /Uzasadnienie trenera|Przewidywany zakres rywala|Linia historyczna/);
   assert.doesNotMatch(html, /wynik finansowy|showdown/i);
+});
+
+test('brak suplementu pokazuje neutralny komunikat, ale nie blokuje odpowiedzi action-only', () => {
+  const headsUpCall = {
+    ...question,
+    exerciseType: 'preflop_selection',
+    street: 'FLOP',
+    question: {
+      ...question.question,
+      toCall: 3,
+      potOdds: 0.25,
+      legalActions: ['fold', 'call', 'raise'],
+      context: { opponentsInHand: 1 },
+    },
+  };
+  const html = renderToStaticMarkup(createElement(TrainingQuestion, {
+    question: headsUpCall,
+    selectedAnswer: '',
+    onSelectAnswer: () => {},
+    onSubmit: () => {},
+  }));
+  assert.match(html, /Analiza equity względem zakresu nie jest jeszcze dostępna/);
+  assert.match(html, /Możesz normalnie rozwiązać to pytanie/);
+  assert.match(html, /data-testid="equity-coverage-message"/);
+  assert.match(html, /data-answer-id="check"/);
+  assert.match(html, /data-testid="submit-training-answer"/);
+});
+
+test('multiway i spot bez calla pokazują komunikat o braku zastosowania osobnej oceny equity', () => {
+  const multiway = {
+    ...question,
+    question: { ...question.question, toCall: 3, legalActions: ['fold', 'call'], context: { opponentsInHand: 2 } },
+  };
+  const noCall = {
+    ...question,
+    question: { ...question.question, toCall: 0, legalActions: ['check', 'bet'], context: { opponentsInHand: 1 } },
+  };
+  for (const candidate of [multiway, noCall]) {
+    const html = renderToStaticMarkup(createElement(TrainingQuestion, {
+      question: candidate,
+      selectedAnswer: '',
+      onSelectAnswer: () => {},
+      onSubmit: () => {},
+    }));
+    assert.match(html, /Osobna ocena equity nie dotyczy tego typu pytania/);
+    assert.match(html, /data-testid="submit-training-answer"/);
+  }
+});
+
+test('gotowy suplement ukrywa komunikat o braku analizy bez zmiany układu odpowiedzi', () => {
+  const questionWithSupplement = {
+    ...question,
+    exerciseType: 'preflop_selection',
+    equitySupplementAvailable: true,
+    question: {
+      ...question.question,
+      toCall: 3,
+      legalActions: ['fold', 'call', 'raise'],
+      context: { opponentsInHand: 1 },
+    },
+  };
+  const html = renderToStaticMarkup(createElement(TrainingQuestion, {
+    question: questionWithSupplement,
+    selectedAnswer: '',
+    onSelectAnswer: () => {},
+    onSubmit: () => {},
+  }));
+  assert.doesNotMatch(html, /data-testid="equity-coverage-message"/);
+  assert.match(html, /data-answer-id="check"/);
+  assert.match(html, /data-testid="submit-training-answer"/);
+});
+
+test('spot z suplementem pokazuje zakres i osobny pierwszy krok equity', () => {
+  const supplemented = {
+    ...question,
+    exerciseType: 'equity_pot_odds',
+    equityMode: 'range',
+    opponentRange: [
+      { handClass: 'AKS', weight: 0.75 },
+      { handClass: 'QQ', weight: 1 },
+      { handClass: '99', weight: 1 },
+      { handClass: 'AA', weight: 1 },
+      { handClass: 'AQO', weight: 0.5 },
+    ],
+    equityAnswerOptions: [
+      { id: 'equity_40', label: '40%' },
+      { id: 'equity_50', label: '50%' },
+    ],
+    actionAnswerOptions: [{ id: 'fold', action: 'fold', label: 'Fold' }],
+    answerOptions: [{ id: 'fold', action: 'fold', label: 'Fold' }],
+    question: { ...question.question, equityMode: 'range' },
+  };
+  const html = renderToStaticMarkup(createElement(TrainingQuestion, {
+    question: supplemented,
+    selectedAnswer: '',
+    selectedEquityBucket: 'equity_50',
+    equityStep: 1,
+    onSelectEquityBucket: () => {},
+    onAdvanceEquity: () => {},
+    onSelectAnswer: () => {},
+    onSubmit: () => {},
+  }));
+  assert.match(html, /Założony zakres modelu/);
+  assert.match(html, /Macierz zakresu/);
+  assert.match(html, /data-testid="open-equity-range-matrix"/);
+  assert.doesNotMatch(html, /data-testid="equity-range-matrix-modal"/);
+  assert.match(html, /data-testid="equity-bucket-step"/);
+  assert.match(html, /data-testid="advance-equity-answer"/);
+  assert.doesNotMatch(html, /data-testid="submit-training-answer"/);
+});
+
+test('macierz zakresu zachowuje pokerowy układ rąk i otwiera się wyłącznie na żądanie', async () => {
+  document.body.innerHTML = '<div id="root"></div>';
+  const root = createRoot(document.getElementById('root'));
+  const rangeQuestion = {
+    ...question,
+    exerciseType: 'equity_pot_odds',
+    equityMode: 'range',
+    opponentRange: [
+      { handClass: 'AKS', weight: 0.75 },
+      { handClass: 'QQ', weight: 1 },
+      { handClass: '99', weight: 1 },
+      { handClass: 'AA', weight: 1 },
+      { handClass: 'AQO', weight: 0.5 },
+    ],
+    equityAnswerOptions: [{ id: 'equity_50', label: '50%' }],
+    actionAnswerOptions: [{ id: 'fold', action: 'fold', label: 'Fold' }],
+    answerOptions: [{ id: 'fold', action: 'fold', label: 'Fold' }],
+    question: { ...question.question, equityMode: 'range' },
+  };
+  await act(async () => {
+    root.render(createElement(TrainingQuestion, {
+      question: rangeQuestion,
+      selectedAnswer: '',
+      equityStep: 1,
+      onSelectAnswer: () => {},
+      onSubmit: () => {},
+    }));
+  });
+  try {
+    assert.equal(document.querySelector('[data-testid="equity-range-matrix-modal"]'), null);
+    await act(() => document.querySelector('[data-testid="open-equity-range-matrix"]')
+      .dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })));
+    assert.ok(document.querySelector('[data-testid="equity-range-matrix-modal"]'));
+    assert.match(document.querySelector('[data-testid="equity-range-matrix"]').className, /max-w-xl/);
+    assert.equal(document.querySelectorAll('[data-testid="equity-range-matrix-cell"]').length, 169);
+
+    const cell = (handClass) => document.querySelector(`[data-hand-class="${handClass}"]`);
+    assert.equal(cell('AA').dataset.row, '0');
+    assert.equal(cell('AA').dataset.column, '0');
+    assert.equal(cell('AKs').dataset.row, '0');
+    assert.equal(cell('AKs').dataset.column, '1');
+    assert.equal(cell('AQo').dataset.row, '2');
+    assert.equal(cell('AQo').dataset.column, '0');
+    assert.equal(cell('QQ').dataset.rangeWeight, '100');
+    assert.equal(cell('AKs').dataset.rangeWeight, '75');
+    assert.equal(cell('AQo').dataset.rangeWeight, '50');
+
+    await act(() => document.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+    assert.equal(document.querySelector('[data-testid="equity-range-matrix-modal"]'), null);
+  } finally {
+    await act(() => root.unmount());
+  }
 });
 
 test('feedback pokazuje ocenę, zakresy, sizing i ukryty wynik rozdania', () => {

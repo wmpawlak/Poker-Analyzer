@@ -2,7 +2,10 @@ export type ExerciseType =
   | 'preflop_selection'
   | 'preflop_vs_reraise'
   | 'cbet_barrels'
-  | 'turn_river';
+  | 'turn_river'
+  | 'equity_pot_odds';
+export type EquityMode = 'known_hand' | 'range' | 'pot_odds' | 'mixed';
+export type TrainingRefreshJobKind = 'answer_keys' | 'missing_keys' | 'equity_supplement';
 
 export type TrainingGameType = 'cash' | 'tournament';
 export type TrainingSessionGameType = TrainingGameType | 'both';
@@ -23,18 +26,48 @@ export interface TrainingSpot {
   versionId: string;
   handId: string;
   exerciseType: ExerciseType;
+  equityMode?: EquityMode | null;
   gameType: TrainingGameType;
   heroHand: { notation: string; class: 'offsuit' | 'suited' | 'pair' } | null;
   decisionCardFacts: DecisionCardFacts;
   street: 'PRE_FLOP' | 'FLOP' | 'TURN' | 'RIVER';
   question: Record<string, unknown>;
-  answerOptions: Array<{ id: string; action: string; category?: string | null }>;
+  answerOptions: Array<{
+    id: string;
+    action: string;
+    category?: string | null;
+    label?: string;
+    lowerPercent?: number;
+    upperPercent?: number;
+    equityPercent?: number;
+  }>;
+  equityAnswerOptions?: TrainingSpot['answerOptions'];
+  actionAnswerOptions?: TrainingSpot['answerOptions'];
+  opponentRange?: Array<{ handClass: string; weight: 0.25 | 0.5 | 0.75 | 1 }> | null;
   historicalAnswer: Record<string, unknown>;
   active: boolean;
   readiness: 'pending_key' | 'ready' | 'review';
   aiFirstSentAt: string | null;
   aiFirstSentJobId: string | null;
   sourceStatus: 'current' | 'changed' | 'removed';
+  knownOpponentCards?: string[] | null;
+  equityCalculatorVersion?: string | null;
+  equityCorrectBucket?: string | null;
+  equityResult?: Record<string, unknown> | null;
+  equitySupplementAvailable?: boolean;
+}
+
+export interface EquitySupplement {
+  id: string;
+  spotVersionId: string;
+  answerKeyId: string;
+  opponentRange: Array<{ handClass: string; weight: 0.25 | 0.5 | 0.75 | 1 }>;
+  rangeContractVersion: number;
+  calculatorVersion: string;
+  equityResult: Record<string, unknown>;
+  model?: { id: string; name: string } | null;
+  createdAt: string;
+  staleAt?: string | null;
 }
 
 export interface AnswerKey {
@@ -64,12 +97,16 @@ export interface TrainingAttempt {
   grade: TrainingGrade;
   answerKeyId: string;
   answeredAt: string;
+  equityBucket?: string | null;
+  equityGrade?: TrainingGrade;
+  actionGrade?: TrainingGrade;
 }
 
 export interface TrainingSession {
   id: string;
   exerciseType: ExerciseType;
   gameType: TrainingSessionGameType;
+  equityMode?: EquityMode | null;
   requestedSize: 10 | 20 | 50 | 100 | 'all';
   targetSize: number;
   status: 'active' | 'completed' | 'abandoned';
@@ -98,6 +135,7 @@ export interface RefreshJob {
   recoveryCount: number;
   lastRecoveredAt: string | null;
   inFlightSpotCount: number;
+  jobKind: TrainingRefreshJobKind;
   createdAt: string;
   updatedAt: string;
 }
@@ -107,6 +145,13 @@ export const EXERCISE_TYPES: Readonly<{
   PREFLOP_VS_RERAISE: 'preflop_vs_reraise';
   CBET_BARRELS: 'cbet_barrels';
   TURN_RIVER: 'turn_river';
+  EQUITY_POT_ODDS: 'equity_pot_odds';
+}>;
+export const EQUITY_MODES: Readonly<{
+  KNOWN_HAND: 'known_hand';
+  RANGE: 'range';
+  POT_ODDS: 'pot_odds';
+  MIXED: 'mixed';
 }>;
 export const TRAINING_GAME_TYPES: Readonly<{
   CASH: 'cash';

@@ -1,14 +1,14 @@
 import express from 'express';
 import { getPublicAiModels } from '../ai/models.js';
 import { toPublicRefreshJob } from './trainingService.js';
-import { normalizeTrainingRefreshSampleSize } from './refreshService.js';
+import { normalizeTrainingRefreshSampleSize, normalizeTrainingRefreshScope, REFRESH_JOB_KINDS } from './refreshService.js';
 
 const asString = (value) => String(value ?? '').trim();
 const asBoolean = (value) => value === true || value === 'true' || value === '1';
 
 const getErrorStatus = (error) => {
   if (Number.isInteger(error?.status)) return error.status;
-  if (['TRAINING_REFRESH_CONFIRMATION_REQUIRED', 'TRAINING_REFRESH_RESUME_REQUIRED', 'TRAINING_SELECTION_REBUILD_BLOCKED'].includes(error?.code)) return 409;
+  if (['TRAINING_REFRESH_CONFIRMATION_REQUIRED', 'TRAINING_REFRESH_RESUME_REQUIRED', 'TRAINING_SELECTION_REBUILD_BLOCKED', 'TRAINING_EQUITY_ACTIVATION_BLOCKED'].includes(error?.code)) return 409;
   if (error?.code?.endsWith('_NOT_FOUND')) return 404;
   if (['TRAINING_COLLECTION_READ_FAILED', 'TRAINING_COLLECTION_WRITE_FAILED', 'TRAINING_COLLECTION_TOO_LARGE', 'TRAINING_COLLECTION_INVALID'].includes(error?.code)) return 503;
   if (['TrainingRefreshError', 'TrainingRepositoryError', 'TrainingServiceError'].includes(error?.name)) return 400;
@@ -60,6 +60,13 @@ export const createTrainingRouter = ({
     response.json({ ...status, models: getPublicAiModels(environment) });
   }));
 
+  router.post('/equity/activate', route(async (request, response) => {
+    const sampleSize = normalizeTrainingRefreshSampleSize(request.body?.sampleSize);
+    const activation = await trainingService.activateEquitySpots();
+    const status = await trainingService.getStatus({ sampleSize });
+    response.json({ activation, status: { ...status, models: getPublicAiModels(environment) } });
+  }));
+
   router.post('/refresh/scan', route(async (request, response) => {
     const sampleSize = normalizeTrainingRefreshSampleSize(request.body?.sampleSize);
     const before = await dataIndex.getSnapshot();
@@ -94,6 +101,7 @@ export const createTrainingRouter = ({
 
   router.post('/refresh/start', route(async (request, response) => {
     const sampleSize = normalizeTrainingRefreshSampleSize(request.body?.sampleSize);
+    const scope = normalizeTrainingRefreshScope(request.body?.scope);
     const selectedModel = getPublicAiModels(environment)
       .find(({ id }) => id === asString(request.body?.modelId));
     if (!selectedModel) {
@@ -108,20 +116,23 @@ export const createTrainingRouter = ({
       error.status = 503;
       throw error;
     }
-    const [dataset, scanState] = await Promise.all([
-      dataIndex.getSnapshot(),
-      repository.getScanState ? repository.getScanState() : repository.getSnapshot().then(({ scanState: state }) => state),
-    ]);
-    if (scanState.datasetRevision !== dataset.datasetRevision) {
-      const error = new Error('Najpierw wykonaj lokalny skan aktualnego datasetu.');
-      error.code = 'TRAINING_SCAN_STALE';
-      error.status = 409;
-      throw error;
+    if ([REFRESH_JOB_KINDS.ANSWER_KEYS, REFRESH_JOB_KINDS.MISSING_KEYS].includes(scope)) {
+      const [dataset, scanState] = await Promise.all([
+        dataIndex.getSnapshot(),
+        repository.getScanState ? repository.getScanState() : repository.getSnapshot().then(({ scanState: state }) => state),
+      ]);
+      if (scanState.datasetRevision !== dataset.datasetRevision) {
+        const error = new Error('Najpierw wykonaj lokalny skan aktualnego datasetu.');
+        error.code = 'TRAINING_SCAN_STALE';
+        error.status = 409;
+        throw error;
+      }
     }
     const job = await refreshService.startRefresh({
       modelId: request.body?.modelId,
       confirmed: request.body?.confirmed === true,
       sampleSize,
+      scope,
     });
     response.status(202).json({ job: toPublicRefreshJob(job) });
   }));

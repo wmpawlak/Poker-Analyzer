@@ -3,6 +3,7 @@ import {
   EXERCISE_TYPES,
   TRAINING_GAME_TYPES,
   TRAINING_GRADES,
+  EQUITY_MODES,
   isExerciseType,
   isTrainingGameType,
   isTrainingSessionSize,
@@ -17,13 +18,21 @@ import {
 } from './answerKeyContract.js';
 import { sameDecisionCardFacts } from './decisionCardFacts.js';
 import { orderTrainingSessionSpots } from './spotSelection.js';
+import { isEquitySupplementEligibleSpot } from './equitySupplementContract.js';
+import { getEquityAnswerOptions, getEquityBucket, gradeEquityBucket } from '../../src/parser/equityCalculator.js';
+import { buildEquityActivationStatus } from './trainingRepository.js';
 
 const ELIGIBLE_KEY = (key, spot) => key?.status === 'ready'
   && key?.confidence === 'high'
   && key?.localFactsValid === true
   && key?.contractVersion === TRAINING_ANSWER_KEY_CONTRACT_VERSION
   && key?.factsValidationVersion === CARD_FACTS_VALIDATION_VERSION
-  && sameDecisionCardFacts(key?.decisionCardFacts, spot?.decisionCardFacts);
+  && sameDecisionCardFacts(key?.decisionCardFacts, spot?.decisionCardFacts)
+  && (spot?.exerciseType !== EXERCISE_TYPES.EQUITY_POT_ODDS
+    || ([EQUITY_MODES.KNOWN_HAND, EQUITY_MODES.RANGE, EQUITY_MODES.POT_ODDS].includes(key?.equityMode)
+      && key?.equityResult?.calculatorVersion
+      && key.equityResult.calculatorVersion === spot?.equityCalculatorVersion
+      && key?.preferredAnswer === spot?.equityCorrectBucket));
 
 export class TrainingServiceError extends Error {
   constructor(code, message, status = 400) {
@@ -50,6 +59,72 @@ const getCurrentKey = (collection, spot) => {
   return ELIGIBLE_KEY(key, spot) ? key : null;
 };
 
+const getSourceAnswerKey = (collection, spot) => {
+  const sourceKeyId = spot?.sourceAnswerKeyId || spot?.actionAnswerKeyId;
+  if (!sourceKeyId) return null;
+  return collection?.answerKeys?.find(({ id }) => id === sourceKeyId) || null;
+};
+
+const isTwoStepEquitySpot = (spot) => Boolean(
+  spot?.exerciseType === EXERCISE_TYPES.EQUITY_POT_ODDS
+    && spot?.sourceSpotVersionId
+    && [EQUITY_MODES.RANGE, EQUITY_MODES.POT_ODDS].includes(spot?.equityMode),
+);
+
+const getQuestionAnswerOptions = (spot) => {
+  if (spot?.exerciseType === EXERCISE_TYPES.EQUITY_POT_ODDS && !isTwoStepEquitySpot(spot)) {
+    return getEquityAnswerOptions();
+  }
+  return isTwoStepEquitySpot(spot)
+    ? spot.actionAnswerOptions || spot.answerOptions || []
+    : spot.answerOptions || [];
+};
+
+const getCurrentEquityBucketId = (key) => getEquityBucket(
+  Number(key?.equityResult?.equityPercent ?? Number(key?.equityResult?.equity) * 100),
+)?.id || key?.equityCorrectBucket || key?.preferredAnswer || null;
+
+const evaluateTrainingAnswer = ({ spot, key, sourceKey = null, payload = {} }) => {
+  const twoStep = isTwoStepEquitySpot(spot);
+  const equityExercise = spot?.exerciseType === EXERCISE_TYPES.EQUITY_POT_ODDS;
+  const equityBucket = twoStep || equityExercise
+    ? asString(payload.equityBucket || (twoStep ? '' : payload.answer))
+    : null;
+  const answer = twoStep ? asString(payload.answer) : (equityExercise ? equityBucket : asString(payload.answer));
+  const actionKey = twoStep ? sourceKey : null;
+  if (twoStep && !actionKey) fail('TRAINING_ACTION_KEY_NOT_FOUND', 'Nie znaleziono aktualnego klucza strategicznego dla suplementu equity.', 409);
+  const actionOptions = getQuestionAnswerOptions(spot);
+  if (!answer || !actionOptions.some(({ id }) => id === answer)) {
+    fail('TRAINING_ANSWER_INVALID', 'Wybrana odpowiedź nie jest legalna dla tego spotu.');
+  }
+  if (equityExercise && !getEquityAnswerOptions().some(({ id }) => id === equityBucket)) {
+    fail('TRAINING_EQUITY_BUCKET_INVALID', 'Wybierz wartość equity.');
+  }
+  const equityEvaluation = equityExercise
+    ? gradeEquityBucket(equityBucket, key?.equityResult)
+    : null;
+  const actionGrade = twoStep
+    ? answer === actionKey.preferredAnswer
+      ? TRAINING_GRADES.CORRECT
+      : actionKey.acceptableAlternatives?.includes(answer)
+        ? TRAINING_GRADES.ACCEPTABLE
+        : TRAINING_GRADES.INCORRECT
+    : equityExercise ? null : (
+      answer === key.preferredAnswer
+        ? TRAINING_GRADES.CORRECT
+        : key.acceptableAlternatives?.includes(answer)
+          ? TRAINING_GRADES.ACCEPTABLE
+          : TRAINING_GRADES.INCORRECT
+    );
+  return {
+    answer,
+    equityBucket,
+    equityGrade: equityEvaluation?.grade || null,
+    actionGrade,
+    grade: twoStep ? actionGrade : equityExercise ? equityEvaluation.grade : actionGrade,
+  };
+};
+
 const isUsableSessionSpot = (collection, spot) => Boolean(
   spot?.sourceStatus === 'current' && spot?.readiness === 'ready' && getCurrentKey(collection, spot),
 );
@@ -62,10 +137,25 @@ const normalizeSize = (value) => {
   return normalized;
 };
 
+const normalizeEquityMode = (value, exerciseType) => {
+  if (exerciseType !== EXERCISE_TYPES.EQUITY_POT_ODDS) {
+    if (value !== undefined && value !== null && value !== '') {
+      fail('TRAINING_EQUITY_MODE_INVALID', 'Poziom equity jest dostÄ™pny wyĹ‚Ä…cznie dla Ä‡wiczenia Equity i pot odds.');
+    }
+    return null;
+  }
+  const mode = asString(value) || EQUITY_MODES.KNOWN_HAND;
+  if (![EQUITY_MODES.KNOWN_HAND, EQUITY_MODES.RANGE, EQUITY_MODES.POT_ODDS, EQUITY_MODES.MIXED].includes(mode)) {
+    fail('TRAINING_EQUITY_MODE_INVALID', 'Nieznany poziom Ä‡wiczenia equity.');
+  }
+  return mode;
+};
+
 const toPublicSession = (session) => ({
   id: session.id,
   exerciseType: session.exerciseType,
   gameType: session.gameType,
+  equityMode: session.equityMode || null,
   requestedSize: session.requestedSize,
   targetSize: session.targetSize,
   status: session.status,
@@ -78,27 +168,52 @@ const toPublicSession = (session) => ({
   abandonedAt: session.abandonedAt || null,
 });
 
-const toPublicQuestion = (spot) => ({
+const hasCurrentEquitySupplement = (spot, source) => {
+  if (spot?.equitySupplementAvailable === true) return true;
+  const supplements = source?.equitySupplements || [];
+  return supplements.some((supplement) => (
+    supplement?.spotVersionId === spot?.versionId
+      && supplement?.answerKeyId === spot?.currentAnswerKeyId
+      && !supplement?.staleAt
+  ));
+};
+
+const toPublicQuestion = (spot, source = null) => ({
   spotVersionId: spot.versionId,
   exerciseType: spot.exerciseType,
   gameType: spot.gameType,
   street: spot.street,
   stage: spot.stage || null,
   scenario: spot.scenario || null,
+  equityMode: spot.equityMode || spot.question?.equityMode || null,
+  equityPrompt: spot.question?.equityPrompt || null,
+  equityAnswerOptions: spot.exerciseType === EXERCISE_TYPES.EQUITY_POT_ODDS
+    ? getEquityAnswerOptions()
+    : clone(spot.equityAnswerOptions || []),
+  actionAnswerOptions: clone(spot.actionAnswerOptions || []),
+  opponentRange: spot.opponentRange ? clone(spot.opponentRange) : null,
+  equitySupplement: spot.equitySupplementId ? {
+    id: spot.equitySupplementId,
+    range: spot.opponentRange ? clone(spot.opponentRange) : [],
+    model: spot.equitySupplementModel ? clone(spot.equitySupplementModel) : null,
+  } : null,
   episodeId: spot.episodeId || null,
   sequenceIndex: spot.sequenceIndex || null,
   sequenceLength: spot.sequenceLength || null,
   usesHistoricalLine: Boolean(spot.usesHistoricalLine),
   continuationNotice: spot.continuationNotice || null,
   decisionCardFacts: clone(spot.decisionCardFacts || null),
+  ...(spot.exerciseType !== EXERCISE_TYPES.EQUITY_POT_ODDS ? {
+    equitySupplementAvailable: hasCurrentEquitySupplement(spot, source),
+  } : {}),
   question: clone(spot.question),
-  answerOptions: clone(spot.answerOptions),
+  answerOptions: clone(getQuestionAnswerOptions(spot)),
 });
 
 const toPublicAnswerKey = (key) => ({
   id: key.id,
   spotVersionId: key.spotVersionId,
-  preferredAnswer: key.preferredAnswer,
+  preferredAnswer: key.equityMode ? getCurrentEquityBucketId(key) : key.preferredAnswer,
   decisionCardFacts: clone(key.decisionCardFacts || null),
   factsValidationVersion: key.factsValidationVersion || null,
   acceptableAlternatives: clone(key.acceptableAlternatives || []),
@@ -109,6 +224,11 @@ const toPublicAnswerKey = (key) => ({
   suggestedSizing: key.suggestedSizing ? clone(key.suggestedSizing) : null,
   contractVersion: key.contractVersion,
   model: key.model ? clone(key.model) : null,
+  ...(key.equityMode ? {
+    equityMode: key.equityMode,
+    equityResult: clone(key.equityResult || null),
+    equityCorrectBucket: getCurrentEquityBucketId(key),
+  } : {}),
   createdAt: key.createdAt,
 });
 
@@ -140,7 +260,7 @@ const getHistoricalDecision = (spot, key) => {
   return { grade, answer, comment };
 };
 
-const buildAnswerFeedback = async ({ attempt, spot, key, getHandAnalysisSummary }) => {
+const buildAnswerFeedback = async ({ attempt, spot, key, sourceKey = null, getHandAnalysisSummary }) => {
   let historicalSummary = null;
   try {
     historicalSummary = asString(await getHandAnalysisSummary(spot.handId)) || null;
@@ -150,6 +270,27 @@ const buildAnswerFeedback = async ({ attempt, spot, key, getHandAnalysisSummary 
   return {
     grade: attempt.grade,
     answerKey: toPublicAnswerKey(key),
+    ...(spot?.exerciseType === EXERCISE_TYPES.EQUITY_POT_ODDS ? {
+      equity: clone(key.equityResult || null),
+      equityGrade: attempt.equityGrade || attempt.grade,
+      actionGrade: attempt.actionGrade || null,
+      equityBucket: attempt.equityBucket || attempt.answer || null,
+      correctEquityBucket: getCurrentEquityBucketId(key),
+      ...(sourceKey ? { actionAnswerKey: toPublicAnswerKey(sourceKey) } : {}),
+      ...(key.equityMode === EQUITY_MODES.POT_ODDS ? {
+        requiredEquity: Number(spot.question?.potOdds) || (
+          Number(spot.question?.toCall) > 0
+            ? Number(spot.question.toCall) / (Number(spot.question?.pot || 0) + Number(spot.question.toCall))
+            : 0
+        ),
+        equityDifference: (Number(key.equityResult?.equity) || Number(key.equityResult?.equityPercent) / 100 || 0)
+          - (Number(spot.question?.potOdds) || (
+            Number(spot.question?.toCall) > 0
+              ? Number(spot.question.toCall) / (Number(spot.question?.pot || 0) + Number(spot.question.toCall))
+              : 0
+          )),
+      } : {}),
+    } : {}),
     historicalAction: clone(spot.historicalAnswer),
     historicalResult: spot.historicalResult ? clone(spot.historicalResult) : null,
     historicalDecision: getHistoricalDecision(spot, key),
@@ -162,6 +303,7 @@ const toPublicRefreshJob = (job) => job ? ({
   status: job.status,
   modelId: job.modelId,
   contractVersion: job.contractVersion,
+  jobKind: job.jobKind || 'answer_keys',
   batchSize: job.batchSize,
   sampleSize: job.sampleSize || null,
   candidateCount: job.candidateCount,
@@ -175,6 +317,7 @@ const toPublicRefreshJob = (job) => job ? ({
   processedSpotCount: job.processedSpotCount,
   skippedSpotCount: job.skippedSpotCount,
   savedKeyCount: job.savedKeyCount,
+  savedSupplementCount: Number(job.savedSupplementCount) || 0,
   readyKeyCount: job.readyKeyCount,
   reviewKeyCount: job.reviewKeyCount,
   invalidKeyCount: job.invalidKeyCount,
@@ -253,11 +396,61 @@ const emptyPoolSummary = () => ({
   matching: 0, selected: 0, current: 0, active: 0, ready: 0, pending: 0, review: 0, locallyRejected: 0,
 });
 
+const equityModeCounts = () => ({
+  [EQUITY_MODES.KNOWN_HAND]: 0,
+  [EQUITY_MODES.RANGE]: 0,
+  [EQUITY_MODES.POT_ODDS]: 0,
+});
+
+const buildEquitySupplementStatus = (collection) => {
+  const spots = collection?.spots || [];
+  const selectedIds = Array.isArray(collection?.selectedSpotVersionIds)
+    ? new Set(collection.selectedSpotVersionIds)
+    : null;
+  const keys = new Map((collection?.answerKeys || []).map((key) => [key.id, key]));
+  const supplements = collection?.equitySupplements || [];
+  const supplementedIds = new Set(supplements.filter((supplement) => {
+    if (selectedIds && !selectedIds.has(supplement.spotVersionId)) return false;
+    const spot = spots.find((candidate) => candidate.versionId === supplement.spotVersionId);
+    const key = keys.get(spot?.currentAnswerKeyId);
+    return spot && key && supplement.answerKeyId === key.id && !supplement.staleAt
+      && supplement.rangeContractVersion === 1;
+  }).map((supplement) => supplement.spotVersionId));
+  const readyByGroup = {};
+  const addGroup = (spot, field) => {
+    const group = `${spot.exerciseType}:${spot.gameType}`;
+    readyByGroup[group] ||= { ready: 0, supplemented: 0, pending: 0 };
+    readyByGroup[group][field] += 1;
+  };
+  let readyCount = 0;
+  spots.forEach((spot) => {
+    if (spot.sourceStatus !== 'current' || spot.exerciseType === EXERCISE_TYPES.EQUITY_POT_ODDS
+      || (selectedIds && !selectedIds.has(spot.versionId))) return;
+    const key = keys.get(spot.currentAnswerKeyId);
+    if (!isEquitySupplementEligibleSpot(spot, key)) return;
+    readyCount += 1;
+    addGroup(spot, 'ready');
+    if (supplementedIds.has(spot.versionId)) addGroup(spot, 'supplemented');
+    else addGroup(spot, 'pending');
+  });
+  const supplementedCount = supplementedIds.size;
+  return {
+    readyCount,
+    supplementedCount,
+    pendingCount: Math.max(0, readyCount - supplementedCount),
+    estimatedRequests: Math.ceil(Math.max(0, readyCount - supplementedCount) / 20),
+    batchSize: 20,
+    coverage: readyByGroup,
+  };
+};
+
 const buildStatus = (collection, sampleSize) => {
   const pools = Object.fromEntries(Object.values(EXERCISE_TYPES).map((exerciseType) => [
     exerciseType,
     { cash: emptyPoolSummary(), tournament: emptyPoolSummary() },
   ]));
+  pools[EXERCISE_TYPES.EQUITY_POT_ODDS].cash.modeCounts = equityModeCounts();
+  pools[EXERCISE_TYPES.EQUITY_POT_ODDS].tournament.modeCounts = equityModeCounts();
   const selectedIds = new Set(collection.selectionState?.selectedSpotVersionIds || []);
   Object.entries(collection.selectionState?.poolStats || {}).forEach(([key, stats]) => {
     const [exerciseType, gameType] = key.split(':');
@@ -273,6 +466,9 @@ const buildStatus = (collection, sampleSize) => {
     if (!pool.matching) pool.matching += 1;
     if (selectedIds.has(spot.versionId)) pool.selected += 1;
     if (spot.active) pool.active += 1;
+    if (spot.exerciseType === EXERCISE_TYPES.EQUITY_POT_ODDS && pool.modeCounts?.[spot.equityMode] !== undefined) {
+      if (spot.active) pool.modeCounts[spot.equityMode] += 1;
+    }
     if (selectedIds.has(spot.versionId) && spot.readiness === 'ready') pool.ready += 1;
     if (selectedIds.has(spot.versionId) && spot.readiness === 'pending_key') pool.pending += 1;
     if (selectedIds.has(spot.versionId) && spot.readiness === 'review') pool.review += 1;
@@ -319,6 +515,15 @@ const buildStatus = (collection, sampleSize) => {
       groups: estimate.groups,
       locallyRejectedCount: estimate.locallyRejectedCount,
     },
+    equitySupplement: buildEquitySupplementStatus({
+      ...collection,
+      selectedSpotVersionIds: collection.selectionState?.selectedSpotVersionIds || [],
+    }),
+    equitySupplementStatus: buildEquitySupplementStatus({
+      ...collection,
+      selectedSpotVersionIds: collection.selectionState?.selectedSpotVersionIds || [],
+    }),
+    equityActivation: buildEquityActivationStatus(collection),
     refreshJob: toPublicRefreshJob(refresh),
     resumableRefreshJob: toPublicRefreshJob(resumableRefresh),
     lastUsedModel: refresh?.modelId || null,
@@ -338,6 +543,60 @@ const buildStatus = (collection, sampleSize) => {
   };
 };
 
+const emptyEquityActivationPool = () => ({
+  candidateCount: 0,
+  activeCount: 0,
+  desiredCount: 0,
+  candidateModeCounts: equityModeCounts(),
+  activeModeCounts: equityModeCounts(),
+  desiredModeCounts: equityModeCounts(),
+});
+
+const balancedEquityModeCounts = (candidateModeCounts, limit) => {
+  const selected = equityModeCounts();
+  const target = Math.min(
+    Math.max(0, Number(limit) || 0),
+    Object.values(candidateModeCounts).reduce((sum, count) => sum + (Number(count) || 0), 0),
+  );
+  while (Object.values(selected).reduce((sum, count) => sum + count, 0) < target) {
+    const modes = Object.entries(candidateModeCounts)
+      .filter(([mode, count]) => (Number(count) || 0) > selected[mode])
+      .sort(([leftMode], [rightMode]) => selected[leftMode] - selected[rightMode]);
+    const mode = modes[0]?.[0];
+    if (!mode) break;
+    selected[mode] += 1;
+  }
+  return selected;
+};
+
+const buildEquityActivationStatusFromDatabase = (rows, limit) => {
+  const pools = Object.fromEntries(['cash', 'tournament'].map((gameType) => [gameType, emptyEquityActivationPool()]));
+  (rows || []).forEach((row) => {
+    const pool = pools[row.game_type];
+    const mode = row.equity_mode;
+    if (!pool || pool.candidateModeCounts[mode] === undefined) return;
+    const candidates = Number(row.candidate_count) || 0;
+    const active = Number(row.active_count) || 0;
+    pool.candidateCount += candidates;
+    pool.activeCount += active;
+    pool.candidateModeCounts[mode] += candidates;
+    pool.activeModeCounts[mode] += active;
+  });
+  Object.values(pools).forEach((pool) => {
+    pool.desiredModeCounts = balancedEquityModeCounts(pool.candidateModeCounts, limit);
+    pool.desiredCount = Object.values(pool.desiredModeCounts).reduce((sum, count) => sum + count, 0);
+  });
+  const candidateCount = Object.values(pools).reduce((sum, pool) => sum + pool.candidateCount, 0);
+  const activeCount = Object.values(pools).reduce((sum, pool) => sum + pool.activeCount, 0);
+  const desiredCount = Object.values(pools).reduce((sum, pool) => sum + pool.desiredCount, 0);
+  const needsActivation = Object.values(pools).some((pool) => (
+    Object.keys(pool.desiredModeCounts).some((mode) => (
+      pool.activeModeCounts[mode] !== pool.desiredModeCounts[mode]
+    ))
+  ));
+  return { needsActivation, candidateCount, activeCount, desiredCount, limit, pools };
+};
+
 const buildStatusFromDatabase = (data, sampleSize) => {
   const pools = Object.fromEntries(Object.values(EXERCISE_TYPES).map((exerciseType) => [
     exerciseType,
@@ -354,6 +613,15 @@ const buildStatusFromDatabase = (data, sampleSize) => {
     pool.pending = Number(row.pending_count) || 0;
     pool.review = Number(row.review_count) || 0;
     pool.locallyRejected = Number(row.locally_rejected_count) || 0;
+  });
+  const equityActivation = buildEquityActivationStatusFromDatabase(
+    data.equityActivationRows,
+    data.metadata.selection_limit,
+  );
+  ['cash', 'tournament'].forEach((gameType) => {
+    pools[EXERCISE_TYPES.EQUITY_POT_ODDS][gameType].modeCounts = {
+      ...equityActivation.pools[gameType].activeModeCounts,
+    };
   });
   const estimate = estimateTrainingRefresh(
     { spots: data.estimateData.spots, auditState: { excludedHands: [] } },
@@ -397,6 +665,17 @@ const buildStatusFromDatabase = (data, sampleSize) => {
       groups: estimate.groups,
       locallyRejectedCount: estimate.locallyRejectedCount,
     },
+    equitySupplement: buildEquitySupplementStatus({
+      spots: data.equityData?.spots || [],
+      answerKeys: data.equityData?.answerKeys || [],
+      equitySupplements: data.equityData?.equitySupplements || [],
+    }),
+    equitySupplementStatus: buildEquitySupplementStatus({
+      spots: data.equityData?.spots || [],
+      answerKeys: data.equityData?.answerKeys || [],
+      equitySupplements: data.equityData?.equitySupplements || [],
+    }),
+    equityActivation,
     refreshJob: toPublicRefreshJob(refresh),
     resumableRefreshJob: toPublicRefreshJob(resumableRefresh),
     lastUsedModel: refresh?.modelId || null,
@@ -490,10 +769,14 @@ export const createTrainingService = ({
         exerciseType: input.exerciseType,
         gameType: input.gameType || TRAINING_GAME_TYPES.BOTH,
       });
+      const equityMode = normalizeEquityMode(input.equityMode, filters.exerciseType);
       if (!filters.exerciseType) fail('TRAINING_EXERCISE_TYPE_REQUIRED', 'Wybierz typ ćwiczenia.');
       const requestedSize = normalizeSize(input.size);
       if (input.resume === true && repository.getActiveTrainingSessions) {
-        const resumed = (await repository.getActiveTrainingSessions(filters))[0];
+        const resumed = (await repository.getActiveTrainingSessions(filters)).find((candidate) => (
+          filters.exerciseType !== EXERCISE_TYPES.EQUITY_POT_ODDS
+            || !equityMode || equityMode === EQUITY_MODES.MIXED || candidate.equityMode === equityMode
+        ));
         if (resumed) return { resumed: true, session: toPublicSession(resumed) };
       }
       const spots = keepCompleteCbetEpisodes(
@@ -502,11 +785,15 @@ export const createTrainingService = ({
           : (await repository.getSnapshot()).spots.filter((spot) => spot.active && spotMatches(spot, filters)),
         filters.exerciseType,
       );
-      if (spots.length === 0) fail('TRAINING_NO_ACTIVE_SPOTS', 'Brak gotowych spotów dla wybranych filtrów.', 409);
+      const modeFilteredSpots = spots.filter((spot) => (
+        filters.exerciseType !== EXERCISE_TYPES.EQUITY_POT_ODDS
+          || !equityMode || equityMode === EQUITY_MODES.MIXED || spot.equityMode === equityMode
+      ));
+      if (modeFilteredSpots.length === 0) fail('TRAINING_NO_ACTIVE_SPOTS', 'Brak gotowych spotów dla wybranych filtrów.', 409);
       const attempts = repository.getTrainingAttemptsForSpots
-        ? await repository.getTrainingAttemptsForSpots(spots.map(({ versionId }) => versionId))
+        ? await repository.getTrainingAttemptsForSpots(modeFilteredSpots.map(({ versionId }) => versionId))
         : (await repository.getSnapshot()).attempts;
-      const orderedSpots = orderTrainingSessionSpots(spots, attempts, {
+      const orderedSpots = orderTrainingSessionSpots(modeFilteredSpots, attempts, {
         limit: requestedSize === 'all' ? Number.POSITIVE_INFINITY : requestedSize,
         random,
       });
@@ -519,6 +806,7 @@ export const createTrainingService = ({
         id: idFactory('training-session'),
         exerciseType: filters.exerciseType,
         gameType: filters.gameType || TRAINING_GAME_TYPES.BOTH,
+        equityMode,
         requestedSize,
         targetSize,
         status: 'active',
@@ -616,7 +904,7 @@ export const createTrainingService = ({
         if (spot && isUsableSessionSpot(collection, spot)) {
           session.updatedAt = timestamp;
           await repository.saveTrainingSession(session);
-          return { session: toPublicSession(session), question: toPublicQuestion(spot) };
+          return { session: toPublicSession(session), question: toPublicQuestion(spot, collection) };
         }
         session.currentSpotVersionId = null;
         const answered = new Set(session.answeredSpotVersionIds || []);
@@ -654,7 +942,7 @@ export const createTrainingService = ({
         session.currentSpotVersionId = spot.versionId;
         session.updatedAt = timestamp;
         await repository.saveTrainingSession(session);
-        return { session: toPublicSession(session), question: toPublicQuestion(spot) };
+        return { session: toPublicSession(session), question: toPublicQuestion(spot, collection) };
       }
       const result = await repository.transact((collection, timestamp) => {
         const session = collection.sessions.find(({ id }) => id === asString(sessionId));
@@ -666,7 +954,7 @@ export const createTrainingService = ({
         let spot = collection.spots.find(({ versionId }) => versionId === session.currentSpotVersionId);
         if (spot && isUsableSessionSpot(collection, spot)) {
           session.updatedAt = timestamp;
-          return { session: toPublicSession(session), question: toPublicQuestion(spot) };
+          return { session: toPublicSession(session), question: toPublicQuestion(spot, collection) };
         }
         session.currentSpotVersionId = null;
         const answered = new Set(session.answeredSpotVersionIds || []);
@@ -698,7 +986,7 @@ export const createTrainingService = ({
         }
         session.currentSpotVersionId = spot.versionId;
         session.updatedAt = timestamp;
-        return { session: toPublicSession(session), question: toPublicQuestion(spot) };
+        return { session: toPublicSession(session), question: toPublicQuestion(spot, collection) };
       });
       return result.result;
     },
@@ -728,18 +1016,18 @@ export const createTrainingService = ({
           fail('TRAINING_SPOT_UNAVAILABLE', 'Spot nie jest juĹĽ dostÄ™pny w aktualnym datasecie.', 409);
         }
         const answer = asString(payload.answer);
-        if (!spot.answerOptions.some(({ id }) => id === answer)) {
+        if (!getQuestionAnswerOptions(spot).some(({ id }) => id === answer)) {
           fail('TRAINING_ANSWER_INVALID', 'Wybrana odpowiedĹş nie jest legalna dla tego spotu.');
         }
-        const grade = answer === key.preferredAnswer
-          ? TRAINING_GRADES.CORRECT
-          : key.acceptableAlternatives?.includes(answer)
-            ? TRAINING_GRADES.ACCEPTABLE
-            : TRAINING_GRADES.INCORRECT;
+        const evaluation = evaluateTrainingAnswer({ spot, key, sourceKey: context.sourceKey || null, payload });
+        const { equityBucket, equityGrade, actionGrade, grade } = evaluation;
         const timestamp = new Date().toISOString();
         const attempt = {
           id: idFactory('training-attempt'), sessionId: session.id, spotVersionId, answer, grade,
           answerKeyId: key.id, answeredAt: timestamp, createdAt: timestamp, updatedAt: timestamp,
+          ...(equityBucket ? { equityBucket } : {}),
+          ...(equityGrade ? { equityGrade } : {}),
+          ...(actionGrade ? { actionGrade } : {}),
         };
         const score = { correct: 0, acceptable: 0, incorrect: 0, ...(session.score || {}) };
         score[grade] += 1;
@@ -754,7 +1042,7 @@ export const createTrainingService = ({
           completedAt: answeredCount >= session.targetSize ? timestamp : null,
           updatedAt: timestamp,
         };
-        const feedback = await buildAnswerFeedback({ attempt, spot, key, getHandAnalysisSummary });
+        const feedback = await buildAnswerFeedback({ attempt, spot, key, sourceKey: context.sourceKey || null, getHandAnalysisSummary });
         const saved = await repository.saveTrainingAttemptAndAdvance(attempt, sessionPatch);
         if (saved?.duplicate) {
           fail('TRAINING_ANSWER_ALREADY_SAVED', 'OdpowiedĹş na to pytanie zostaĹ‚a juĹĽ zapisana.', 409);
@@ -789,19 +1077,20 @@ export const createTrainingService = ({
           fail('TRAINING_SPOT_UNAVAILABLE', 'Spot nie jest już dostępny w aktualnym datasecie.', 409);
         }
         const answer = asString(payload.answer);
-        if (!spot.answerOptions.some(({ id }) => id === answer)) {
+        if (!getQuestionAnswerOptions(spot).some(({ id }) => id === answer)) {
           fail('TRAINING_ANSWER_INVALID', 'Wybrana odpowiedź nie jest legalna dla tego spotu.');
         }
         const key = getCurrentKey(context, spot);
-        const grade = answer === key.preferredAnswer
-          ? TRAINING_GRADES.CORRECT
-          : key.acceptableAlternatives?.includes(answer)
-            ? TRAINING_GRADES.ACCEPTABLE
-            : TRAINING_GRADES.INCORRECT;
+        const sourceKey = getSourceAnswerKey(context, spot);
+        const evaluation = evaluateTrainingAnswer({ spot, key, sourceKey, payload });
+        const { equityBucket, equityGrade, actionGrade, grade } = evaluation;
         const timestamp = new Date().toISOString();
         const attempt = {
           id: idFactory('training-attempt'), sessionId: session.id, spotVersionId, answer, grade,
           answerKeyId: key.id, answeredAt: timestamp, createdAt: timestamp, updatedAt: timestamp,
+          ...(equityBucket ? { equityBucket } : {}),
+          ...(equityGrade ? { equityGrade } : {}),
+          ...(actionGrade ? { actionGrade } : {}),
         };
         session.answeredSpotVersionIds = [...(session.answeredSpotVersionIds || []), spotVersionId];
         session.currentSpotVersionId = null;
@@ -813,7 +1102,7 @@ export const createTrainingService = ({
           session.status = 'completed';
           session.completedAt = timestamp;
         }
-        const feedback = await buildAnswerFeedback({ attempt, spot, key, getHandAnalysisSummary });
+        const feedback = await buildAnswerFeedback({ attempt, spot, key, sourceKey, getHandAnalysisSummary });
         if (repository.saveTrainingAttemptAndSession) {
           const saved = await repository.saveTrainingAttemptAndSession(attempt, session);
           if (saved?.duplicate) {
@@ -845,15 +1134,13 @@ export const createTrainingService = ({
           fail('TRAINING_SPOT_UNAVAILABLE', 'Spot nie jest już dostępny w aktualnym datasecie.', 409);
         }
         const answer = asString(payload.answer);
-        if (!spot.answerOptions.some(({ id }) => id === answer)) {
+        if (!getQuestionAnswerOptions(spot).some(({ id }) => id === answer)) {
           fail('TRAINING_ANSWER_INVALID', 'Wybrana odpowiedź nie jest legalna dla tego spotu.');
         }
         const key = getCurrentKey(collection, spot);
-        const grade = answer === key.preferredAnswer
-          ? TRAINING_GRADES.CORRECT
-          : key.acceptableAlternatives?.includes(answer)
-            ? TRAINING_GRADES.ACCEPTABLE
-            : TRAINING_GRADES.INCORRECT;
+        const sourceKey = getSourceAnswerKey(collection, spot);
+        const evaluation = evaluateTrainingAnswer({ spot, key, sourceKey, payload });
+        const { equityBucket, equityGrade, actionGrade, grade } = evaluation;
         const attempt = {
           id: idFactory('training-attempt'),
           sessionId: session.id,
@@ -864,6 +1151,9 @@ export const createTrainingService = ({
           answeredAt: timestamp,
           createdAt: timestamp,
           updatedAt: timestamp,
+          ...(equityBucket ? { equityBucket } : {}),
+          ...(equityGrade ? { equityGrade } : {}),
+          ...(actionGrade ? { actionGrade } : {}),
         };
         collection.attempts.push(attempt);
         session.answeredSpotVersionIds = [...(session.answeredSpotVersionIds || []), spotVersionId];
@@ -880,6 +1170,7 @@ export const createTrainingService = ({
           attempt,
           spot,
           key,
+          sourceKey,
           getHandAnalysisSummary,
         });
         return {
@@ -909,8 +1200,14 @@ export const createTrainingService = ({
             return {
               spotVersionId: attempt.spotVersionId,
               answer: attempt.answer,
-              question: toPublicQuestion(spot),
-              feedback: await buildAnswerFeedback({ attempt, spot, key, getHandAnalysisSummary }),
+              question: toPublicQuestion(spot, collection),
+              feedback: await buildAnswerFeedback({
+                attempt,
+                spot,
+                key,
+                sourceKey: getSourceAnswerKey(collection, spot),
+                getHandAnalysisSummary,
+              }),
             };
           }));
         return { reviews: reviews.filter(Boolean) };
@@ -933,11 +1230,12 @@ export const createTrainingService = ({
           return {
             spotVersionId: attempt.spotVersionId,
             answer: attempt.answer,
-            question: toPublicQuestion(spot),
+            question: toPublicQuestion(spot, collection),
             feedback: await buildAnswerFeedback({
               attempt,
               spot,
               key,
+              sourceKey: getSourceAnswerKey(collection, spot),
               getHandAnalysisSummary,
             }),
           };
@@ -1002,6 +1300,23 @@ export const createTrainingService = ({
           return spot && spotMatches(spot, filters);
         }).length,
       };
+    },
+
+    activateEquitySpots: async () => {
+      if (typeof repository.activateEquitySpots !== 'function') {
+        fail('TRAINING_EQUITY_ACTIVATION_UNSUPPORTED', 'Repozytorium nie obsługuje aktywacji ćwiczeń equity.');
+      }
+      if (isRefreshRunning()) {
+        fail('TRAINING_EQUITY_ACTIVATION_BLOCKED', 'Poczekaj na zakończenie działającego zadania AI przed aktywacją ćwiczeń equity.', 409);
+      }
+      const refreshJobs = repository.getRefreshJobs
+        ? await repository.getRefreshJobs()
+        : (await repository.getSnapshot()).refreshJobs;
+      if (refreshJobs.some(({ status }) => status === 'running' || status === 'stop_requested')) {
+        fail('TRAINING_EQUITY_ACTIVATION_BLOCKED', 'Poczekaj na zakończenie działającego zadania AI przed aktywacją ćwiczeń equity.', 409);
+      }
+      const activated = await repository.activateEquitySpots();
+      return activated.result ?? activated;
     },
 
     reset: async ({ scope, confirmed = false } = {}) => {
@@ -1090,12 +1405,16 @@ export const createTrainingService = ({
       const filters = validateFilters(query);
       if (repository.getTrainingStatsRows) {
         const total = createAccumulator();
+        const equity = createAccumulator();
+        const action = createAccumulator();
         const byExerciseType = new Map();
         const byGameType = new Map();
         const byPosition = new Map();
         const byStack = new Map();
         (await repository.getTrainingStatsRows(filters)).forEach((row) => {
           addGrade(total, row.grade);
+          if (row.equity_grade) addGrade(equity, row.equity_grade);
+          if (row.action_grade) addGrade(action, row.action_grade);
           addGrouped(byExerciseType, row.exercise_type, row.grade);
           addGrouped(byGameType, row.game_type, row.grade);
           addGrouped(byPosition, row.hero_position, row.grade);
@@ -1107,11 +1426,15 @@ export const createTrainingService = ({
           byGameType: finishGroups(byGameType),
           byPosition: finishGroups(byPosition),
           byStack: finishGroups(byStack),
+          equity: finishAccumulator(equity),
+          action: finishAccumulator(action),
         };
       }
       const collection = await repository.getSnapshot();
       const spots = new Map(collection.spots.map((spot) => [spot.versionId, spot]));
       const total = createAccumulator();
+      const equity = createAccumulator();
+      const action = createAccumulator();
       const byExerciseType = new Map();
       const byGameType = new Map();
       const byPosition = new Map();
@@ -1120,6 +1443,8 @@ export const createTrainingService = ({
         const spot = spots.get(attempt.spotVersionId);
         if (!spot || !spotMatches(spot, filters)) return;
         addGrade(total, attempt.grade);
+        if (attempt.equityGrade) addGrade(equity, attempt.equityGrade);
+        if (attempt.actionGrade) addGrade(action, attempt.actionGrade);
         addGrouped(byExerciseType, spot.exerciseType, attempt.grade);
         addGrouped(byGameType, spot.gameType, attempt.grade);
         addGrouped(byPosition, spot.question?.heroPosition, attempt.grade);
@@ -1131,6 +1456,8 @@ export const createTrainingService = ({
         byGameType: finishGroups(byGameType),
         byPosition: finishGroups(byPosition),
         byStack: finishGroups(byStack),
+        equity: finishAccumulator(equity),
+        action: finishAccumulator(action),
       };
     },
   };

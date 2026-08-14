@@ -79,32 +79,62 @@ export const createApiApp = ({
     dataIndex,
     logger,
   });
-  const trainingRepository = injectedTrainingRepository || createTrainingRepository({
-    dataDirectory: cacheDataDirectory,
-  });
-  const trainingRefreshService = injectedTrainingRefreshService || createTrainingRefreshService({
-    repository: trainingRepository,
-    ...(trainingAnalyzeBatch ? { analyzeBatch: trainingAnalyzeBatch } : {}),
-    ...(trainingIdFactory ? { idFactory: trainingIdFactory } : {}),
-    environment,
-    fetchImpl,
-    logger,
-    instanceId: trainingInstanceId,
-  });
-  const trainingService = injectedTrainingService || createTrainingService({
-    repository: trainingRepository,
-    ...(trainingRandom ? { random: trainingRandom } : {}),
-    ...(trainingIdFactory ? { idFactory: trainingIdFactory } : {}),
-    instanceId: trainingInstanceId,
-    isRefreshRunning: () => trainingRefreshService.hasActiveRun?.() === true,
-    getHandAnalysisSummary: async (handId) => {
-      const reports = (await readAiAnalysesCache(cacheDataDirectory)).handAnalyses[String(handId)] || [];
-      const newest = [...reports].sort((left, right) => (
-        (Date.parse(right?.analyzedAt || '') || 0) - (Date.parse(left?.analyzedAt || '') || 0)
-      ))[0];
-      return String(newest?.analysis?.summary || '').trim().slice(0, 1_500) || null;
-    },
-  });
+  let trainingRuntimePromise = null;
+  const createTrainingRuntime = () => {
+    const trainingRepository = injectedTrainingRepository || createTrainingRepository({
+      dataDirectory: cacheDataDirectory,
+    });
+    const trainingRefreshService = injectedTrainingRefreshService || createTrainingRefreshService({
+      repository: trainingRepository,
+      ...(trainingAnalyzeBatch ? { analyzeBatch: trainingAnalyzeBatch } : {}),
+      ...(trainingIdFactory ? { idFactory: trainingIdFactory } : {}),
+      environment,
+      fetchImpl,
+      logger,
+      instanceId: trainingInstanceId,
+    });
+    const trainingService = injectedTrainingService || createTrainingService({
+      repository: trainingRepository,
+      ...(trainingRandom ? { random: trainingRandom } : {}),
+      ...(trainingIdFactory ? { idFactory: trainingIdFactory } : {}),
+      instanceId: trainingInstanceId,
+      isRefreshRunning: () => trainingRefreshService.hasActiveRun?.() === true,
+      getHandAnalysisSummary: async (handId) => {
+        const reports = (await readAiAnalysesCache(cacheDataDirectory)).handAnalyses[String(handId)] || [];
+        const newest = [...reports].sort((left, right) => (
+          (Date.parse(right?.analyzedAt || '') || 0) - (Date.parse(left?.analyzedAt || '') || 0)
+        ))[0];
+        return String(newest?.analysis?.summary || '').trim().slice(0, 1_500) || null;
+      },
+    });
+    const router = createTrainingRouter({
+      repository: trainingRepository,
+      refreshService: trainingRefreshService,
+      trainingService,
+      dataIndex,
+      dataDirectory: cacheDataDirectory,
+      readCanonicalRecords: readTrainingRecords,
+      environment,
+      logger,
+    });
+    return { repository: trainingRepository, refreshService: trainingRefreshService, trainingService, router };
+  };
+  const getTrainingRuntime = () => {
+    if (!trainingRuntimePromise) {
+      trainingRuntimePromise = Promise.resolve().then(createTrainingRuntime).catch((error) => {
+        trainingRuntimePromise = null;
+        throw error;
+      });
+    }
+    return trainingRuntimePromise;
+  };
+  const sendTrainingInitializationError = (response, error) => {
+    logger?.error?.('Training runtime initialization error:', error?.message);
+    response.status(500).json({
+      error: 'Nie udało się uruchomić modułu ćwiczeń.',
+      code: 'TRAINING_INTERNAL_ERROR',
+    });
+  };
   let cacheOperation = Promise.resolve();
   const withCacheLock = (operation) => {
     const next = cacheOperation.then(operation, operation);
@@ -171,16 +201,11 @@ export const createApiApp = ({
   // ręcznie skopiowane pliki, a późniejsze następuje wyłącznie na żądanie API.
   void dataImports.scanInbox();
 
-  app.use('/api/training', createTrainingRouter({
-    repository: trainingRepository,
-    refreshService: trainingRefreshService,
-    trainingService,
-    dataIndex,
-    dataDirectory: cacheDataDirectory,
-    readCanonicalRecords: readTrainingRecords,
-    environment,
-    logger,
-  }));
+  app.use('/api/training', (request, response, next) => {
+    void getTrainingRuntime()
+      .then(({ router }) => router(request, response, next))
+      .catch((error) => sendTrainingInitializationError(response, error));
+  });
 
   app.get('/api/data/status', (_request, response) => {
     void dataIndex.start().catch(() => {});

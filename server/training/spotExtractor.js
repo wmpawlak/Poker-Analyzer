@@ -1,7 +1,7 @@
 import { GAME_VARIANTS, detectGameVariant, normalizeRawHandText } from '../../src/parser/pokerParser.js';
 import { computeDecisionCardFacts } from './decisionCardFacts.js';
 
-export const TRAINING_EXTRACTOR_VERSION = 1;
+export const TRAINING_EXTRACTOR_VERSION = 2;
 
 const EPSILON = 0.000001;
 const SUPPORTED_STREETS = new Set(['PRE_FLOP', 'FLOP', 'TURN', 'RIVER']);
@@ -144,6 +144,27 @@ const getHeroCards = (rawText) => {
   return cards;
 };
 
+const getShowdownHands = (rawText) => {
+  const showdownMatch = String(rawText).match(
+    /^\*\*\*\s+SHOWDOWN\s+\*\*\*\s*([\s\S]*?)(?=^\*\*\*\s+SUMMARY\s+\*\*\*)/im,
+  );
+  const summaryMatch = String(rawText).match(/^\*\*\*\s+SUMMARY\s+\*\*\*\s*([\s\S]*)$/im);
+  const sourceBlocks = [showdownMatch?.[1], summaryMatch?.[1]].filter(Boolean);
+  if (sourceBlocks.length === 0) return new Map();
+
+  const hands = new Map();
+  sourceBlocks.join('\n').split(/\r?\n/).forEach((line) => {
+    const match = line.trim().match(/^(?:Seat\s+\d+:\s*)?([^:]+?):?\s+(?:shows?|showed|mucks?|mucked)\s+\[([^\]]+)\]/i);
+    if (!match) return;
+    const cards = match[2].trim().split(/\s+/).filter(Boolean);
+    if (cards.length !== 2
+      || cards.some((card) => !/^(?:10|[2-9TJQKA])[cdhs]$/i.test(card))
+      || new Set(cards.map((card) => card.toUpperCase())).size !== cards.length) return;
+    hands.set(match[1].trim(), [...cards]);
+  });
+  return hands;
+};
+
 const parseAction = (line, bigBlind) => {
   const match = String(line).match(/^(.+?):\s+(.+)$/);
   if (!match) return null;
@@ -210,10 +231,14 @@ const makeSpot = ({
   priorActions,
   aggression,
   historicalAction,
+  showdownHands,
 }) => {
   const playerSnapshot = clonePlayers(players, invested, folded, allIn);
   const hero = playerSnapshot.find(({ playerId }) => playerId === 'Hero');
   const opponents = playerSnapshot.filter((player) => player.playerId !== 'Hero' && !player.folded);
+  const knownOpponentCards = opponents.length === 1
+    ? showdownHands.get(opponents[0].playerId) || null
+    : null;
   const heroContribution = contributions.get('Hero') || 0;
   const toCall = Math.max(0, Math.min(hero.stack, highContribution - heroContribution));
   const effectiveByOpponent = opponents.map((opponent) => ({
@@ -247,6 +272,7 @@ const makeSpot = ({
     effectiveStackBehindBb: round(effectiveStackBehind / header.bigBlind, 3),
     effectiveStackByOpponent: effectiveByOpponent,
     players: playerSnapshot,
+    knownOpponentCards: knownOpponentCards ? [...knownOpponentCards] : null,
     priorActions: priorActions.map((action) => ({ ...action })),
     legalActions: getLegalActions({ toCall, stack: hero.stack, highContribution, opponentsCanAct }),
     context: {
@@ -291,6 +317,7 @@ export const extractTrainingSpots = (source) => {
       throw new ExtractionError(TRAINING_SPOT_REJECTIONS.MISSING_HAND_ID, 'Identyfikator rekordu nie zgadza się z tekstem rozdania.');
     }
     const heroCards = getHeroCards(rawText);
+    const showdownHands = getShowdownHands(rawText);
     const players = assignPositions(rawText, parseSeats(rawText));
     assertCards(heroCards, []);
     const gameType = source?.gameType === 'tournament' || /^Tournament\s+'/im.test(rawText)
@@ -484,6 +511,7 @@ export const extractTrainingSpots = (source) => {
           priorActions,
           aggression,
           historicalAction,
+          showdownHands,
         }));
       }
 

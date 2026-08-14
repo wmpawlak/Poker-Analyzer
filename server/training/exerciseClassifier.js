@@ -1,4 +1,10 @@
-import { EXERCISE_TYPES } from '../../src/training/trainingTypes.js';
+import { EQUITY_MODES, EXERCISE_TYPES } from '../../src/training/trainingTypes.js';
+import {
+  calculateHoldemEquity,
+  EQUITY_CALCULATOR_VERSION,
+  getEquityAnswerOptions,
+  getEquityBucket,
+} from '../../src/parser/equityCalculator.js';
 import { classifyHeroHand } from './heroHandClassifier.js';
 
 export { EXERCISE_TYPES };
@@ -36,9 +42,10 @@ const groupByHand = (spots) => {
   return groups;
 };
 
-const createQuestion = (spot) => {
+const createQuestion = (spot, { exposeKnownOpponentCards = false } = {}) => {
   const question = { ...spot };
   delete question.historicalAction;
+  if (!exposeKnownOpponentCards) delete question.knownOpponentCards;
   return question;
 };
 
@@ -48,11 +55,50 @@ const createCandidate = (spot, exerciseType, values = {}) => ({
   sourceDecisionId: spot.id,
   handId: spot.handId,
   street: spot.street,
-  question: createQuestion(spot),
+  question: createQuestion(spot, {
+    exposeKnownOpponentCards: exerciseType === EXERCISE_TYPES.EQUITY_POT_ODDS,
+  }),
   heroHand: classifyHeroHand(spot.question?.heroCards),
   historicalAnswer: { ...spot.historicalAction },
   ...values,
 });
+
+const hasKnownOpponentHand = (spot) => (
+  spot?.context?.opponentsInHand === 1
+  && Array.isArray(spot.knownOpponentCards)
+  && spot.knownOpponentCards.length === 2
+);
+
+const createKnownHandCandidate = (spot, { equitySimulationSamples } = {}) => {
+  let equityResult = null;
+  let equityError = null;
+  try {
+    equityResult = calculateHoldemEquity({
+      heroCards: spot.heroCards,
+      villainCards: spot.knownOpponentCards,
+      boardCards: spot.board || [],
+      ...(Number.isInteger(equitySimulationSamples) && equitySimulationSamples > 0
+        ? { simulationSamples: equitySimulationSamples }
+        : {}),
+    });
+  } catch (error) {
+    equityError = error?.message || 'Nie udało się obliczyć equity dla tego spotu.';
+  }
+  const answerOptions = getEquityAnswerOptions();
+  const correctBucket = getEquityBucket(equityResult?.equityPercent)?.id || null;
+  const candidate = createCandidate(spot, EXERCISE_TYPES.EQUITY_POT_ODDS, {
+    equityMode: EQUITY_MODES.KNOWN_HAND,
+    answerOptions,
+    equityCalculatorVersion: EQUITY_CALCULATOR_VERSION,
+    equityResult,
+    equityCorrectBucket: correctBucket,
+    equityError,
+    equityWarning: 'R\u0119ka rywala zosta\u0142a ujawniona p\u00F3\u017Aniej w showdownie wy\u0142\u0105cznie na potrzeby tego \u0107wiczenia.',
+  });
+  candidate.question.equityMode = EQUITY_MODES.KNOWN_HAND;
+  candidate.question.equityWarning = candidate.equityWarning;
+  return candidate;
+};
 
 const toActionOptions = (spot, allowed) => (spot.legalActions || [])
   .filter((action) => allowed.has(action))
@@ -160,12 +206,13 @@ const createTurnRiverCandidate = (spot) => {
   });
 };
 
-export const classifyTrainingSpots = (spots) => {
+export const classifyTrainingSpots = (spots, options = {}) => {
   const pools = {
     [EXERCISE_TYPES.PREFLOP_SELECTION]: [],
     [EXERCISE_TYPES.PREFLOP_VS_RERAISE]: [],
     [EXERCISE_TYPES.CBET_BARRELS]: [],
     [EXERCISE_TYPES.TURN_RIVER]: [],
+    [EXERCISE_TYPES.EQUITY_POT_ODDS]: [],
   };
 
   for (const handSpots of groupByHand(spots).values()) {
@@ -202,6 +249,10 @@ export const classifyTrainingSpots = (spots) => {
     handSpots
       .filter((spot) => ['TURN', 'RIVER'].includes(spot.street))
       .forEach((spot) => pools.turn_river.push(createTurnRiverCandidate(spot)));
+
+    handSpots
+      .filter(hasKnownOpponentHand)
+      .forEach((spot) => pools.equity_pot_odds.push(createKnownHandCandidate(spot, options)));
   }
 
   return pools;

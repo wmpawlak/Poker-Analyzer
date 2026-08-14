@@ -42,6 +42,12 @@ export const scanTrainingCollection = (payload = {}) => requestJson(
   'Nie udało się przeskanować lokalnego datasetu.',
 );
 
+export const activateEquityTraining = (payload = {}) => requestJson(
+  '/api/training/equity/activate',
+  jsonOptions(payload),
+  'Nie udało się aktywować ćwiczeń equity.',
+);
+
 export const startTrainingRefresh = (payload) => requestJson(
   '/api/training/refresh/start',
   jsonOptions(payload),

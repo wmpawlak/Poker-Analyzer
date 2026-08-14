@@ -8,6 +8,24 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  optimizeDeps: {
+    holdUntilCrawlEnd: false,
+    noDiscovery: true,
+    include: [
+      '@daypicker/react',
+      '@daypicker/react/locale',
+      '@reduxjs/toolkit',
+      '@tanstack/react-virtual',
+      'lucide-react',
+      'react',
+      'react-dom',
+      'react-dom/client',
+      'react-redux',
+      'react/jsx-dev-runtime',
+      'react/jsx-runtime',
+      'recharts',
+    ],
+  },
   server: {
     watch: {
       // Raport AI jest zapisywany przez backend po każdej zakończonej analizie.
@@ -15,6 +33,7 @@ export default defineConfig({
       // i utratę bieżącego wyboru sesji w widoku analizy zbiorczej.
       ignored: [
         '**/data/.cache/**',
+        '**/data/.backups/**',
         '**/data/inbox/**/*.txt',
         '**/data/poker/**',
         '**/data/poker-ai-analyses-v1.json',

@@ -41,8 +41,9 @@ lerna-debug.log*
 *.sw?
 
 # Derived indexes and temporary/atomic data files.
-# Canonical application data, including SQLite and migration backups, is tracked.
+# Canonical application data, including SQLite, is tracked; migration backups are local only.
 data/.cache/
+data/.backups/
 data/**/*.tmp
 data/**/*.staging
 data/**/*.lock
