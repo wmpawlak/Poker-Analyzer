@@ -269,6 +269,7 @@ const buildAnswerFeedback = async ({ attempt, spot, key, sourceKey = null, getHa
   }
   return {
     grade: attempt.grade,
+    bigBlind: Number(spot.question?.blinds?.bigBlind) || null,
     answerKey: toPublicAnswerKey(key),
     ...(spot?.exerciseType === EXERCISE_TYPES.EQUITY_POT_ODDS ? {
       equity: clone(key.equityResult || null),

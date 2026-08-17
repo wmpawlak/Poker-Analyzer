@@ -31,6 +31,7 @@ const WalletView = lazyExport(() => import('./views/WalletView.jsx'), 'WalletVie
 const SourcesView = lazyExport(() => import('./views/SourcesView.jsx'), 'SourcesView');
 const SettingsView = lazyExport(() => import('./views/SettingsView.jsx'), 'SettingsView');
 const TrainingView = lazyExport(() => import('./views/TrainingView.jsx'), 'TrainingView');
+const RangesView = lazyExport(() => import('./views/RangesView.jsx'), 'RangesView');
 const ReplayerModal = lazyExport(() => import('./components/replayer/ReplayerModal.jsx'), 'ReplayerModal');
 
 const TabLoading = () => <div role="status" className="rounded-2xl border border-indigo-100 bg-indigo-50 p-8 text-center text-sm font-semibold text-indigo-700">Ładowanie widoku…</div>;
@@ -46,6 +47,7 @@ const TAB_LABELS = {
   sources: 'Wgrane pliki',
   settings: 'Ustawienia AI',
   training: 'Ćwiczenia',
+  ranges: 'Zakresy',
 };
 
 export default function App() {
@@ -188,6 +190,7 @@ export default function App() {
             {activeTab === 'sources' && <SourcesView/>}
             {activeTab === 'settings' && <SettingsView/>}
             {activeTab === 'training' && <TrainingView onOpenHand={setModalHandId}/>}
+            {activeTab === 'ranges' && <RangesView/>}
           </Suspense>
         </div>
       </main>

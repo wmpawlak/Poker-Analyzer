@@ -134,6 +134,7 @@ const question = {
 
 const feedback = {
   grade: 'acceptable',
+  bigBlind: 1,
   answerKey: {
     preferredAnswer: 'small_bet',
     acceptableAlternatives: ['check'],
@@ -228,8 +229,25 @@ test('setup ćwiczeń aktywuje equity lokalnie i odblokowuje tylko dostępne poz
 });
 
 test('pytanie pokazuje wyłącznie stan przed decyzją i oznacza historyczny etap turn', () => {
+  const bbQuestion = {
+    ...question,
+    question: {
+      ...question.question,
+      blinds: { smallBlind: 50, bigBlind: 100, ante: 10 },
+      pot: 1200,
+      toCall: 300,
+      players: [
+        { playerId: 'Hero', position: 'BTN', stack: 7500, folded: false, allIn: false },
+        { playerId: 'Villain', position: 'BB', stack: 8000, folded: false, allIn: false },
+      ],
+      priorActions: [
+        { street: 'FLOP', actor: 'Hero', type: 'bet', amount: 400, toAmount: 400, allIn: false, forced: false },
+        { street: 'FLOP', actor: 'Villain', type: 'call', amount: 400, toAmount: 400, allIn: false, forced: false },
+      ],
+    },
+  };
   const html = renderToStaticMarkup(createElement(TrainingQuestion, {
-    question,
+    question: bbQuestion,
     selectedAnswer: '',
     onSelectAnswer: () => {},
     onSubmit: () => {},
@@ -238,6 +256,11 @@ test('pytanie pokazuje wyłącznie stan przed decyzją i oznacza historyczny eta
   assert.match(html, /Karty Hero · BTN/);
   assert.match(html, /Efektywny stack/);
   assert.match(html, /Wcześniejsze akcje/);
+  assert.match(html, /12 BB/);
+  assert.match(html, /3 BB/);
+  assert.match(html, /75 BB/);
+  assert.match(html, /4 BB/);
+  assert.doesNotMatch(html, /1.?200 BB|7.?500 BB|400 BB/);
   assert.match(html, /Mały bet \(do 40% puli\)/);
   assert.doesNotMatch(html, /Uzasadnienie trenera|Przewidywany zakres rywala|Linia historyczna/);
   assert.doesNotMatch(html, /wynik finansowy|showdown/i);
@@ -482,12 +505,42 @@ test('wynik preferuje krótkie podsumowanie istniejącej analizy rozdania', asyn
   }
 });
 
+test('feedback pokazuje historyczną akcję i wynik wyłącznie w BB', async () => {
+  document.body.innerHTML = '<div id="root"></div>';
+  const root = createRoot(document.getElementById('root'));
+  await act(async () => {
+    root.render(createElement(TrainingFeedback, {
+      feedback: {
+        ...feedback,
+        bigBlind: 100,
+        historicalAction: { type: 'call', amount: 300, allIn: false },
+        historicalResult: { ...feedback.historicalResult, netProfit: -1200 },
+      },
+    }));
+  });
+  try {
+    assert.match(document.body.textContent, /Call 3 BB/);
+    await act(() => document.querySelector('[data-testid="show-training-result"]')
+      .dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })));
+    assert.match(document.body.textContent, /Wynik netto: -12 BB/);
+    assert.doesNotMatch(document.body.textContent, /1[,.]?200|300/);
+  } finally {
+    await act(() => root.unmount());
+  }
+});
+
 test('ikona pot odds odsłania wyliczenie puli, calla i wymaganego equity', async () => {
   document.body.innerHTML = '<div id="root"></div>';
   const root = createRoot(document.getElementById('root'));
   const questionWithCall = {
     ...question,
-    question: { ...question.question, pot: 9, toCall: 3, potOdds: 0.25 },
+    question: {
+      ...question.question,
+      blinds: { smallBlind: 50, bigBlind: 100, ante: 0 },
+      pot: 900,
+      toCall: 300,
+      potOdds: 0.25,
+    },
   };
   await act(async () => {
     root.render(createElement(TrainingQuestion, {
@@ -501,7 +554,8 @@ test('ikona pot odds odsłania wyliczenie puli, calla i wymaganego equity', asyn
     await act(() => info.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })));
     assert.match(document.body.textContent, /Pula przed Twoją decyzją/);
     assert.match(document.body.textContent, /Pula po callu/);
-    assert.match(document.body.textContent, /3 \/ 12 = 25%/);
+    assert.match(document.body.textContent, /3 BB \/ 12 BB = 25%/);
+    assert.doesNotMatch(document.body.textContent, /900|300/);
     assert.match(document.body.textContent, /przed rake i wpływem dalszej gry/);
   } finally {
     await act(() => root.unmount());

@@ -1,5 +1,5 @@
 // src/components/Sidebar.jsx
-import { LayoutDashboard, WalletCards, Settings, BarChart2, Trophy, Database, User, Users, Brain, Dumbbell } from 'lucide-react';
+import { LayoutDashboard, WalletCards, Settings, BarChart2, Trophy, Database, User, Users, Brain, Dumbbell, LayoutGrid } from 'lucide-react';
 
 const NavButton = ({ id, icon: Icon, label, activeTab, setActiveTab }) => (
   <button data-testid={`nav-${id}`} onClick={() => setActiveTab(id)} className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all ${activeTab === id ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white'}`}>
@@ -18,6 +18,7 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
         <NavButton id="session-group-analysis" icon={Brain} label="Analiza wielu sesji" activeTab={activeTab} setActiveTab={setActiveTab} />
         <NavButton id="opponents" icon={Users} label="Przeciwnicy" activeTab={activeTab} setActiveTab={setActiveTab} />
         <NavButton id="training" icon={Dumbbell} label="Ćwiczenia" activeTab={activeTab} setActiveTab={setActiveTab} />
+        <NavButton id="ranges" icon={LayoutGrid} label="Zakresy" activeTab={activeTab} setActiveTab={setActiveTab} />
         <div className="h-px bg-slate-800 my-2"></div>
         <NavButton id="cash" icon={LayoutDashboard} label="Gry Cash" activeTab={activeTab} setActiveTab={setActiveTab} />
         <NavButton id="tournaments" icon={Trophy} label="Turnieje" activeTab={activeTab} setActiveTab={setActiveTab} />

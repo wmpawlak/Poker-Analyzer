@@ -549,6 +549,7 @@ test('sesja wznawia pytanie, zapisuje odpowiedź atomowo i dopiero potem ujawnia
   assert.deepEqual(concurrent.map(({ status }) => status).sort(), [200, 409]);
   const firstFeedback = await concurrent.find(({ status }) => status === 200).json();
   assert.equal(firstFeedback.feedback.grade, TRAINING_GRADES.CORRECT);
+  assert.equal(firstFeedback.feedback.bigBlind, first.question.question.blinds.bigBlind);
   assert.equal(firstFeedback.feedback.answerKey.preferredAnswer, firstPayload.answer);
   assert.equal(firstFeedback.feedback.historicalAction.type, 'fold');
   assert.equal(firstFeedback.feedback.replayerHandId, undefined);

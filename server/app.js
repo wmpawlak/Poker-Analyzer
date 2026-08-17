@@ -53,6 +53,8 @@ import { createTrainingRepository } from './training/trainingRepository.js';
 import { createTrainingRefreshService } from './training/refreshService.js';
 import { createTrainingService } from './training/trainingService.js';
 import { createTrainingRouter } from './training/trainingRoutes.js';
+import { createRangeSetupRepository } from './ranges/rangeSetupRepository.js';
+import { createRangeSetupRouter } from './ranges/rangeSetupRoutes.js';
 
 export const createApiApp = ({
   dataDirectory,
@@ -64,6 +66,7 @@ export const createApiApp = ({
   trainingRepository: injectedTrainingRepository,
   trainingRefreshService: injectedTrainingRefreshService,
   trainingService: injectedTrainingService,
+  rangeSetupRepository: injectedRangeSetupRepository,
   trainingAnalyzeBatch,
   trainingRandom,
   trainingIdFactory,
@@ -80,6 +83,7 @@ export const createApiApp = ({
     logger,
   });
   let trainingRuntimePromise = null;
+  let rangeSetupRouter = null;
   const createTrainingRuntime = () => {
     const trainingRepository = injectedTrainingRepository || createTrainingRepository({
       dataDirectory: cacheDataDirectory,
@@ -134,6 +138,14 @@ export const createApiApp = ({
       error: 'Nie udało się uruchomić modułu ćwiczeń.',
       code: 'TRAINING_INTERNAL_ERROR',
     });
+  };
+  const getRangeSetupRouter = () => {
+    if (!rangeSetupRouter) {
+      rangeSetupRouter = createRangeSetupRouter({
+        repository: injectedRangeSetupRepository || createRangeSetupRepository({ dataDirectory: cacheDataDirectory }),
+      });
+    }
+    return rangeSetupRouter;
   };
   let cacheOperation = Promise.resolve();
   const withCacheLock = (operation) => {
@@ -205,6 +217,18 @@ export const createApiApp = ({
     void getTrainingRuntime()
       .then(({ router }) => router(request, response, next))
       .catch((error) => sendTrainingInitializationError(response, error));
+  });
+
+  app.use('/api/ranges', (request, response, next) => {
+    try {
+      getRangeSetupRouter()(request, response, next);
+    } catch (error) {
+      logger?.error?.('Range setup initialization error:', error?.message);
+      response.status(500).json({
+        error: 'Nie udało się uruchomić modułu zakresów.',
+        code: 'RANGE_SETUP_INTERNAL_ERROR',
+      });
+    }
   });
 
   app.get('/api/data/status', (_request, response) => {

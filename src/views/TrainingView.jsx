@@ -114,6 +114,10 @@ const HISTORICAL_DECISION_META = {
 
 const asNumber = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
 const formatAmount = (value) => asNumber(value).toLocaleString('pl-PL', { maximumFractionDigits: 2 });
+const formatBigBlinds = (value, bigBlind) => {
+  const blind = asNumber(bigBlind);
+  return blind > 0 ? `${formatAmount(asNumber(value) / blind)} BB` : '—';
+};
 const formatPercent = (value) => `${(asNumber(value) * 100).toLocaleString('pl-PL', { maximumFractionDigits: 1 })}%`;
 const formatRangeHandClass = (value) => {
   const notation = String(value || '').trim();
@@ -214,7 +218,7 @@ const QuestionFact = ({ label, value, emphasized = false }) => (
   </div>
 );
 
-export const PotOddsInfo = ({ pot, toCall }) => {
+export const PotOddsInfo = ({ pot, toCall, bigBlind }) => {
   const [open, setOpen] = useState(false);
   const potBefore = asNumber(pot);
   const callAmount = asNumber(toCall);
@@ -249,10 +253,10 @@ export const PotOddsInfo = ({ pot, toCall }) => {
         >
           <span className="mb-2 block text-[10px] font-black uppercase tracking-wider text-indigo-700">Jak liczymy pot odds</span>
           <ol className="list-decimal space-y-1 pl-4 leading-relaxed">
-            <li>Pula przed Twoją decyzją: <strong>{formatAmount(potBefore)}</strong>.</li>
-            <li>Do sprawdzenia: <strong>{formatAmount(callAmount)}</strong>.</li>
-            <li>Pula po callu: <strong>{formatAmount(potBefore)} + {formatAmount(callAmount)} = {formatAmount(potAfterCall)}</strong>.</li>
-            <li><strong>{formatAmount(callAmount)} / {formatAmount(potAfterCall)} = {formatPercent(requiredEquity)}</strong>.</li>
+            <li>Pula przed Twoją decyzją: <strong>{formatBigBlinds(potBefore, bigBlind)}</strong>.</li>
+            <li>Do sprawdzenia: <strong>{formatBigBlinds(callAmount, bigBlind)}</strong>.</li>
+            <li>Pula po callu: <strong>{formatBigBlinds(potBefore, bigBlind)} + {formatBigBlinds(callAmount, bigBlind)} = {formatBigBlinds(potAfterCall, bigBlind)}</strong>.</li>
+            <li><strong>{formatBigBlinds(callAmount, bigBlind)} / {formatBigBlinds(potAfterCall, bigBlind)} = {formatPercent(requiredEquity)}</strong>.</li>
           </ol>
           <span className="mt-2 block border-t border-slate-100 pt-2 leading-relaxed text-slate-500">
             To minimalne equity dla samego calla, przed rake i wpływem dalszej gry.
@@ -269,7 +273,7 @@ const Cards = ({ cards, empty = '—' }) => (
   </div>
 );
 
-const PriorActions = ({ actions }) => (
+const PriorActions = ({ actions, bigBlind }) => (
   <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
     {(actions || []).length === 0 && <p className="p-3 text-sm text-slate-500">Brak wcześniejszych akcji.</p>}
     {(actions || []).map((action, index) => (
@@ -279,8 +283,8 @@ const PriorActions = ({ actions }) => (
         </span>
         <span className={`font-bold ${action.forced ? 'text-slate-500' : ['bet', 'raise'].includes(action.type) ? 'text-orange-600' : 'text-indigo-700'}`}>
           {actionLabel(action.type)}
-          {asNumber(action.amount) > 0 ? ` ${formatAmount(action.amount)}` : ''}
-          {action.type === 'raise' && asNumber(action.toAmount) > 0 ? ` do ${formatAmount(action.toAmount)}` : ''}
+          {asNumber(action.amount) > 0 ? ` ${formatBigBlinds(action.amount, bigBlind)}` : ''}
+          {action.type === 'raise' && asNumber(action.toAmount) > 0 ? ` do ${formatBigBlinds(action.toAmount, bigBlind)}` : ''}
           {action.allIn ? ' · all-in' : ''}
         </span>
       </div>
@@ -300,7 +304,7 @@ const PlayerStacks = ({ players, bigBlind }) => (
             <td className="px-3 py-2 font-bold text-slate-700">{player.playerId}</td>
             <td className="px-3 py-2 text-slate-500">{player.position}</td>
             <td className="px-3 py-2 text-right font-mono font-bold text-slate-700">
-              {formatAmount(player.stack)}{bigBlind > 0 ? ` · ${formatAmount(player.stack / bigBlind)} BB` : ''}
+              {formatBigBlinds(player.stack, bigBlind)}
             </td>
             <td className="px-3 py-2 text-right text-slate-500">{player.folded ? 'fold' : player.allIn ? 'all-in' : 'w grze'}</td>
           </tr>
@@ -477,10 +481,10 @@ export const TrainingQuestion = ({
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div className="rounded-xl bg-slate-800 p-3"><div className="text-[10px] uppercase text-slate-400">Pula</div><div className="mt-1 font-black">{formatAmount(state.pot)}</div></div>
-            <div className="rounded-xl bg-slate-800 p-3"><div className="text-[10px] uppercase text-slate-400">Do sprawdzenia</div><div className="mt-1 font-black">{formatAmount(state.toCall)}</div></div>
+            <div className="rounded-xl bg-slate-800 p-3"><div className="text-[10px] uppercase text-slate-400">Pula</div><div className="mt-1 font-black">{formatBigBlinds(state.pot, bigBlind)}</div></div>
+            <div className="rounded-xl bg-slate-800 p-3"><div className="text-[10px] uppercase text-slate-400">Do sprawdzenia</div><div className="mt-1 font-black">{formatBigBlinds(state.toCall, bigBlind)}</div></div>
             <div className="rounded-xl bg-slate-800 p-3">
-              <div className="flex items-center text-[10px] uppercase text-slate-400">Pot odds <PotOddsInfo pot={state.pot} toCall={state.toCall}/></div>
+              <div className="flex items-center text-[10px] uppercase text-slate-400">Pot odds <PotOddsInfo pot={state.pot} toCall={state.toCall} bigBlind={bigBlind}/></div>
               <div className="mt-1 font-black">{asNumber(state.toCall) > 0 ? formatPercent(state.potOdds) : '—'}</div>
             </div>
             <div className="rounded-xl bg-slate-800 p-3"><div className="text-[10px] uppercase text-slate-400">Efektywny stack</div><div className="mt-1 font-black">{formatAmount(state.effectiveStackBb)} BB</div></div>
@@ -490,7 +494,7 @@ export const TrainingQuestion = ({
         <div className="grid grid-cols-2 gap-2 content-start">
           <QuestionFact label="Format" value={question.gameType === 'tournament' ? 'Turniej' : 'Cash'}/>
           <QuestionFact label="Ulica" value={question.street}/>
-          <QuestionFact label="Blindy" value={`${formatAmount(state.blinds?.smallBlind)} / ${formatAmount(state.blinds?.bigBlind)}${asNumber(state.blinds?.ante) > 0 ? ` · ante ${formatAmount(state.blinds.ante)}` : ''}`}/>
+          <QuestionFact label="Blindy" value={`${formatBigBlinds(state.blinds?.smallBlind, bigBlind)} / ${formatBigBlinds(state.blinds?.bigBlind, bigBlind)}${asNumber(state.blinds?.ante) > 0 ? ` · ante ${formatBigBlinds(state.blinds.ante, bigBlind)}` : ''}`}/>
           <QuestionFact label="Graczy w rozdaniu" value={state.context?.opponentsInHand + 1 || '—'}/>
           {question.scenario && <QuestionFact label="Scenariusz" value={actionLabel(question.scenario)} emphasized/>}
           {question.sequenceLength > 1 && <QuestionFact label="Etap epizodu" value={`${question.sequenceIndex} z ${question.sequenceLength}`} emphasized/>}
@@ -504,7 +508,7 @@ export const TrainingQuestion = ({
         </div>
         <div>
           <h4 className="mb-2 text-xs font-black uppercase tracking-wider text-slate-500">Wcześniejsze akcje</h4>
-          <PriorActions actions={state.priorActions}/>
+          <PriorActions actions={state.priorActions} bigBlind={bigBlind}/>
         </div>
       </div>
 
@@ -592,6 +596,7 @@ export const TrainingFeedback = ({
   const historicalResult = feedback.historicalResult;
   const historicalDecision = feedback.historicalDecision;
   const historicalSummary = String(feedback.historicalSummary || '').trim();
+  const bigBlind = asNumber(feedback.bigBlind);
   const hasHistoricalDetails = Boolean(historicalResult?.outcome || historicalDecision?.grade || historicalSummary);
   const outcomeLabel = {
     WON: 'Hero wygrał rozdanie',
@@ -635,13 +640,13 @@ export const TrainingFeedback = ({
           <p className="mt-2 text-xs text-slate-500">Rzeczywisty wynik nie jest wyznacznikiem jakości decyzji.</p>
           <p className="mt-4 rounded-xl bg-white p-4 text-sm font-black text-slate-800">
             {actionLabel(feedback.historicalAction?.type)}
-            {asNumber(feedback.historicalAction?.amount) > 0 ? ` ${formatAmount(feedback.historicalAction.amount)}` : ''}
+            {asNumber(feedback.historicalAction?.amount) > 0 ? ` ${formatBigBlinds(feedback.historicalAction.amount, bigBlind)}` : ''}
             {feedback.historicalAction?.allIn ? ' · all-in' : ''}
           </p>
           {resultVisible && hasHistoricalDetails && (
             <div data-testid="training-historical-result" className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
               {outcomeLabel && <p><strong>{outcomeLabel}.</strong>{historicalResult.sawShowdown ? ' Rozdanie doszło do showdownu.' : ''}</p>}
-              {historicalResult?.outcome && <p>Wynik netto: <strong className={asNumber(historicalResult.netProfit) >= 0 ? 'text-emerald-700' : 'text-rose-700'}>{asNumber(historicalResult.netProfit) > 0 ? '+' : ''}{formatAmount(historicalResult.netProfit)}</strong>.</p>}
+              {historicalResult?.outcome && <p>Wynik netto: <strong className={asNumber(historicalResult.netProfit) >= 0 ? 'text-emerald-700' : 'text-rose-700'}>{asNumber(historicalResult.netProfit) > 0 ? '+' : ''}{formatBigBlinds(historicalResult.netProfit, bigBlind)}</strong>.</p>}
               {historicalDecision && <p className={historicalMeta?.classes}><strong>Strategicznie: {historicalMeta?.label}.</strong> {historicalDecision.comment}</p>}
               {historicalSummary && <p className="border-t border-slate-100 pt-3 leading-relaxed"><strong>Podsumowanie analizy:</strong> {historicalSummary}</p>}
             </div>
